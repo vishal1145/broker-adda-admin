@@ -1,0 +1,34 @@
+globalThis.__BUILD_MANIFEST = {
+  "pages": {
+    "/_app": [
+      "static/chunks/9ed2ac6f1f91d552.js",
+      "static/chunks/98d75b2c98060ec4.js",
+      "static/chunks/turbopack-95afbfe031c1be48.js"
+    ],
+    "/_error": [
+      "static/chunks/b349099e34b85ed7.js",
+      "static/chunks/98d75b2c98060ec4.js",
+      "static/chunks/turbopack-d9924da354301b84.js"
+    ]
+  },
+  "devFiles": [],
+  "ampDevFiles": [],
+  "polyfillFiles": [
+    "static/chunks/a6dad97d9634a72d.js"
+  ],
+  "lowPriorityFiles": [],
+  "rootMainFiles": [
+    "static/chunks/4d9e678e8146f3b1.js",
+    "static/chunks/e105153b5f8acd93.js",
+    "static/chunks/d0a84255afa58dcb.js",
+    "static/chunks/17176f0e863a02bc.js",
+    "static/chunks/3608b25c7f851cec.js",
+    "static/chunks/turbopack-135dd4a6d41f00a1.js"
+  ],
+  "ampFirstPages": []
+};
+globalThis.__BUILD_MANIFEST.lowPriorityFiles = [
+"/static/" + process.env.__NEXT_BUILD_ID + "/_buildManifest.js",
+,"/static/" + process.env.__NEXT_BUILD_ID + "/_ssgManifest.js",
+
+];
