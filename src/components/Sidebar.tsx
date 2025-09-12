@@ -88,10 +88,10 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
           <div className="flex-1 flex flex-col pt-8 pb-4 overflow-y-auto">
             {/* Logo */}
             <div className="flex items-center flex-shrink-0 px-6 mb-8">
-              <div className="w-8 h-8 rounded-sm flex items-center justify-center mr-3" style={{ backgroundColor: 'var(--primary)' }}>
+              <div className="w-8 h-8 rounded-sm flex items-center justify-center mr-3 bg-primary">
                 <span className="text-white text-lg font-bold">B</span>
               </div>
-              <h1 className="text-gray-800 text-xl font-bold">Broker Adda</h1>
+              <h1 className="text-xl font-bold text-gray-800">Broker Adda</h1>
             </div>
             
             {/* Navigation */}
@@ -104,16 +104,15 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
                     href={item.href}
                     className={`${
                       isActive
-                        ? 'text-white'
+                        ? 'bg-primary text-white'
                         : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
                     } group flex items-center px-4 py-3 text-sm font-medium transition-colors duration-200 relative`}
                     style={isActive ? { 
-                      backgroundColor: 'var(--primary)',
                       borderRight: '4px solid var(--primary)'
                     } : {}}
                     onClick={() => setSidebarOpen(false)}
                   >
-                    <span className={`mr-3 ${isActive ? 'text-white' : ''}`} style={isActive ? {} : { color: 'var(--primary)' }}>{item.icon}</span>
+                    <span className={`mr-3 ${isActive ? 'text-white' : 'text-primary'}`}>{item.icon}</span>
                     {item.name}
                   </Link>
                 );

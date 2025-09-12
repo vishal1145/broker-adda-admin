@@ -14,7 +14,7 @@ export default function Dashboard() {
       change: '+7.12%',
       changeType: 'positive',
       icon: (
-        <svg className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 20 20">
           <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
         </svg>
       ),
@@ -25,7 +25,7 @@ export default function Dashboard() {
       change: '+8.3%',
       changeType: 'positive',
       icon: (
-        <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-8 h-8 text-secondary" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
         </svg>
       ),
@@ -93,7 +93,7 @@ export default function Dashboard() {
             <select 
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary "
             >
               <option>This Month</option>
               <option>Last Month</option>
@@ -133,19 +133,19 @@ export default function Dashboard() {
               <div className="flex space-x-1">
                 <button 
                   onClick={() => setActiveTab('Daily')}
-                  className={`px-3 py-1 text-sm rounded ${activeTab === 'Daily' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                  className={`px-3 py-1 text-sm rounded ${activeTab === 'Daily' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-100'}`}
                 >
                   Daily
                 </button>
                 <button 
                   onClick={() => setActiveTab('Weekly')}
-                  className={`px-3 py-1 text-sm rounded ${activeTab === 'Weekly' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                  className={`px-3 py-1 text-sm rounded ${activeTab === 'Weekly' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-100'}`}
                 >
                   Weekly
                 </button>
                 <button 
                   onClick={() => setActiveTab('Monthly')}
-                  className={`px-3 py-1 text-sm rounded ${activeTab === 'Monthly' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                  className={`px-3 py-1 text-sm rounded ${activeTab === 'Monthly' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-100'}`}
                 >
                   Monthly
                 </button>
@@ -180,7 +180,7 @@ export default function Dashboard() {
                 {/* Line chart */}
                 <polyline
                   fill="none"
-                  stroke="#dc2626"
+                  stroke="#1E40AF"
                   strokeWidth="3"
                   points={chartData.map((item, index) => 
                     `${60 + index * 50},${180 - (item.value - 30) * 1.5}`
@@ -194,7 +194,7 @@ export default function Dashboard() {
                     cx={60 + index * 50}
                     cy={180 - (item.value - 30) * 1.5}
                     r="4"
-                    fill="#dc2626"
+                    fill="#1E40AF"
                   />
                 ))}
               </svg>
@@ -216,7 +216,7 @@ export default function Dashboard() {
                       cy="50"
                       r="40"
                       fill="none"
-                      stroke="#1e40af"
+                      stroke="#1E40AF"
                       strokeWidth="20"
                       strokeDasharray={`${45 * 2.51} 251`}
                       strokeDashoffset="0"
@@ -227,7 +227,7 @@ export default function Dashboard() {
                       cy="50"
                       r="40"
                       fill="none"
-                      stroke="#eab308"
+                      stroke="#F59E0B"
                       strokeWidth="20"
                       strokeDasharray={`${25 * 2.51} 251`}
                       strokeDashoffset={`-${45 * 2.51}`}
@@ -238,7 +238,7 @@ export default function Dashboard() {
                       cy="50"
                       r="40"
                       fill="none"
-                      stroke="#3b82f6"
+                      stroke="#3B82F6"
                       strokeWidth="20"
                       strokeDasharray={`${20 * 2.51} 251`}
                       strokeDashoffset={`-${70 * 2.51}`}
@@ -249,7 +249,7 @@ export default function Dashboard() {
                       cy="50"
                       r="40"
                       fill="none"
-                      stroke="#dc2626"
+                      stroke="#EF4444"
                       strokeWidth="20"
                       strokeDasharray={`${10 * 2.51} 251`}
                       strokeDashoffset={`-${90 * 2.51}`}
@@ -287,7 +287,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Site/Project Performance</h3>
-              <a href="#" className="text-sm text-red-600 hover:text-red-700 flex items-center">
+              <a href="#" className="text-sm text-primary hover:text-hover flex items-center">
                 View All Projects 
                 <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -299,7 +299,7 @@ export default function Dashboard() {
               <input
                 type="text"
                 placeholder="Search Projects"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary"
               />
             </div>
 
@@ -360,7 +360,7 @@ export default function Dashboard() {
                     <p className="text-sm font-medium text-gray-900">Tag Validity Setting</p>
                     <p className="text-sm text-gray-500">Default: 60 Days</p>
                   </div>
-                  <a href="#" className="text-sm text-red-600 hover:text-red-700 flex items-center">
+                  <a href="#" className="text-sm text-primary hover:text-hover flex items-center">
                     Edit 
                     <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -373,7 +373,7 @@ export default function Dashboard() {
                     <p className="text-sm font-medium text-gray-900">Site Settings Access</p>
                     <p className="text-sm text-gray-500">12 Sites Configured</p>
                   </div>
-                  <a href="#" className="text-sm text-red-600 hover:text-red-700 flex items-center">
+                  <a href="#" className="text-sm text-primary hover:text-hover flex items-center">
                     Manage 
                     <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -413,7 +413,7 @@ export default function Dashboard() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
-                <a href="#" className="text-sm text-red-600 hover:text-red-700 flex items-center">
+                <a href="#" className="text-sm text-primary hover:text-hover flex items-center">
                   View All 
                   <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

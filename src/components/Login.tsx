@@ -17,7 +17,7 @@ export default function Login() {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/auth/admin-login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/auth/admin-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,11 +29,18 @@ export default function Login() {
       });
 
       const data = await response.json();
+      console.log('Login response:', data); // Debug log
 
       if (response.ok) {
-        // Store token if provided
-        if (data.token) {
-          localStorage.setItem('adminToken', data.token);
+        // Store token if provided (check nested structure)
+        const token = data.data?.token || data.token || data.accessToken || data.access_token || data.authToken;
+        if (token) {
+          localStorage.setItem('adminToken', token);
+          console.log('Token saved to localStorage:', token); // Debug log
+        } else {
+          console.log('No token found in response:', data); // Debug log
+          setError('No authentication token received from server.');
+          return;
         }
         router.push('/dashboard');
       } else {
@@ -54,11 +61,11 @@ export default function Login() {
           {/* Logo - Top Left */}
           <div className="absolute top-16 ">
             <div className="flex items-center">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 bg-red-600">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 bg-primary">
                 <span className="text-white text-xl font-bold">B</span>
               </div>
               <div>
-                <span className="text-red-500 text-2xl font-bold">Broker</span>
+                <span className="text-2xl font-bold text-primary">Broker</span>
                 <span className="text-white text-2xl font-bold ml-1">Adda</span>
               </div>
             </div>
@@ -110,7 +117,7 @@ export default function Login() {
                 type="email"
                 autoComplete="email"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg transition-colors focus:ring-2 focus:ring-primary focus:border-primary"
                 placeholder="admin@brokeradda.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -127,7 +134,7 @@ export default function Login() {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg transition-colors focus:ring-2 focus:ring-primary focus:border-primary"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -143,7 +150,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className="w-full bg-primary text-white py-3 px-4 rounded-lg hover:bg-hover focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
@@ -156,14 +163,7 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Forgot your password?{' '}
-              <a href="#" className="text-red-600 hover:text-red-700 font-medium">
-                Reset here
-              </a>
-            </p>
-          </div>
+         
         </div>
       </div>
     </div>

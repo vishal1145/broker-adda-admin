@@ -2,12 +2,12 @@
   "name": "broker-adda-admin",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
-    "start": "next start",
-    "lint": "eslint"
-  },
+"scripts": {
+  "dev": "next dev --turbopack -p 4189",
+  "build": "next build --turbopack",
+  "start": "next start -p 4189",
+  "lint": "eslint"
+},
   "dependencies": {
     "chart.js": "^4.5.0",
     "next": "15.5.2",

@@ -1,121 +1,122 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
+import { brokerAPI } from '@/services/api';
+
+interface Broker {
+  _id: string;
+  userId: string;
+  firmName: string;
+  region: Array<{
+    _id: string;
+    name: string;
+    description: string;
+  }>;
+  regionId: string | null;
+  status: string;
+  approvedByAdmin: boolean;
+  kycDocs: {
+    aadhar: string;
+    pan: string;
+    gst: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+  // Optional fields that might be populated
+  name?: string;
+  email?: string;
+  phone?: string;
+}
 
 export default function BrokersPage() {
-  const [activeTab, setActiveTab] = useState('Registered Brokers');
+  const [brokers, setBrokers] = useState<Broker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalBrokers, setTotalBrokers] = useState(0);
 
-  const brokers = [
-    {
-      id: 1,
-      name: 'Ralph Edwards',
-      email: 'ralph.edwards@email.com',
-      mobile: '+91 9856547563',
-      status: 'Pending',
-      photo: 'RE'
-    },
-    {
-      id: 2,
-      name: 'Wade Warren',
-      email: 'wade.warren@email.com',
-      mobile: '+91 9876543210',
-      status: 'Approved',
-      photo: 'WW'
-    },
-    {
-      id: 3,
-      name: 'Brooklyn Simmons',
-      email: 'brooklyn.simmons@email.com',
-      mobile: '+91 9123456789',
-      status: 'Rejected',
-      photo: 'BS'
-    },
-    {
-      id: 4,
-      name: 'Cody Fisher',
-      email: 'cody.fisher@email.com',
-      mobile: '+91 9988776655',
-      status: 'Pending',
-      photo: 'CF'
-    },
-    {
-      id: 5,
-      name: 'Dianne Russell',
-      email: 'dianne.russell@email.com',
-      mobile: '+91 9112233445',
-      status: 'Approved',
-      photo: 'DR'
-    },
-    {
-      id: 6,
-      name: 'Guy Hawkins',
-      email: 'guy.hawkins@email.com',
-      mobile: '+91 9556677889',
-      status: 'Pending',
-      photo: 'GH'
-    },
-    {
-      id: 7,
-      name: 'Jane Cooper',
-      email: 'jane.cooper@email.com',
-      mobile: '+91 9445566778',
-      status: 'Approved',
-      photo: 'JC'
-    },
-    {
-      id: 8,
-      name: 'Robert Fox',
-      email: 'robert.fox@email.com',
-      mobile: '+91 9334455667',
-      status: 'Rejected',
-      photo: 'RF'
-    },
-    {
-      id: 9,
-      name: 'Savannah Nguyen',
-      email: 'savannah.nguyen@email.com',
-      mobile: '+91 9223344556',
-      status: 'Pending',
-      photo: 'SN'
-    },
-    {
-      id: 10,
-      name: 'Marvin McKinney',
-      email: 'marvin.mckinney@email.com',
-      mobile: '+91 9112233445',
-      status: 'Approved',
-      photo: 'MM'
+  // Fetch brokers from API
+  const fetchBrokers = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const approvedByAdmin = statusFilter === 'approved' ? true : statusFilter === 'pending' ? false : undefined;
+      const response = await brokerAPI.getBrokers(currentPage, 10, approvedByAdmin);
+      
+      console.log('API Response:', response); // Debug log
+      
+      setBrokers(response.data.brokers || []);
+      setTotalPages(response.data.pagination.totalPages || 1);
+      setTotalBrokers(response.data.pagination.totalBrokers || 0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch brokers');
+    } finally {
+      setLoading(false);
     }
-  ];
-
-  const handleApprove = (brokerId: number) => {
-    console.log('Approving broker:', brokerId);
-    // Add your approval logic here
   };
 
-  const handleReject = (brokerId: number) => {
-    console.log('Rejecting broker:', brokerId);
-    // Add your rejection logic here
+  // Handle broker approval
+  const handleApprove = async (brokerId: string) => {
+    try {
+      setError('');
+      await brokerAPI.approveBroker(brokerId);
+      await fetchBrokers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve broker');
+    }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Approved':
-        return 'bg-green-100 text-green-800';
-      case 'Rejected':
-        return 'bg-red-100 text-red-800';
-      case 'Pending':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  // Handle broker rejection
+  const handleReject = async (brokerId: string) => {
+    try {
+      setError('');
+      await brokerAPI.rejectBroker(brokerId);
+      await fetchBrokers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reject broker');
     }
+  };
+
+  // Filter brokers based on search term
+  const filteredBrokers = brokers.filter(broker =>
+    (broker.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (broker.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (broker.phone || '').includes(searchTerm) ||
+    broker.firmName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Fetch brokers when component mounts or filters change
+  useEffect(() => {
+    fetchBrokers();
+  }, [currentPage, statusFilter]);
+
+  // Reset to page 1 when status filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
+
+  // Helper functions
+  const getStatusColor = (approved: boolean) => {
+    return approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+  };
+
+  const getStatusText = (approved: boolean) => {
+    return approved ? 'Approved' : 'Pending';
+  };
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
   return (
     <Layout>
-      <div className=" space-y-6">
+      <div className="p-6 space-y-6">
         {/* Page Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Brokers</h1>
@@ -134,25 +135,35 @@ export default function BrokersPage() {
               </div>
               <input
                 type="text"
-                placeholder="Search by Name, Email, Phone Number"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="Search by Firm Name, Contact, Region"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary"
               />
             </div>
           </div>
 
-         
-
-          {/* Action Buttons */}
-          <div className="flex space-x-3">
-           
-            <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
-              </svg>
-              Advanced Filters
-            </button>
+          {/* Status Filter */}
+          <div className="flex items-center space-x-4">
+            <label className="text-sm font-medium text-gray-700">Status:</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+            >
+              <option value="all">All Brokers</option>
+              <option value="pending">Pending Approval</option>
+              <option value="approved">Approved</option>
+            </select>
           </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
 
         {/* Brokers Table */}
         <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
@@ -161,77 +172,105 @@ export default function BrokersPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PHOTO</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NAME</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">EMAIL</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NUMBER</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">FIRM NAME</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CONTACT</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">JOINED</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {brokers.map((broker) => (
-                  <tr key={broker.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-700">{broker.photo}</span>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-4 text-center">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        <span className="ml-2 text-gray-600">Loading brokers...</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{broker.name}</div>
+                  </tr>
+                ) : filteredBrokers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                      No brokers found
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{broker.email}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{broker.mobile}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(broker.status)}`}>
-                        {broker.status}
-                      </span>
-                    </td>
+                  </tr>
+                ) : (
+                  filteredBrokers.map((broker) => (
+                    <tr key={broker._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
+                          <span className="text-sm font-medium text-white">
+                            {getInitials(broker.firmName || broker.name || 'B')}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {broker.firmName || 'N/A'}
+                        </div>
+                        {broker.name && (
+                          <div className="text-xs text-gray-500">{broker.name}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {broker.email || 'N/A'}
+                        </div>
+                        {broker.phone && (
+                          <div className="text-xs text-gray-500">{broker.phone}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {broker.region.length > 0 
+                            ? broker.region.map(r => r.name).join(', ')
+                            : 'No Region'
+                          }
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(broker.approvedByAdmin)}`}>
+                          {getStatusText(broker.approvedByAdmin)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {new Date(broker.createdAt).toLocaleDateString()}
+                        </div>
+                      </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        {broker.status === 'Pending' ? (
+                          {!broker.approvedByAdmin ? (
                           <>
-                            <button 
-                              onClick={() => handleApprove(broker.id)}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                            >
-                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                              Approve
-                            </button>
-                            <button 
-                              onClick={() => handleReject(broker.id)}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                            >
-                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                              Reject
-                            </button>
+                              <button 
+                                onClick={() => handleApprove(broker._id)}
+                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                              >
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Approve
+                              </button>
+                              <button 
+                                onClick={() => handleReject(broker._id)}
+                                className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                              >
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Reject
+                              </button>
                           </>
                         ) : (
-                          <>
-                            <button className="text-gray-400 hover:text-gray-600">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                            </button>
-                            <button className="text-gray-400 hover:text-gray-600">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                          </>
+                            <span className="text-green-600 text-xs font-medium">Approved</span>
                         )}
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -240,24 +279,38 @@ export default function BrokersPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-700">
-            Showing 1-10 of {brokers.length} Brokers
+            Showing {((currentPage - 1) * 10) + 1}-{Math.min(currentPage * 10, totalBrokers)} of {totalBrokers} Brokers
           </div>
           <div className="flex items-center space-x-2">
-            <button className="p-2 text-gray-400 hover:text-gray-600">
+            <button 
+              onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <button className={`px-3 py-1 text-sm rounded ${currentPage === 1 ? 'text-white' : 'text-gray-500 hover:text-gray-700'}`} style={currentPage === 1 ? { backgroundColor: 'var(--primary)' } : {}}>
-              01
+            
+            {/* Page Numbers */}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const pageNum = i + 1;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`px-3 py-1 text-sm rounded ${currentPage === pageNum ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  {pageNum.toString().padStart(2, '0')}
             </button>
-            <button className={`px-3 py-1 text-sm rounded ${currentPage === 2 ? 'text-white' : 'text-gray-500 hover:text-gray-700'}`} style={currentPage === 2 ? { backgroundColor: 'var(--primary)' } : {}}>
-              02
-            </button>
-            <button className={`px-3 py-1 text-sm rounded ${currentPage === 3 ? 'text-white' : 'text-gray-500 hover:text-gray-700'}`} style={currentPage === 3 ? { backgroundColor: 'var(--primary)' } : {}}>
-              03
-            </button>
-            <button className="p-2 text-gray-400 hover:text-gray-600">
+              );
+            })}
+            
+            <button 
+              onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
