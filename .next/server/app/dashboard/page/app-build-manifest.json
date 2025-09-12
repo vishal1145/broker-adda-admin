@@ -3,14 +3,13 @@
     "/dashboard/page": [
       "static/chunks/b4da60d3b4fc5bee.js",
       "static/chunks/755fe64d2e4c2509.js",
-      "static/chunks/2e7014cc4ebff9e8.css",
-      "static/chunks/07f1efb63dee3b4f.js",
-      "static/chunks/4d9e678e8146f3b1.js",
+      "static/chunks/ee16ca464146b07d.css",
+      "static/chunks/78ec43c44d7b93c5.js",
+      "static/chunks/028ef49f3b24278e.js",
+      "static/chunks/04d521fbed582975.js",
       "static/chunks/e105153b5f8acd93.js",
-      "static/chunks/d0a84255afa58dcb.js",
-      "static/chunks/17176f0e863a02bc.js",
-      "static/chunks/3608b25c7f851cec.js",
-      "static/chunks/turbopack-135dd4a6d41f00a1.js"
+      "static/chunks/301e7f4a794c077b.js",
+      "static/chunks/turbopack-46d05debbf0fff18.js"
     ]
   }
 }

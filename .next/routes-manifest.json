@@ -55,6 +55,12 @@
       "regex": "^/login(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/regions",
+      "regex": "^/regions(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/regions(?:/)?$"
     }
   ],
   "dataRoutes": [],

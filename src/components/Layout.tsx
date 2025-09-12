@@ -1,35 +1,48 @@
 'use client';
 
-import { useState } from 'react';
-import Sidebar from './Sidebar';
+import { usePathname } from 'next/navigation';
 
 interface LayoutProps {
   children: React.ReactNode;
- 
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+    <div className="h-screen flex overflow-hidden bg-white">
+      {/* Sidebar completely hidden */}
+      {/* <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} /> */}
 
       {/* Main content */}
-      <div className="flex flex-col w-0 flex-1 overflow-hidden">
+      <div className="flex flex-col w-full overflow-hidden">
         {/* Top bar */}
         <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow-sm border-b border-gray-200">
-          <button
-            type="button"
-            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <span className="sr-only">Open sidebar</span>
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-         <div className="flex-1 px-10 flex justify-end items-center">
+          {/* Region Tabs */}
+          <div className="flex items-center px-8 space-x-8">
+            <a
+              href="/brokers"
+              className={`text-sm font-medium transition-colors border-b-2 ${
+                pathname === '/brokers'
+                  ? 'text-primary border-primary'
+                  : 'text-gray-700 hover:text-primary border-transparent hover:border-primary'
+              }`}
+            >
+              Brokers
+            </a>
+            <a
+              href="/regions"
+              className={`text-sm font-medium transition-colors border-b-2 ${
+                pathname === '/regions'
+                  ? 'text-primary border-primary'
+                  : 'text-gray-700 hover:text-primary border-transparent hover:border-primary'
+              }`}
+            >
+              Regions
+            </a>
+          </div>
+          
+          <div className="flex-1 px-10 flex justify-end items-center">
   <div className="flex items-center space-x-4">
    
     {/* User Profile */}
@@ -63,7 +76,7 @@ export default function Layout({ children }: LayoutProps) {
         {/* Page content */}
         <main className="flex-1 relative overflow-y-auto focus:outline-none">
           <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+            <div className="max-w-7xl mx-auto   ">
             
               {children}
             </div>

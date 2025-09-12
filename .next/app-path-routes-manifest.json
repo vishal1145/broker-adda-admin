@@ -4,5 +4,6 @@
   "/dashboard/page": "/dashboard",
   "/favicon.ico/route": "/favicon.ico",
   "/login/page": "/login",
-  "/page": "/"
+  "/page": "/",
+  "/regions/page": "/regions"
 }

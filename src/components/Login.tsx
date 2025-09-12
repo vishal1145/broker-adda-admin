@@ -42,7 +42,7 @@ export default function Login() {
           setError('No authentication token received from server.');
           return;
         }
-        router.push('/dashboard');
+        router.push('/regions');
       } else {
         setError(data.message || 'Login failed. Please try again.');
       }

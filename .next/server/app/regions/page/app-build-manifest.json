@@ -1,0 +1,15 @@
+{
+  "pages": {
+    "/regions/page": [
+      "static/chunks/b4da60d3b4fc5bee.js",
+      "static/chunks/755fe64d2e4c2509.js",
+      "static/chunks/ee16ca464146b07d.css",
+      "static/chunks/a698b2ba71190eee.js",
+      "static/chunks/028ef49f3b24278e.js",
+      "static/chunks/04d521fbed582975.js",
+      "static/chunks/e105153b5f8acd93.js",
+      "static/chunks/301e7f4a794c077b.js",
+      "static/chunks/turbopack-46d05debbf0fff18.js"
+    ]
+  }
+}
