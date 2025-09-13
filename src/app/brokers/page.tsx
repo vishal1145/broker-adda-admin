@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { brokerAPI } from '@/services/api';
+import Select from 'react-select';
+import ReactPaginate from 'react-paginate';
 
 interface Broker {
   _id: string;
@@ -145,6 +147,47 @@ export default function BrokersPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
+  // Format date to "9 July 2025" format
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.toLocaleString('default', { month: 'long' });
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+  // Skeleton loader component for broker table rows
+  const BrokerSkeletonRow = () => (
+    <tr className="bg-white border-b border-gray-200">
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center">
+          <div className="flex-shrink-0">
+            <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
+          </div>
+          <div className="ml-4 space-y-2">
+            <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
+            <div className="h-3 bg-gray-200 rounded animate-pulse w-36"></div>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-40"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-6 bg-gray-200 rounded-full animate-pulse w-20"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center space-x-2">
+          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      </td>
+    </tr>
+  );
+
   return (
     <Layout>
       <div className=" space-y-6">
@@ -177,15 +220,50 @@ export default function BrokersPage() {
           {/* Status Filter */}
           <div className="flex items-center space-x-4">
             <label className="text-sm font-medium text-gray-700">Status:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
-            >
-              <option value="all">All Brokers</option>
-              <option value="pending">Pending Approval</option>
-              <option value="approved">Approved</option>
-            </select>
+            <div className="w-48">
+              <Select
+                options={[
+                  { value: 'all', label: 'All Brokers' },
+                  { value: 'pending', label: 'Pending Approval' },
+                  { value: 'approved', label: 'Approved' }
+                ]}
+                value={{ value: statusFilter, label: statusFilter === 'all' ? 'All Brokers' : statusFilter === 'pending' ? 'Pending Approval' : 'Approved' }}
+                onChange={(option) => setStatusFilter(option?.value || 'all')}
+                placeholder="Select Status"
+                isSearchable={false}
+                isClearable={false}
+                styles={{
+                  control: (provided, state) => ({
+                    ...provided,
+                    minHeight: '40px',
+                    fontSize: '14px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.5)' : 'none',
+                    '&:hover': {
+                      border: '1px solid #9ca3af'
+                    }
+                  }),
+                  option: (provided, state) => ({
+                    ...provided,
+                    backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
+                    color: state.isSelected ? 'white' : '#374151',
+                    fontSize: '14px',
+                    padding: '8px 12px'
+                  }),
+                  singleValue: (provided) => ({
+                    ...provided,
+                    color: '#374151',
+                    fontSize: '14px'
+                  }),
+                  placeholder: (provided) => ({
+                    ...provided,
+                    color: '#9ca3af',
+                    fontSize: '14px'
+                  })
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -197,28 +275,27 @@ export default function BrokersPage() {
         )}
 
         {/* Brokers Table */}
-        <div className=" shadow-sm rounded-lg border border-gray-300 overflow-hidden">
+        <div className="shadow-sm rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-300">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NAME</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">COMPANY NAME</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Firm NAME</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CONTACT</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-300">
                 {loading ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                        <span className="ml-2 text-gray-600">Loading brokers...</span>
-                      </div>
-                    </td>
-                  </tr>
+                  <>
+                    <BrokerSkeletonRow />
+                    <BrokerSkeletonRow />
+                    <BrokerSkeletonRow />
+                    <BrokerSkeletonRow />
+                    <BrokerSkeletonRow />
+                  </>
                 ) : filteredBrokers.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
@@ -227,7 +304,7 @@ export default function BrokersPage() {
                   </tr>
                 ) : (
                   filteredBrokers.map((broker, index) => (
-                    <tr key={broker._id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 border-b border-gray-300`}>
+                    <tr key={broker._id} className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0">
@@ -235,7 +312,7 @@ export default function BrokersPage() {
                           </div>
                           <div className="">
                             <div className="text-sm font-medium text-gray-900">
-                              {broker.name || 'N/A'} ({index + 1})
+                              {broker.name || 'N/A'} 
                             </div>
                             <div className="text-sm text-gray-500">{broker.email || 'N/A'}</div>
                           </div>
@@ -257,7 +334,7 @@ export default function BrokersPage() {
                         <div className="flex space-x-2">
                           <button 
                             onClick={() => window.location.href = `/brokers/${broker._id}`}
-                            className="inline-flex items-center px-3 py-1 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                            className="inline-flex items-center px-3 py-1 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors cursor-pointer"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -274,13 +351,13 @@ export default function BrokersPage() {
                             <>
                               <button 
                                 onClick={() => handleApprove(broker._id)}
-                                className="inline-flex items-center px-4 py-2 text-xs font-medium rounded text-white bg-[#6399f0] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                className="inline-flex items-center px-4 py-2 text-xs font-medium rounded text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors cursor-pointer"
                               >
                                 Approve
                               </button>
                               <button 
                                 onClick={() => handleReject(broker._id)}
-                                className="inline-flex items-center px-4 py-2 text-xs font-medium rounded text-white bg-red-400 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                className="inline-flex items-center px-4 py-2 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors cursor-pointer"
                               >
                                 Reject
                               </button>
@@ -297,46 +374,32 @@ export default function BrokersPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-700">
-            Showing {((currentPage - 1) * 10) + 1}-{Math.min(currentPage * 10, totalBrokers)} of {totalBrokers} Brokers
+        {totalBrokers > 0 && (
+          <div className="flex items-center justify-between px-6 py-3">
+            <div className="flex items-center text-sm text-gray-700">
+              <span>
+                Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, totalBrokers)} of {totalBrokers} results
+              </span>
+            </div>
+            <ReactPaginate
+              pageCount={totalPages}
+              pageRangeDisplayed={3}
+              marginPagesDisplayed={1}
+              onPageChange={({ selected }) => setCurrentPage(selected + 1)}
+              forcePage={currentPage - 1}
+              previousLabel="Previous"
+              nextLabel="Next"
+              breakLabel="..."
+              containerClassName="flex items-center space-x-1"
+              pageClassName="px-3 py-2 text-sm font-medium rounded-md cursor-pointer text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+              activeClassName="bg-primary text-white border-primary"
+              previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              breakClassName="px-3 py-2 text-sm font-medium text-gray-500"
+              disabledClassName="opacity-50 cursor-not-allowed"
+            />
           </div>
-          <div className="flex items-center space-x-2">
-            <button 
-              onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
-              disabled={currentPage === 1}
-              className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            
-            {/* Page Numbers */}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const pageNum = i + 1;
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`px-3 py-1 text-sm rounded ${currentPage === pageNum ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  {pageNum.toString().padStart(2, '0')}
-            </button>
-              );
-            })}
-            
-            <button 
-              onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </Layout>
   );

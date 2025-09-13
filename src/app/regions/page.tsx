@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { regionAPI, brokerAPI } from '@/services/api';
 import Popup from 'reactjs-popup';
+import ReactPaginate from 'react-paginate';
 
 interface Region {
   _id: string;
@@ -56,6 +57,9 @@ export default function RegionsPage() {
     description: ''
   });
   const [statusFilter, setStatusFilter] = useState('all');
+  const [pageLoading, setPageLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
 
   // Fetch regions from API
   const fetchRegions = async () => {
@@ -199,6 +203,15 @@ export default function RegionsPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
+  // Format date to "9 July 2025" format
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.toLocaleString('default', { month: 'short' });
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
   // Helper functions for broker status
   const getStatusColor = (broker: Broker) => {
     if (broker.approvedByAdmin) return 'bg-green-100 text-green-800';
@@ -224,22 +237,88 @@ export default function RegionsPage() {
     return brokers;
   };
 
+  // Pagination logic for regions
+  const getPaginatedRegions = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return regions.slice(startIndex, endIndex);
+  };
+
+  const totalPages = Math.ceil(regions.length / itemsPerPage);
+
+  // Skeleton loader component for region table rows
+  const RegionSkeletonRow = () => (
+    <tr className="bg-white border-b border-gray-200">
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
+          <div className="h-3 bg-gray-200 rounded animate-pulse w-36"></div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center space-x-2">
+          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      </td>
+    </tr>
+  );
+
+  // Skeleton loader component for broker table rows
+  const BrokerSkeletonRow = () => (
+    <tr className="bg-white border-b border-gray-200">
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center">
+          <div className="flex-shrink-0">
+            <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
+          </div>
+          <div className="ml-4 space-y-2">
+            <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
+            <div className="h-3 bg-gray-200 rounded animate-pulse w-36"></div>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-40"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-6 bg-gray-200 rounded-full animate-pulse w-20"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center space-x-2">
+          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      </td>
+    </tr>
+  );
+
+
   return (
     <Layout>
       <div className=" space-y-6 ">
         {/* Page Header */}
         <div className="mb-6 flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Region Management</h1>
-            <p className="text-gray-600 mt-1">Manage regions and view brokers by region</p>
-          </div>
-          
+          <h1 className="text-2xl font-bold text-gray-900">Region Management</h1>
+          <p className="text-gray-600 mt-1">Manage regions and view brokers by region</p>
+        </div>
+
           {/* Add Region Button - Right side */}
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
           >
-            {showForm ? 'Cancel' : 'Add New Region'}
+            {showForm ? 'Cancel' : 'Add Region'}
           </button>
         </div>
 
@@ -269,7 +348,7 @@ export default function RegionsPage() {
               <h3 className="text-lg font-semibold text-gray-900">Add New Region</h3>
               <button
                 onClick={() => setShowForm(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -307,14 +386,14 @@ export default function RegionsPage() {
               <div className="flex space-x-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                  className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
                 >
                   Create Region
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -331,7 +410,7 @@ export default function RegionsPage() {
         )}
 
         {/* Regions Table */}
-        <div className=" shadow-sm rounded-lg border border-gray-300 overflow-hidden">
+        <div className="shadow-sm rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-300">
               <thead className="bg-gray-50">
@@ -339,19 +418,18 @@ export default function RegionsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION NAME</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CREATED DATE</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UPDATED DATE</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-300">
                 {loading ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center">
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                        <span className="ml-2 text-gray-600">Loading regions...</span>
-                      </div>
-                    </td>
-                  </tr>
+                  <>
+                    <RegionSkeletonRow />
+                    <RegionSkeletonRow />
+                    <RegionSkeletonRow />
+                    <RegionSkeletonRow />
+                    <RegionSkeletonRow />
+                  </>
                 ) : !Array.isArray(regions) || regions.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
@@ -359,7 +437,7 @@ export default function RegionsPage() {
                     </td>
                   </tr>
                 ) : (
-                  regions.map((region, index) => (
+                  getPaginatedRegions().map((region, index) => (
                     <tr 
                       key={region._id} 
                       className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200"
@@ -372,12 +450,35 @@ export default function RegionsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {new Date(region.createdAt).toLocaleDateString()}
+                          {formatDate(region.createdAt)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {new Date(region.updatedAt).toLocaleDateString()}
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => {
+                              // TODO: Implement edit functionality
+                              console.log('Edit region:', region._id);
+                            }}
+                            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                            title="Edit Region"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => {
+                              // TODO: Implement delete functionality
+                              console.log('Delete region:', region._id);
+                            }}
+                            className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                            title="Delete Region"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -388,131 +489,35 @@ export default function RegionsPage() {
           </div>
         </div>
 
-        {/* Selected Region Brokers Table */}
-        {selectedRegion && (
-          <div className="mt-8">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Brokers in {selectedRegion.name}
-              </h2>
-              <p className="text-gray-600">{selectedRegion.description}</p>
-              
-              {/* Status Filter */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Status:</label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                >
-                  <option value="all">All Brokers</option>
-                  <option value="approved">Approved</option>
-                  <option value="pending">Pending</option>
-                </select>
-              </div>
+        {/* Pagination */}
+        {!loading && regions.length > 0 && (
+          <div className="flex items-center justify-between px-6 py-3">
+            <div className="flex items-center text-sm text-gray-700">
+              <span>
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, regions.length)} of {regions.length} results
+              </span>
             </div>
-
-            {/* Brokers Table - Simplified design */}
-            <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NAME</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">COMPANY NAME</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CONTACT</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {brokersLoading ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-4 text-center">
-                          <div className="flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                            <span className="ml-2 text-gray-600">Loading brokers...</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : !Array.isArray(brokers) || brokers.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                          No brokers found in this region
-                        </td>
-                      </tr>
-                    ) : getFilteredBrokers().length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                          No brokers found with the selected status filter
-                        </td>
-                      </tr>
-                    ) : (
-                      getFilteredBrokers().map((broker, index) => (
-                        <tr key={broker._id} className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0">
-                                <div className="h-10 w-10 rounded-full bg-orange-500 flex items-center justify-center">
-                                  <span className="text-sm font-medium text-white">
-                                    {getInitials(broker.name || broker.firmName || 'B')}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {broker.name || 'N/A'} ({index + 1})
-                                </div>
-                                <div className="text-sm text-gray-500">{broker.email || 'N/A'}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {broker.firmName || 'N/A'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {broker.phone || 'N/A'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border ${getStatusBadgeColor(broker)}`}>
-                              <div className={`w-2 h-2 rounded-full mr-2 ${broker.approvedByAdmin ? 'bg-green-600' : 'bg-yellow-600'}`}></div>
-                              {getStatusText(broker)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              {broker.approvedByAdmin ? (
-                                <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
-                                  <div className="w-2 h-2 rounded-full mr-2 bg-green-600"></div>
-                                  Approved
-                                </span>
-                              ) : (
-                                <>
-                                  <button 
-                                    onClick={() => handleApprove(broker._id)}
-                                    className="inline-flex items-center px-4 py-2 text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                                  >
-                                    Approve
-                                  </button>
-                                  <button 
-                                    onClick={() => handleReject(broker._id)}
-                                    className="inline-flex items-center px-4 py-2 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                                  >
-                                    Reject
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <ReactPaginate
+              pageCount={totalPages}
+              pageRangeDisplayed={3}
+              marginPagesDisplayed={1}
+              onPageChange={({ selected }) => setCurrentPage(selected + 1)}
+              forcePage={currentPage - 1}
+              previousLabel="Previous"
+              nextLabel="Next"
+              breakLabel="..."
+              containerClassName="flex items-center space-x-1"
+              pageClassName="px-3 py-2 text-sm font-medium rounded-md cursor-pointer text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+              activeClassName="bg-primary text-white border-primary"
+              previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              breakClassName="px-3 py-2 text-sm font-medium text-gray-500"
+              disabledClassName="opacity-50 cursor-not-allowed"
+            />
           </div>
         )}
+
+      
       </div>
     </Layout>
   );

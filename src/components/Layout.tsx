@@ -19,7 +19,7 @@ export default function Layout({ children }: LayoutProps) {
         {/* Top bar */}
         <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow-sm border-b border-gray-200">
           {/* Logo and Menu - Left side */}
-          <div className="flex items-center px-6 space-x-8">
+          <div className="flex items-center px-6 space-x-8 ">
             {/* Logo */}
             <div className="flex items-center">
               <div className="w-8 h-8 rounded-sm flex items-center justify-center mr-3 bg-primary">
@@ -29,23 +29,23 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Broker Region Menu */}
-            <div className="flex items-center space-x-8">
+            <div className="flex items-center space-x-8 pl-20">
               <a
                 href="/brokers"
-                className={`text-sm font-medium transition-colors border-b-2 ${
+                className={`text-sm font-medium transition-colors  ${
                   pathname === '/brokers'
-                    ? 'text-primary border-primary'
-                    : 'text-gray-700 hover:text-primary border-transparent hover:border-primary'
+                    ? 'text-primary '
+                    : 'text-gray-700 hover:text-primary '
                 }`}
               >
                 Brokers
               </a>
               <a
                 href="/regions"
-                className={`text-sm font-medium transition-colors border-b-2 ${
+                className={`text-sm font-medium transition-colors ${
                   pathname === '/regions'
-                    ? 'text-primary border-primary'
-                    : 'text-gray-700 hover:text-primary border-transparent hover:border-primary'
+                    ? 'text-primary '
+                    : 'text-gray-700 hover:text-primary border-transparent '
                 }`}
               >
                 Regions
@@ -61,25 +61,19 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center space-x-4">
               {/* User Profile */}
               <div className="flex items-center">
+                {/* Admin Profile Image */}
+                <div className="flex-shrink-0">
+                  <img
+                    className="h-8 w-8 rounded-full object-cover"
+                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
+                    alt="Admin Profile"
+                  />
+                </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-900">Rohit Tyagi</p>
                   <p className="text-xs text-gray-500">Admin</p>
                 </div>
-                <button className="ml-2 text-gray-400 hover:text-gray-500">
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
+               
               </div>
             </div>
           </div>
@@ -87,10 +81,9 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Page content */}
-        <main className="flex-1 relative overflow-y-auto focus:outline-none">
+        <main className="flex-1 relative overflow-y-auto focus:outline-none bg-gray-50">
           <div className="py-6">
-            <div className="max-w-7xl mx-auto   ">
-            
+            <div className="px-6">
               {children}
             </div>
           </div>
