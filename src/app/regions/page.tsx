@@ -5,6 +5,8 @@ import Layout from '@/components/Layout';
 import { regionAPI, brokerAPI } from '@/services/api';
 import Popup from 'reactjs-popup';
 import ReactPaginate from 'react-paginate';
+import Select from 'react-select';
+import { useJsApiLoader } from '@react-google-maps/api';
 
 interface Region {
   _id: string;
@@ -49,17 +51,108 @@ export default function RegionsPage() {
   const [brokers, setBrokers] = useState<Broker[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [loading, setLoading] = useState(true);
-  const [brokersLoading, setBrokersLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    description: ''
+    description: '',
+    state: '',
+    city: '',
+    center: '',
+    radius: ''
   });
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [pageLoading, setPageLoading] = useState(false);
+  const [statusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
+  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Load Google Maps API
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: "AIzaSyA5Lb-4aPQwchmojJe4IpblpreNOjxHFMc",
+    libraries: ['places'] as const,
+  });
+
+  // Dropdown options
+  const stateOptions = [
+    { value: 'up', label: 'Uttar Pradesh' },
+  ];
+
+  const cityOptions = [
+    { value: 'noida', label: 'Noida' },
+    { value: 'agra', label: 'Agra' },
+  ];
+
+  // Handle input change and get suggestions
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    setFormData(prev => ({ ...prev, center: value }));
+    
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    if (value.length > 0 && window.google && window.google.maps && window.google.maps.places) {
+      // Add small delay to avoid too many API calls
+      const timeout = setTimeout(() => {
+        const service = new window.google.maps.places.AutocompleteService();
+        service.getPlacePredictions(
+          { 
+            input: value, 
+            componentRestrictions: { country: ['in'] },
+            types: ['establishment', 'geocode']
+          },
+          (predictions, status) => {
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+              setSuggestions(predictions);
+              setShowSuggestions(true);
+            } else {
+              setSuggestions([]);
+              setShowSuggestions(false);
+            }
+          }
+        );
+      }, 300); // 300ms delay
+      
+      setSearchTimeout(timeout);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionClick = (suggestion: google.maps.places.AutocompletePrediction) => {
+    setInputValue(suggestion.description);
+    setFormData(prev => ({ ...prev, center: suggestion.description }));
+    setShowSuggestions(false);
+  };
+
+  // Handle input focus
+  const handleInputFocus = () => {
+    if (suggestions.length > 0) {
+      setShowSuggestions(true);
+    }
+  };
+
+  // Handle input blur
+  const handleInputBlur = () => {
+    setTimeout(() => setShowSuggestions(false), 200);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
 
   // Fetch regions from API
   const fetchRegions = async () => {
@@ -94,7 +187,6 @@ export default function RegionsPage() {
   // Fetch brokers by region
   const fetchBrokersByRegion = async (regionId: string) => {
     try {
-      setBrokersLoading(true);
       setError('');
       const response = await regionAPI.getBrokersByRegion(regionId);
       console.log('Brokers by region API Response:', response); // Debug log
@@ -116,16 +208,9 @@ export default function RegionsPage() {
       console.error('Error fetching brokers by region:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch brokers');
       setBrokers([]); // Ensure brokers is always an array
-    } finally {
-      setBrokersLoading(false);
     }
   };
 
-  // Handle region selection
-  const handleRegionClick = (region: Region) => {
-    setSelectedRegion(region);
-    fetchBrokersByRegion(region._id);
-  };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -138,7 +223,7 @@ export default function RegionsPage() {
       const response = await regionAPI.createRegion(formData.name, formData.description);
       console.log('Create region API Response:', response); // Debug log
       
-      setFormData({ name: '', description: '' });
+      setFormData({ name: '', description: '', state: '', city: '', center: '', radius: '' });
       setShowForm(false);
       console.log('Refreshing regions list...'); // Debug log
       fetchRegions(); // Refresh the regions list
@@ -148,43 +233,6 @@ export default function RegionsPage() {
     }
   };
 
-  // Handle broker approval
-  const handleApprove = async (brokerId: string) => {
-    try {
-      setError('');
-      await brokerAPI.approveBroker(brokerId);
-      if (selectedRegion) {
-        fetchBrokersByRegion(selectedRegion._id);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to approve broker');
-    }
-  };
-
-  // Handle broker rejection
-  const handleReject = async (brokerId: string) => {
-    try {
-      setError('');
-      const response = await brokerAPI.rejectBroker(brokerId);
-      console.log('🔴 Reject API response:', response);
-      
-      // Manually update the broker status in local state since API doesn't update it
-      setBrokers(prevBrokers => 
-        prevBrokers.map(broker => 
-          broker._id === brokerId 
-            ? { ...broker, status: 'inactive', approvedByAdmin: false }
-            : broker
-        )
-      );
-      
-      // Also refresh from API to get any other updates
-      if (selectedRegion) {
-        fetchBrokersByRegion(selectedRegion._id);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reject broker');
-    }
-  };
 
   // Fetch regions when component mounts
   useEffect(() => {
@@ -199,9 +247,6 @@ export default function RegionsPage() {
   }, []);
 
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
 
   // Format date to "9 July 2025" format
   const formatDate = (dateString: string) => {
@@ -212,30 +257,6 @@ export default function RegionsPage() {
     return `${day} ${month} ${year}`;
   };
 
-  // Helper functions for broker status
-  const getStatusColor = (broker: Broker) => {
-    if (broker.approvedByAdmin) return 'bg-green-100 text-green-800';
-    if (broker.status === 'rejected') return 'bg-red-100 text-red-800';
-    return 'bg-yellow-100 text-yellow-800';
-  };
-
-  const getStatusText = (broker: Broker) => {
-    if (broker.approvedByAdmin) return 'Approved';
-    return 'Pending';
-  };
-
-  const getStatusBadgeColor = (broker: Broker) => {
-    if (broker.approvedByAdmin) return 'bg-green-100 text-green-800 border-green-200';
-    return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-  };
-
-  // Filter brokers by status
-  const getFilteredBrokers = () => {
-    if (statusFilter === 'all') return brokers;
-    if (statusFilter === 'approved') return brokers.filter(broker => broker.approvedByAdmin);
-    if (statusFilter === 'pending') return brokers.filter(broker => !broker.approvedByAdmin);
-    return brokers;
-  };
 
   // Pagination logic for regions
   const getPaginatedRegions = () => {
@@ -270,37 +291,6 @@ export default function RegionsPage() {
     </tr>
   );
 
-  // Skeleton loader component for broker table rows
-  const BrokerSkeletonRow = () => (
-    <tr className="bg-white border-b border-gray-200">
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
-          </div>
-          <div className="ml-4 space-y-2">
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
-            <div className="h-3 bg-gray-200 rounded animate-pulse w-36"></div>
-          </div>
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-40"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-6 bg-gray-200 rounded-full animate-pulse w-20"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center space-x-2">
-          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
-        </div>
-      </td>
-    </tr>
-  );
 
 
   return (
@@ -357,6 +347,101 @@ export default function RegionsPage() {
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
+
+              
+              {/* UP Dropdown and Noida/Agra Dropdown - Side by Side */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* State Dropdown (UP Dropdown) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    State
+                  </label>
+                  <Select
+                    options={stateOptions}
+                    value={stateOptions.find(option => option.value === formData.state)}
+                    onChange={(option) => setFormData({ ...formData, state: option?.value || '' })}
+                    placeholder="Select State"
+                    isSearchable={false}
+                    isClearable={false}
+                    styles={{
+                      control: (provided, state) => ({
+                        ...provided,
+                        minHeight: '40px',
+                        fontSize: '14px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: state.isFocused ? '0 0 0 1px rgba(59, 130, 246, 0.5)' : 'none',
+                        '&:hover': {
+                          border: '1px solid #9ca3af'
+                        }
+                      }),
+                      option: (provided, state) => ({
+                        ...provided,
+                        backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
+                        color: state.isSelected ? 'white' : '#374151',
+                        fontSize: '14px',
+                        padding: '8px 12px'
+                      }),
+                      singleValue: (provided) => ({
+                        ...provided,
+                        color: '#374151',
+                        fontSize: '14px'
+                      }),
+                      placeholder: (provided) => ({
+                        ...provided,
+                        color: '#9ca3af',
+                        fontSize: '14px'
+                      })
+                    }}
+                  />
+                </div>
+
+               
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    City
+                  </label>
+                  <Select
+                    options={cityOptions}
+                    value={cityOptions.find(option => option.value === formData.city)}
+                    onChange={(option) => setFormData({ ...formData, city: option?.value || '' })}
+                    placeholder="Select City"
+                    isSearchable={false}
+                    isClearable={false}
+                    styles={{
+                      control: (provided, state) => ({
+                        ...provided,
+                        minHeight: '40px',
+                        fontSize: '14px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: state.isFocused ? '0 0 0 1px rgba(59, 130, 246, 0.5)' : 'none',
+                        '&:hover': {
+                          border: '1px solid #9ca3af'
+                        }
+                      }),
+                      option: (provided, state) => ({
+                        ...provided,
+                        backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
+                        color: state.isSelected ? 'white' : '#374151',
+                        fontSize: '14px',
+                        padding: '8px 12px'
+                      }),
+                      singleValue: (provided) => ({
+                        ...provided,
+                        color: '#374151',
+                        fontSize: '14px'
+                      }),
+                      placeholder: (provided) => ({
+                        ...provided,
+                        color: '#9ca3af',
+                        fontSize: '14px'
+                      })
+                    }}
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Region Name
@@ -365,7 +450,7 @@ export default function RegionsPage() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                   placeholder="Enter region name"
                   required
                 />
@@ -377,11 +462,100 @@ export default function RegionsPage() {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                   placeholder="Enter region description"
                   rows={3}
                   required
                 />
+              </div>
+
+              {/* Center Location and Radius - Side by Side */}
+              <div>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Center Location */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Center Location
+                    </label>
+                    <div className="relative">
+                      {!isLoaded ? (
+                        <div className="text-sm text-gray-500">Loading Google Maps...</div>
+                      ) : (
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={inputValue}
+                            onChange={handleInputChange}
+                            onFocus={handleInputFocus}
+                            onBlur={handleInputBlur}
+                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                            placeholder="Search center location"
+                            required
+                          />
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          
+                          {/* Custom Dropdown Suggestions */}
+                          {showSuggestions && suggestions.length > 0 && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                              {suggestions.map((suggestion, index) => (
+                                <div
+                                  key={index}
+                                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                  onClick={() => handleSuggestionClick(suggestion)}
+                                >
+                                  <div className="flex items-start">
+                                    <div className="flex-shrink-0 mr-2 mt-0.5">
+                                      <svg className="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      </svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium text-gray-900">
+                                        {suggestion.structured_formatting?.main_text || suggestion.description}
+                                      </div>
+                                      {suggestion.structured_formatting?.secondary_text && (
+                                        <div className="text-xs text-gray-500">
+                                          {suggestion.structured_formatting.secondary_text}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Radius Field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Radius 
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="number"
+                        value={formData.radius}
+                        onChange={(e) => setFormData({ ...formData, radius: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        placeholder="Enter radius"
+                        min="1"
+                        max="1000"
+                        required
+                      />
+                      <span className="text-sm text-gray-500 whitespace-nowrap">km</span>
+                    </div>
+                  </div>
+                </div>
+               
               </div>
               <div className="flex space-x-3 pt-4">
                 <button
@@ -437,7 +611,7 @@ export default function RegionsPage() {
                     </td>
                   </tr>
                 ) : (
-                  getPaginatedRegions().map((region, index) => (
+                  getPaginatedRegions().map((region) => (
                     <tr 
                       key={region._id} 
                       className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200"
@@ -495,7 +669,7 @@ export default function RegionsPage() {
             <div className="flex items-center text-sm text-gray-700">
               <span>
                 Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, regions.length)} of {regions.length} results
-              </span>
+                                </span>
             </div>
             <ReactPaginate
               pageCount={totalPages}

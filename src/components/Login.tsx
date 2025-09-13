@@ -47,7 +47,7 @@ export default function Login() {
       } else {
         setError(data.message || 'Login failed. Please try again.');
       }
-    } catch (err) {
+    } catch {
       setError('Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
@@ -62,9 +62,13 @@ export default function Login() {
           {/* Logo - Top Left */}
           <div className="absolute top-16 ">
             <div className="flex items-center">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 bg-primary">
-                <span className="text-white text-xl font-bold">B</span>
-              </div>
+              <Image
+                src="/images/logo.png"
+                alt="Broker Adda Logo"
+                width={40}
+                height={40}
+                className="mr-3"
+              />
               <div>
                 <span className="text-2xl font-bold text-primary">Broker</span>
                 <span className="text-white text-2xl font-bold ml-1">Adda</span>
@@ -169,7 +173,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary text-white py-3 px-4 rounded-lg hover:bg-hover focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className="w-full bg-primary text-white py-3 px-4 rounded-lg hover:bg-hover focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
@@ -188,3 +192,9 @@ export default function Login() {
     </div>
   );
 }
+
+
+
+
+
+

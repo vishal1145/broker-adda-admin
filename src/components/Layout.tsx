@@ -32,9 +32,13 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center px-6 space-x-8 ">
             {/* Logo */}
             <div className="flex items-center">
-              <div className="w-8 h-8 rounded-sm flex items-center justify-center mr-3 bg-primary">
-                <span className="text-white text-lg font-bold">B</span>
-              </div>
+               <Image
+                src="/images/logo.png"
+                alt="Broker Adda Logo"
+                width={32}
+                height={32}
+                className="mr-3"
+              />
               <h1 className="text-xl font-bold text-gray-800">Broker Adda</h1>
             </div>
 
