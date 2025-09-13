@@ -329,10 +329,10 @@ export default function BrokersPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NAME</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Firm NAME</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CONTACT</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION</th>
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Firm NAME</th> */}
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th> */}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
                 </tr>
               </thead>
@@ -357,41 +357,66 @@ export default function BrokersPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0">
-                            <Image
-                              className="h-10 w-10 rounded-full object-cover"
-                              src={getBrokerImageUrl(broker.brokerImage)}
-                              alt={broker.name || 'Broker'}
-                              width={40}
-                              height={40}
-                              unoptimized={true}
-                            />
+                            <Link href={`/brokers/${broker._id}`} className="cursor-pointer">
+                              <Image
+                                className="h-10 w-10 rounded-full object-cover hover:opacity-80 transition-opacity duration-200"
+                                src={getBrokerImageUrl(broker.brokerImage)}
+                                alt={broker.name || 'Broker'}
+                                width={40}
+                                height={40}
+                                unoptimized={true}
+                              />
+                            </Link>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
+                            <Link 
+                              href={`/brokers/${broker._id}`}
+                              className="text-sm font-medium text-gray-900 hover:text-primary transition-colors duration-200 cursor-pointer"
+                            >
                               {broker.name || 'N/A'} 
-                            </div>
-                            <div className="text-sm text-gray-500">{broker.email || 'N/A'}</div>
+                            </Link>
+                            <div className="text-sm text-gray-500">{broker.firmName || 'N/A'}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {broker.region && broker.region.length > 0 ? broker.region[0].name : 'N/A'}
+                        <div className="flex flex-col">
+                          <div className="flex items-center text-gray-900">
+                            {broker.email || 'N/A'}
+                            {broker.email && (
+                              <svg className="w-4 h-4 text-green-500 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex items-center text-gray-500 text-xs mt-1">
+                            {broker.phone || 'N/A'}
+                            {broker.phone && (
+                              <svg className="w-3 h-3 text-green-500 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex flex-col">
+                          <div>{broker.region && broker.region.length > 0 ? broker.region[0].name : 'N/A'}</div>
+                          <div className="text-gray-500 text-xs mt-1">India(UP)</div>
+                        </div>
+                      </td>
+                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {broker.firmName || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {broker.phone || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </td> */}
+                      {/* <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border ${getStatusBadgeColor(broker)}`}>
                           <div className={`w-2 h-2 rounded-full mr-2 ${broker.approvedByAdmin ? 'bg-green-600' : 'bg-yellow-600'}`}></div>
                           {getStatusText(broker)}
                         </span>
-                      </td>
+                      </td> */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <Link 
+                          {/* <Link 
                             href={`/brokers/${broker._id}`}
                             className="inline-flex items-center px-3 py-1 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors cursor-pointer"
                           >
@@ -400,7 +425,7 @@ export default function BrokersPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                             View
-                          </Link>
+                          </Link> */}
                           {broker.approvedByAdmin ? (
                             <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
                               <div className="w-2 h-2 rounded-full mr-2 bg-green-600"></div>

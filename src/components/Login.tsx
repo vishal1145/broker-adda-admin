@@ -43,7 +43,7 @@ export default function Login() {
           setError('No authentication token received from server.');
           return;
         }
-        router.push('/brokers');
+        router.push('/regions');
       } else {
         setError(data.message || 'Login failed. Please try again.');
       }

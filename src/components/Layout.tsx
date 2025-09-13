@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -10,6 +10,14 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // Remove adminToken from localStorage
+    localStorage.removeItem('adminToken');
+    // Redirect to login page
+    router.push('/login');
+  };
 
   return (
     <div className="h-screen flex overflow-hidden bg-white">
@@ -32,16 +40,7 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Broker Region Menu */}
             <div className="flex items-center space-x-8 pl-20">
-              <Link
-                href="/brokers"
-                className={`text-sm font-medium transition-colors  ${
-                  pathname === '/brokers'
-                    ? 'text-primary '
-                    : 'text-gray-700 hover:text-primary '
-                }`}
-              >
-                Brokers
-              </Link>
+              
               <Link
                 href="/regions"
                 className={`text-sm font-medium transition-colors ${
@@ -51,6 +50,16 @@ export default function Layout({ children }: LayoutProps) {
                 }`}
               >
                 Regions
+              </Link>
+              <Link
+                href="/brokers"
+                className={`text-sm font-medium transition-colors  ${
+                  pathname === '/brokers'
+                    ? 'text-primary '
+                    : 'text-gray-700 hover:text-primary '
+                }`}
+              >
+                Brokers
               </Link>
             </div>
           </div>
@@ -78,8 +87,29 @@ export default function Layout({ children }: LayoutProps) {
                   <p className="text-sm font-medium text-gray-900">Rohit Tyagi</p>
                   <p className="text-xs text-gray-500">Admin</p>
                 </div>
-               
               </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="ml-4 p-2 text-red-500 hover:text-red-700 transition-colors duration-200"
+                title="Logout"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
 

@@ -249,176 +249,120 @@ export default function BrokerDetailsPage() {
         ) : (
           <>
 
-        {/* Profile Section */}
-        <div className="bg-white rounded-xl border border-gray-200 p-8">
-          <div className="flex items-start">
-            {/* Left Section - Profile Summary */}
-            <div className="flex-shrink-0 text-center pr-8">
-              <div className="w-24 h-24 mx-auto mb-6 rounded-full overflow-hidden ring-4 ring-gray-100 shadow-md">
+        {/* Cards Row - 4:4:4 ratio */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Profile Card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Profile</h2>
+              <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border ${broker.approvedByAdmin ? 'bg-green-50 text-green-800 border-green-200' : 'bg-yellow-50 text-yellow-800 border-yellow-200'}`}>
+                <div className={`w-2 h-2 rounded-full mr-1.5 ${broker.approvedByAdmin ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                {broker.approvedByAdmin ? 'Active' : 'Pending'}
+              </span>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden ring-4 ring-gray-100 shadow-md">
                 <Image 
                   src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format&q=80" 
                   alt={broker.name || 'Broker'} 
                   className="w-full h-full object-cover"
-                  width={96}
-                  height={96}
+                  width={64}
+                  height={64}
                   unoptimized={true}
                 />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">{broker.name || 'N/A'}</h2>
-              <div className="space-y-2">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">{broker.name || 'N/A'}</h3>
+              <div className="space-y-1">
                 <div className="flex items-center justify-center text-gray-600">
-                  <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  <span className="text-sm font-medium">{broker.phone || 'N/A'}</span>
+                  <span className="text-xs font-medium">{broker.phone || 'N/A'}</span>
                 </div>
                 <div className="flex items-center justify-center text-gray-600">
-                  <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  <span className="text-sm font-medium">{broker.email || 'N/A'}</span>
+                  <span className="text-xs font-medium">{broker.email || 'N/A'}</span>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Vertical Divider */}
-            <div className="flex-shrink-0 w-0.5 bg-gray-300 mx-6 h-full min-h-[200px]"></div>
+          {/* About Card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">About</h2>
             
-            {/* Right Section - Details */}
-            <div className="flex-1 pl-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-                {/* Column 1 */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Status</label>
-                  <span className={`inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-full border ${broker.approvedByAdmin ? 'bg-green-50 text-green-800 border-green-200' : 'bg-yellow-50 text-yellow-800 border-yellow-200'}`}>
-                    <div className={`w-2 h-2 rounded-full mr-1.5 ${broker.approvedByAdmin ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                    {broker.approvedByAdmin ? 'Active' : 'Pending'}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Firm Name</label>
-                  <p className="text-gray-900 font-semibold text-sm">{broker.firmName}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Registration Date</label>
-                  <p className="text-gray-900 font-semibold text-sm">{new Date(broker.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                </div>
-
-                {/* Column 2 */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Regions</label>
-                  <div className="flex flex-wrap gap-2">
-                    {broker.region.map((region, index) => (
-                      <span key={region._id} className="inline-flex items-center px-3 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-full border border-blue-200">
-                        <svg className="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                        </svg>
-                        {region.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Firm Name</label>
+                <p className="text-sm font-semibold text-gray-900">{broker.firmName}</p>
               </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Registration Date</label>
+                <p className="text-sm font-semibold text-gray-900">{new Date(broker.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Regions</label>
+                <div className="flex flex-wrap gap-1">
+                  {broker.region.map((region, index) => (
+                    <span key={region._id} className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-full border border-blue-200">
+                      <svg className="w-2 h-2 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                      </svg>
+                      {region.name}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-        {/* KYC Documents Section */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">KYC Documents</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Aadhar Card */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">Aadhar Card</label>
-              <div 
-                className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => openImageModal(broker.kycDocs.aadhar, 'Aadhar Card')}
-              >
-                <Image 
-                  src={broker.kycDocs.aadhar} 
-                  alt="Aadhar Card" 
-                  className="w-full h-48 object-cover hover:scale-105 transition-transform"
-                  width={300}
-                  height={192}
-                  unoptimized={true}
-                />
-                <div className="p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Click to view full size</span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </div>
-                </div>
+          {/* Payment Card */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Payment Details</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Payment Status</label>
+                <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border bg-green-50 text-green-800 border-green-200">
+                  <div className="w-2 h-2 rounded-full mr-1.5 bg-green-500"></div>
+                  Up to Date
+                </span>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Last Payment</label>
+                <p className="text-sm font-semibold text-gray-900">₹15,000</p>
+                <p className="text-xs text-gray-500">January 15, 2024</p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Next Payment Due</label>
+                <p className="text-sm font-semibold text-gray-900">February 15, 2024</p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Commission</label>
+                <p className="text-lg font-bold text-green-600">₹2,45,000</p>
               </div>
             </div>
-                
-            {/* PAN Card */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">PAN Card</label>
-              <div 
-                className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => openImageModal(broker.kycDocs.pan, 'PAN Card')}
-              >
-                <Image 
-                  src={broker.kycDocs.pan} 
-                  alt="PAN Card" 
-                  className="w-full h-48 object-cover hover:scale-105 transition-transform"
-                  width={300}
-                  height={192}
-                  unoptimized={true}
-                />
-                <div className="p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Click to view full size</span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-                
-            {/* GST Certificate */}
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">GST Certificate</label>
-              <div 
-                className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => openImageModal(broker.kycDocs.gst, 'GST Certificate')}
-              >
-                <Image 
-                  src={broker.kycDocs.gst} 
-                  alt="GST Certificate" 
-                  className="w-full h-48 object-cover hover:scale-105 transition-transform"
-                  width={300}
-                  height={192}
-                  unoptimized={true}
-                />
-                <div className="p-3 bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Click to view full size</span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-                  </div>
-                </div>
-                
-        {/* Team Lead Section */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Leads</h2>
-            {/* <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full">
-              {broker.leaders?.length || 3} Leaders
-            </span> */}
           </div>
-                
-          <div className="overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200 bg-white rounded-xl shadow-lg border border-gray-200">
+        </div>
+
+        {/* Table and KYC Section - 8:4 ratio */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Leads Table - 8/12 ratio */}
+          <div className="lg:col-span-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Leads</h2>
+            </div>
+                  
+            <div className="overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200 bg-white rounded-xl shadow-lg border border-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -502,6 +446,85 @@ export default function BrokerDetailsPage() {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* KYC Documents Card - 4/12 ratio */}
+        <div className="lg:col-span-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">KYC Documents</h2>
+            
+            <div className="space-y-4">
+              {/* Aadhar Card */}
+              <div 
+                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-gray-50 hover:bg-gray-100"
+                onClick={() => openImageModal(broker.kycDocs.aadhar, 'Aadhar Card')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">Aadhar Card</p>
+                      <p className="text-xs text-gray-500">Click to view</p>
+                    </div>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* PAN Card */}
+              <div 
+                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-gray-50 hover:bg-gray-100"
+                onClick={() => openImageModal(broker.kycDocs.pan, 'PAN Card')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">PAN Card</p>
+                      <p className="text-xs text-gray-500">Click to view</p>
+                    </div>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* GST Certificate */}
+              <div 
+                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-gray-50 hover:bg-gray-100"
+                onClick={() => openImageModal(broker.kycDocs.gst, 'GST Certificate')}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">GST Certificate</p>
+                      <p className="text-xs text-gray-500">Click to view</p>
+                    </div>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         </div>
           </>
         )}
