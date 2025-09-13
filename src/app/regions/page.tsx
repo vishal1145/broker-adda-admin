@@ -460,7 +460,7 @@ export default function RegionsPage() {
                               // TODO: Implement edit functionality
                               console.log('Edit region:', region._id);
                             }}
-                            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                            className="text-primary hover:text-primary/80 transition-colors cursor-pointer"
                             title="Edit Region"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -472,7 +472,7 @@ export default function RegionsPage() {
                               // TODO: Implement delete functionality
                               console.log('Delete region:', region._id);
                             }}
-                            className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                            className="text-red-500 hover:text-red-700 transition-colors cursor-pointer"
                             title="Delete Region"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

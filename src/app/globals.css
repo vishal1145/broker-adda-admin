@@ -35,7 +35,7 @@
   }
 }
 
-* {
+/* * {
   font-family: 'Poppins', sans-serif;
 }
 
@@ -43,7 +43,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Poppins', sans-serif;
-}
+} */
 
 /* Toggle Switch Styles */
 .toggle-checkbox:checked {

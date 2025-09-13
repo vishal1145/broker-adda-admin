@@ -35,6 +35,7 @@ interface Broker {
   licenseNumber?: string;
   expertiseField?: string;
   state?: string;
+  brokerImage?: string;
 }
 
 export default function BrokersPage() {
@@ -171,6 +172,9 @@ export default function BrokersPage() {
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
         <div className="h-4 bg-gray-200 rounded animate-pulse w-40"></div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
@@ -281,6 +285,7 @@ export default function BrokersPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NAME</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Firm NAME</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CONTACT</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
@@ -298,7 +303,7 @@ export default function BrokersPage() {
                   </>
                 ) : filteredBrokers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                       No brokers found
                     </td>
                   </tr>
@@ -308,15 +313,22 @@ export default function BrokersPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0">
-                            
+                            <img
+                              className="h-10 w-10 rounded-full object-cover"
+                              src={broker.brokerImage || "https://www.w3schools.com/howto/img_avatar.png"}
+                              alt={broker.name || 'Broker'}
+                            />
                           </div>
-                          <div className="">
+                          <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
                               {broker.name || 'N/A'} 
                             </div>
                             <div className="text-sm text-gray-500">{broker.email || 'N/A'}</div>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {broker.region && broker.region.length > 0 ? broker.region[0].name : 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {broker.firmName || 'N/A'}
