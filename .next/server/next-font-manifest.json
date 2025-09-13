@@ -1,6 +1,6 @@
 {
   "app": {
-    "[project]/Desktop/Broker adda/broker-adda-admin/src/app/_not-found/page": [
+    "[project]/src/app/_not-found/page": [
       "static/media/043b82ab31bba5a4-s.p.b67c2e04.woff2",
       "static/media/c7d9ca68f9942779-s.p.5f8f1848.woff2",
       "static/media/c875c6f5d3e977ac-s.p.80fc2c9e.woff2",
@@ -11,7 +11,7 @@
       "static/media/829ba4228c966254-s.p.a61bc753.woff2",
       "static/media/4b766aa38fdaaae3-s.p.6d98c708.woff2"
     ],
-    "[project]/Desktop/Broker adda/broker-adda-admin/src/app/brokers/[id]/page": [
+    "[project]/src/app/brokers/[id]/page": [
       "static/media/043b82ab31bba5a4-s.p.b67c2e04.woff2",
       "static/media/c7d9ca68f9942779-s.p.5f8f1848.woff2",
       "static/media/c875c6f5d3e977ac-s.p.80fc2c9e.woff2",
@@ -22,7 +22,7 @@
       "static/media/829ba4228c966254-s.p.a61bc753.woff2",
       "static/media/4b766aa38fdaaae3-s.p.6d98c708.woff2"
     ],
-    "[project]/Desktop/Broker adda/broker-adda-admin/src/app/brokers/page": [
+    "[project]/src/app/brokers/page": [
       "static/media/043b82ab31bba5a4-s.p.b67c2e04.woff2",
       "static/media/c7d9ca68f9942779-s.p.5f8f1848.woff2",
       "static/media/c875c6f5d3e977ac-s.p.80fc2c9e.woff2",
@@ -33,7 +33,7 @@
       "static/media/829ba4228c966254-s.p.a61bc753.woff2",
       "static/media/4b766aa38fdaaae3-s.p.6d98c708.woff2"
     ],
-    "[project]/Desktop/Broker adda/broker-adda-admin/src/app/dashboard/page": [
+    "[project]/src/app/dashboard/page": [
       "static/media/043b82ab31bba5a4-s.p.b67c2e04.woff2",
       "static/media/c7d9ca68f9942779-s.p.5f8f1848.woff2",
       "static/media/c875c6f5d3e977ac-s.p.80fc2c9e.woff2",
@@ -44,7 +44,7 @@
       "static/media/829ba4228c966254-s.p.a61bc753.woff2",
       "static/media/4b766aa38fdaaae3-s.p.6d98c708.woff2"
     ],
-    "[project]/Desktop/Broker adda/broker-adda-admin/src/app/login/page": [
+    "[project]/src/app/login/page": [
       "static/media/043b82ab31bba5a4-s.p.b67c2e04.woff2",
       "static/media/c7d9ca68f9942779-s.p.5f8f1848.woff2",
       "static/media/c875c6f5d3e977ac-s.p.80fc2c9e.woff2",
@@ -55,7 +55,7 @@
       "static/media/829ba4228c966254-s.p.a61bc753.woff2",
       "static/media/4b766aa38fdaaae3-s.p.6d98c708.woff2"
     ],
-    "[project]/Desktop/Broker adda/broker-adda-admin/src/app/page": [
+    "[project]/src/app/page": [
       "static/media/043b82ab31bba5a4-s.p.b67c2e04.woff2",
       "static/media/c7d9ca68f9942779-s.p.5f8f1848.woff2",
       "static/media/c875c6f5d3e977ac-s.p.80fc2c9e.woff2",
@@ -66,7 +66,7 @@
       "static/media/829ba4228c966254-s.p.a61bc753.woff2",
       "static/media/4b766aa38fdaaae3-s.p.6d98c708.woff2"
     ],
-    "[project]/Desktop/Broker adda/broker-adda-admin/src/app/regions/page": [
+    "[project]/src/app/regions/page": [
       "static/media/043b82ab31bba5a4-s.p.b67c2e04.woff2",
       "static/media/c7d9ca68f9942779-s.p.5f8f1848.woff2",
       "static/media/c875c6f5d3e977ac-s.p.80fc2c9e.woff2",
