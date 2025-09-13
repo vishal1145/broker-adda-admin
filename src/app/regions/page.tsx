@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { regionAPI, brokerAPI } from '@/services/api';
+import Popup from 'reactjs-popup';
 
 interface Region {
   _id: string;
@@ -54,6 +55,7 @@ export default function RegionsPage() {
     name: '',
     description: ''
   });
+  const [statusFilter, setStatusFilter] = useState('all');
 
   // Fetch regions from API
   const fetchRegions = async () => {
@@ -214,17 +216,25 @@ export default function RegionsPage() {
     return 'bg-yellow-100 text-yellow-800 border-yellow-200';
   };
 
+  // Filter brokers by status
+  const getFilteredBrokers = () => {
+    if (statusFilter === 'all') return brokers;
+    if (statusFilter === 'approved') return brokers.filter(broker => broker.approvedByAdmin);
+    if (statusFilter === 'pending') return brokers.filter(broker => !broker.approvedByAdmin);
+    return brokers;
+  };
+
   return (
     <Layout>
       <div className=" space-y-6 ">
         {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Region Management</h1>
-          <p className="text-gray-600 mt-1">Manage regions and view brokers by region</p>
-        </div>
-
-        {/* Add Region Button */}
-        <div className="flex justify-between items-center">
+        <div className="mb-6 flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Region Management</h1>
+            <p className="text-gray-600 mt-1">Manage regions and view brokers by region</p>
+          </div>
+          
+          {/* Add Region Button - Right side */}
           <button
             onClick={() => setShowForm(!showForm)}
             className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
@@ -233,10 +243,40 @@ export default function RegionsPage() {
           </button>
         </div>
 
-        {/* Add Region Form */}
-        {showForm && (
-          <div className=" p-6 rounded-lg shadow-sm border border-gray-300">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Region</h3>
+        {/* Add Region Popup */}
+        <Popup
+          open={showForm}
+          closeOnDocumentClick
+          onClose={() => setShowForm(false)}
+          modal
+          overlayStyle={{
+            background: 'rgba(0, 0, 0, 0.8)',
+            zIndex: 9999
+          }}
+          contentStyle={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '0',
+            border: 'none',
+            maxWidth: '500px',
+            width: '90%',
+            margin: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Add New Region</h3>
+              <button
+                onClick={() => setShowForm(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -264,24 +304,24 @@ export default function RegionsPage() {
                   required
                 />
               </div>
-              <div className="flex space-x-3">
+              <div className="flex space-x-3 pt-4">
                 <button
                   type="submit"
-                  className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                  className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
                 >
                   Create Region
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
                 >
                   Cancel
                 </button>
               </div>
             </form>
           </div>
-        )}
+        </Popup>
 
         {/* Error Message */}
         {error && (
@@ -322,10 +362,7 @@ export default function RegionsPage() {
                   regions.map((region, index) => (
                     <tr 
                       key={region._id} 
-                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 cursor-pointer border-b border-gray-300 ${
-                        selectedRegion?._id === region._id ? 'bg-primary/5' : ''
-                      }`}
-                      onClick={() => handleRegionClick(region)}
+                      className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200"
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{region.name}</div>
@@ -359,6 +396,20 @@ export default function RegionsPage() {
                 Brokers in {selectedRegion.name}
               </h2>
               <p className="text-gray-600">{selectedRegion.description}</p>
+              
+              {/* Status Filter */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Status:</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  <option value="all">All Brokers</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
             </div>
 
             {/* Brokers Table - Simplified design */}
@@ -390,9 +441,15 @@ export default function RegionsPage() {
                           No brokers found in this region
                         </td>
                       </tr>
+                    ) : getFilteredBrokers().length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                          No brokers found with the selected status filter
+                        </td>
+                      </tr>
                     ) : (
-                      brokers.map((broker, index) => (
-                        <tr key={broker._id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 border-b border-gray-200`}>
+                      getFilteredBrokers().map((broker, index) => (
+                        <tr key={broker._id} className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="flex-shrink-0">
