@@ -1,6 +1,8 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -30,7 +32,7 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Broker Region Menu */}
             <div className="flex items-center space-x-8 pl-20">
-              <a
+              <Link
                 href="/brokers"
                 className={`text-sm font-medium transition-colors  ${
                   pathname === '/brokers'
@@ -39,8 +41,8 @@ export default function Layout({ children }: LayoutProps) {
                 }`}
               >
                 Brokers
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/regions"
                 className={`text-sm font-medium transition-colors ${
                   pathname === '/regions'
@@ -49,7 +51,7 @@ export default function Layout({ children }: LayoutProps) {
                 }`}
               >
                 Regions
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -63,10 +65,13 @@ export default function Layout({ children }: LayoutProps) {
               <div className="flex items-center">
                 {/* Admin Profile Image */}
                 <div className="flex-shrink-0">
-                  <img
+                  <Image
                     className="h-8 w-8 rounded-full object-cover"
                     src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
                     alt="Admin Profile"
+                    width={32}
+                    height={32}
+                    unoptimized={true}
                   />
                 </div>
                 <div className="ml-3">

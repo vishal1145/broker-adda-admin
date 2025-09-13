@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { brokerAPI } from '@/services/api';
 import Select from 'react-select';
@@ -155,6 +157,48 @@ export default function BrokersPage() {
     const month = date.toLocaleString('default', { month: 'long' });
     const year = date.getFullYear();
     return `${day} ${month} ${year}`;
+  };
+
+  // Convert server file path to web-accessible URL
+  const getBrokerImageUrl = (brokerImage: string | undefined) => {
+    if (!brokerImage) return "https://www.w3schools.com/howto/img_avatar.png";
+    
+    // If it's already a URL, return as is
+    if (brokerImage.startsWith('http')) {
+      return brokerImage;
+    }
+    
+    // Get the base URL from environment or use default
+    const baseUrl = 'https://broker-adda-be.algofolks.com/';
+    
+    // If it's a server file path, convert to web URL
+    if (brokerImage.startsWith('/opt/lampp/htdocs/broker-adda-be/src/')) {
+      // Remove the server path prefix and get the relative path
+      const relativePath = brokerImage.replace('/opt/lampp/htdocs/broker-adda-be/src', '');
+      const imageUrl = `${baseUrl}${relativePath}`;
+      console.log('🖼️ Converting server path to URL:', { 
+        original: brokerImage, 
+        relativePath, 
+        baseUrl, 
+        imageUrl 
+      });
+      return imageUrl;
+    }
+    
+    // If it's a relative path, prepend the base URL
+    if (brokerImage.startsWith('/uploads/')) {
+      const imageUrl = `${baseUrl}${brokerImage}`;
+      console.log('🖼️ Converting relative path to URL:', { 
+        original: brokerImage, 
+        baseUrl, 
+        imageUrl 
+      });
+      return imageUrl;
+    }
+    
+    // Fallback to placeholder
+    console.log('🖼️ Using fallback image for:', brokerImage);
+    return "https://www.w3schools.com/howto/img_avatar.png";
   };
 
   // Skeleton loader component for broker table rows
@@ -313,10 +357,13 @@ export default function BrokersPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0">
-                            <img
+                            <Image
                               className="h-10 w-10 rounded-full object-cover"
-                              src={broker.brokerImage || "https://www.w3schools.com/howto/img_avatar.png"}
+                              src={getBrokerImageUrl(broker.brokerImage)}
                               alt={broker.name || 'Broker'}
+                              width={40}
+                              height={40}
+                              unoptimized={true}
                             />
                           </div>
                           <div className="ml-4">
@@ -344,8 +391,8 @@ export default function BrokersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <button 
-                            onClick={() => window.location.href = `/brokers/${broker._id}`}
+                          <Link 
+                            href={`/brokers/${broker._id}`}
                             className="inline-flex items-center px-3 py-1 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors cursor-pointer"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,7 +400,7 @@ export default function BrokersPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                             View
-                          </button>
+                          </Link>
                           {broker.approvedByAdmin ? (
                             <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
                               <div className="w-2 h-2 rounded-full mr-2 bg-green-600"></div>
@@ -392,7 +439,7 @@ export default function BrokersPage() {
               <span>
                 Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, totalBrokers)} of {totalBrokers} results
               </span>
-            </div>
+          </div>
             <ReactPaginate
               pageCount={totalPages}
               pageRangeDisplayed={3}
