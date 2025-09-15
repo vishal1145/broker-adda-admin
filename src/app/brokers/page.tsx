@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { brokerAPI } from '@/services/api';
@@ -54,7 +54,7 @@ export default function BrokersPage() {
   const [totalBrokers, setTotalBrokers] = useState(0);
 
   // Fetch brokers from API
-  const fetchBrokers = async () => {
+  const fetchBrokers = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -68,7 +68,7 @@ export default function BrokersPage() {
       
       // Debug each broker's approvedByAdmin value
       if (response.data.brokers) {
-        response.data.brokers.forEach((broker: any, index: number) => {
+        response.data.brokers.forEach((broker: Broker, index: number) => {
           console.log(`📊 Broker ${index + 1}:`, {
             _id: broker._id,
             name: broker.name,
@@ -86,7 +86,7 @@ export default function BrokersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, statusFilter]);
 
   // Handle broker approval
   const handleApprove = async (brokerId: string) => {
@@ -150,7 +150,7 @@ export default function BrokersPage() {
   // Fetch brokers when component mounts or filters change
   useEffect(() => {
     fetchBrokers();
-  }, [currentPage, statusFilter]);
+  }, [fetchBrokers]);
 
   // Reset to page 1 when status filter changes
   useEffect(() => {
@@ -158,28 +158,9 @@ export default function BrokersPage() {
   }, [statusFilter]);
 
   // Helper functions
-  const getStatusColor = (broker: Broker) => {
-    if (broker.approvedByAdmin === 'approved') return 'bg-green-100 text-green-800';
-    if (broker.approvedByAdmin === 'rejected') return 'bg-red-100 text-red-800';
-    return 'bg-yellow-100 text-yellow-800';
-  };
 
-  const getStatusText = (broker: Broker) => {
-    console.log('🔍 Checking status for broker:', broker._id, 'approvedByAdmin:', broker.approvedByAdmin);
-    if (broker.approvedByAdmin === 'approved') return 'Approved';
-    if (broker.approvedByAdmin === 'rejected') return 'Rejected';
-    return 'Pending';
-  };
 
-  const getStatusBadgeColor = (broker: Broker) => {
-    if (broker.approvedByAdmin === 'approved') return 'bg-green-100 text-green-800 border-green-200';
-    if (broker.approvedByAdmin === 'rejected') return 'bg-red-100 text-red-800 border-red-200';
-    return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-  };
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
 
   // Format date to "9 July 2025" format
   const formatDate = (dateString: string) => {
@@ -238,8 +219,8 @@ export default function BrokersPage() {
         <div className="mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Brokers</h1>
-              <p className="text-gray-600 mt-1">View and manage all registered brokers</p>
+          <h1 className="text-2xl font-bold text-gray-900">Brokers</h1>
+          <p className="text-gray-600 mt-1">View and manage all registered brokers</p>
             </div>
             <button
               onClick={() => {
