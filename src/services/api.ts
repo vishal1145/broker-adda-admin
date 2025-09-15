@@ -138,8 +138,8 @@ export const regionAPI = {
   },
 
   // Create a new region
-  createRegion: async (name: string, description: string) => {
-    console.log('🔵 regionAPI.createRegion called with:', { name, description });
+  createRegion: async (name: string, description: string, state: string, city: string, centerLocation: string, radius: number) => {
+    console.log('🔵 regionAPI.createRegion called with:', { name, description, state, city, centerLocation, radius });
     
     const token = localStorage.getItem('adminToken');
     console.log('🔵 Token found:', token ? 'Yes' : 'No');
@@ -147,7 +147,7 @@ export const regionAPI = {
     if (!token) throw new Error('No authentication token found');
 
     const url = `${API_BASE_URL}/regions`;
-    const requestBody = { name, description };
+    const requestBody = { name, description, state, city, centerLocation, radius };
     
     console.log('🔵 Making API call to:', url);
     console.log('🔵 Request body:', requestBody);

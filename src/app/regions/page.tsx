@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
-import { regionAPI, brokerAPI } from '@/services/api';
+import { regionAPI } from '@/services/api';
 import Popup from 'reactjs-popup';
 import ReactPaginate from 'react-paginate';
 import Select from 'react-select';
@@ -12,44 +12,17 @@ interface Region {
   _id: string;
   name: string;
   description: string;
+  state: string;
+  city: string;
+  centerLocation: string;
+  radius: number;
   createdAt: string;
   updatedAt: string;
 }
 
-interface Broker {
-  _id: string;
-  userId: string;
-  firmName: string;
-  region: Array<{
-    _id: string;
-    name: string;
-    description: string;
-  }>;
-  regionId: string | null;
-  status: string;
-  approvedByAdmin: boolean;
-  kycDocs: {
-    aadhar: string;
-    pan: string;
-    gst: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
-  name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  accreditedBy?: string;
-  licenseNumber?: string;
-  expertiseField?: string;
-  state?: string;
-}
 
 export default function RegionsPage() {
   const [regions, setRegions] = useState<Region[]>([]);
-  const [brokers, setBrokers] = useState<Broker[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -61,7 +34,6 @@ export default function RegionsPage() {
     center: '',
     radius: ''
   });
-  const [statusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
@@ -184,32 +156,6 @@ export default function RegionsPage() {
     }
   };
 
-  // Fetch brokers by region
-  const fetchBrokersByRegion = async (regionId: string) => {
-    try {
-      setError('');
-      const response = await regionAPI.getBrokersByRegion(regionId);
-      console.log('Brokers by region API Response:', response); // Debug log
-      
-      // Handle the actual API response structure: response.data.brokers
-      if (response && response.data && response.data.brokers && Array.isArray(response.data.brokers)) {
-        setBrokers(response.data.brokers);
-      } else if (Array.isArray(response)) {
-        setBrokers(response);
-      } else if (response.data && Array.isArray(response.data)) {
-        setBrokers(response.data);
-      } else if (response.brokers && Array.isArray(response.brokers)) {
-        setBrokers(response.brokers);
-      } else {
-        console.warn('Unexpected brokers API response structure:', response);
-        setBrokers([]);
-      }
-    } catch (err) {
-      console.error('Error fetching brokers by region:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch brokers');
-      setBrokers([]); // Ensure brokers is always an array
-    }
-  };
 
 
   // Handle form submission
@@ -220,7 +166,14 @@ export default function RegionsPage() {
     try {
       setError('');
       console.log('Calling regionAPI.createRegion...'); // Debug log
-      const response = await regionAPI.createRegion(formData.name, formData.description);
+      const response = await regionAPI.createRegion(
+        formData.name, 
+        formData.description, 
+        formData.state, 
+        formData.city, 
+        formData.center, 
+        parseFloat(formData.radius) || 0
+      );
       console.log('Create region API Response:', response); // Debug log
       
       setFormData({ name: '', description: '', state: '', city: '', center: '', radius: '' });
@@ -271,13 +224,19 @@ export default function RegionsPage() {
   const RegionSkeletonRow = () => (
     <tr className="bg-white border-b border-gray-200">
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="space-y-2">
-          <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
-          <div className="h-3 bg-gray-200 rounded animate-pulse w-36"></div>
-        </div>
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
       </td>
       <td className="px-6 py-4">
         <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
@@ -587,14 +546,17 @@ export default function RegionsPage() {
         <div className="shadow-sm rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-300">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION NAME</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CREATED DATE</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
-                </tr>
-              </thead>
+               <thead className="bg-gray-50">
+                 <tr>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION NAME</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATE</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CITY</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CENTER LOCATION</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RADIUS</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CREATED DATE</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
+                 </tr>
+               </thead>
               <tbody className="bg-white divide-y divide-gray-300">
                 {loading ? (
                   <>
@@ -604,23 +566,32 @@ export default function RegionsPage() {
                     <RegionSkeletonRow />
                     <RegionSkeletonRow />
                   </>
-                ) : !Array.isArray(regions) || regions.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
-                      No regions found. Create your first region above.
-                    </td>
-                  </tr>
-                ) : (
-                  getPaginatedRegions().map((region) => (
-                    <tr 
-                      key={region._id} 
-                      className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{region.name}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">{region.description}</div>
+                 ) : !Array.isArray(regions) || regions.length === 0 ? (
+                   <tr>
+                     <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                       No regions found. Create your first region above.
+                     </td>
+                   </tr>
+                 ) : (
+                   getPaginatedRegions().map((region) => (
+                     <tr 
+                       key={region._id} 
+                       className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200"
+                     >
+                       <td className="px-6 py-4 whitespace-nowrap">
+                         <div className="text-sm font-medium text-gray-900">{region.name}</div>
+                       </td>
+                       <td className="px-6 py-4 whitespace-nowrap">
+                         <div className="text-sm text-gray-900">{region.state || 'N/A'}</div>
+                       </td>
+                       <td className="px-6 py-4 whitespace-nowrap">
+                         <div className="text-sm text-gray-900">{region.city || 'N/A'}</div>
+                       </td>
+                       <td className="px-6 py-4">
+                         <div className="text-sm text-gray-900 max-w-xs truncate">{region.centerLocation || 'N/A'}</div>
+                       </td>
+                       <td className="px-6 py-4 whitespace-nowrap">
+                         <div className="text-sm text-gray-900">{region.radius ? `${region.radius} km` : 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">

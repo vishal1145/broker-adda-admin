@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
 import { brokerAPI } from '@/services/api';
@@ -16,6 +15,10 @@ interface Broker {
     _id: string;
     name: string;
     description: string;
+    state: string;
+    city: string;
+    centerLocation: string;
+    radius: number;
   }>;
   regionId: string | null;
   status: string;
@@ -119,6 +122,7 @@ export default function BrokersPage() {
     broker.firmName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
   // Fetch brokers when component mounts or filters change
   useEffect(() => {
     fetchBrokers();
@@ -159,46 +163,10 @@ export default function BrokersPage() {
     return `${day} ${month} ${year}`;
   };
 
-  // Convert server file path to web-accessible URL
+  // Use image URL directly from backend
   const getBrokerImageUrl = (brokerImage: string | undefined) => {
-    if (!brokerImage) return "https://www.w3schools.com/howto/img_avatar.png";
-    
-    // If it's already a URL, return as is
-    if (brokerImage.startsWith('http')) {
-      return brokerImage;
-    }
-    
-    // Get the base URL from environment or use default
-    const baseUrl = 'https://broker-adda-be.algofolks.com/';
-    
-    // If it's a server file path, convert to web URL
-    if (brokerImage.startsWith('/opt/lampp/htdocs/broker-adda-be/src/')) {
-      // Remove the server path prefix and get the relative path
-      const relativePath = brokerImage.replace('/opt/lampp/htdocs/broker-adda-be/src', '');
-      const imageUrl = `${baseUrl}${relativePath}`;
-      console.log('🖼️ Converting server path to URL:', { 
-        original: brokerImage, 
-        relativePath, 
-        baseUrl, 
-        imageUrl 
-      });
-      return imageUrl;
-    }
-    
-    // If it's a relative path, prepend the base URL
-    if (brokerImage.startsWith('/uploads/')) {
-      const imageUrl = `${baseUrl}${brokerImage}`;
-      console.log('🖼️ Converting relative path to URL:', { 
-        original: brokerImage, 
-        baseUrl, 
-        imageUrl 
-      });
-      return imageUrl;
-    }
-    
-    // Fallback to placeholder
-    console.log('🖼️ Using fallback image for:', brokerImage);
-    return "https://www.w3schools.com/howto/img_avatar.png";
+    // Return the image URL directly from backend, or fallback if null
+    return brokerImage || "https://www.w3schools.com/howto/img_avatar.png";
   };
 
   // Skeleton loader component for broker table rows
@@ -347,7 +315,7 @@ export default function BrokersPage() {
                   </>
                 ) : filteredBrokers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                       No brokers found
                     </td>
                   </tr>
@@ -358,13 +326,14 @@ export default function BrokersPage() {
                         <div className="flex items-center">
                           <div className="flex-shrink-0">
                             <Link href={`/brokers/${broker._id}`} className="cursor-pointer">
-                              <Image
+                              <img
                                 className="h-10 w-10 rounded-full object-cover hover:opacity-80 transition-opacity duration-200"
-                                src={getBrokerImageUrl(broker.brokerImage)}
+                                src={broker.brokerImage || "https://www.w3schools.com/howto/img_avatar.png"}
                                 alt={broker.name || 'Broker'}
-                                width={40}
-                                height={40}
-                                unoptimized={true}
+                                onError={(e) => {
+                                  console.log('🖼️ Image failed to load:', broker.brokerImage);
+                                  e.currentTarget.src = "https://www.w3schools.com/howto/img_avatar.png";
+                                }}
                               />
                             </Link>
                           </div>
@@ -402,7 +371,12 @@ export default function BrokersPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <div className="flex flex-col">
                           <div>{broker.region && broker.region.length > 0 ? broker.region[0].name : 'N/A'}</div>
-                          <div className="text-gray-500 text-xs mt-1">India(UP)</div>
+                          <div className="text-gray-500 text-xs mt-1">
+                            {broker.region && broker.region.length > 0 
+                              ? `${broker.region[0].city}, ${broker.region[0].state}` 
+                              : 'No Region Assigned'
+                            }
+                          </div>
                         </div>
                       </td>
                       {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
