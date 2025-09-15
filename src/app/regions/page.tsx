@@ -430,9 +430,9 @@ export default function RegionsPage() {
 
               {/* Center Location and Radius - Side by Side */}
               <div>
-                <div className="grid grid-cols-2 gap-4">
+              
                   {/* Center Location */}
-                  <div>
+                  <div className='mb-2'>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Center Location
                     </label>
@@ -513,7 +513,7 @@ export default function RegionsPage() {
                       <span className="text-sm text-gray-500 whitespace-nowrap">km</span>
                     </div>
                   </div>
-                </div>
+               
                
               </div>
               <div className="flex space-x-3 pt-4">

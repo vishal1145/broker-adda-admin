@@ -163,10 +163,27 @@ export default function BrokersPage() {
 
 
 
-  // Use image URL directly from backend
+  // Use image URL with proxy for external URLs to avoid CORS issues
   const getBrokerImageUrl = (brokerImage: string | undefined) => {
-    // Return the image URL directly from backend, or fallback if null
-    return brokerImage || "https://www.w3schools.com/howto/img_avatar.png";
+    console.log('🖼️ getBrokerImageUrl called with:', brokerImage);
+    
+    if (!brokerImage) {
+      console.log('🖼️ No broker image, using fallback');
+      return "https://www.w3schools.com/howto/img_avatar.png";
+    }
+    
+    // If it's an external URL (not localhost), use the proxy
+    if (brokerImage.includes('broker-adda-be.algofolks.com') || 
+        brokerImage.includes('https://') || 
+        (brokerImage.includes('http://') && !brokerImage.includes('localhost'))) {
+      const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(brokerImage)}`;
+      console.log('🖼️ Using proxy URL:', proxyUrl);
+      return proxyUrl;
+    }
+    
+    // For localhost URLs, return directly
+    console.log('🖼️ Using direct URL:', brokerImage);
+    return brokerImage;
   };
 
   // Skeleton loader component for broker table rows
@@ -333,7 +350,7 @@ export default function BrokersPage() {
                             <Link href={`/brokers/${broker._id}`} className="cursor-pointer">
                               <img
                                 className="h-10 w-10 rounded-full object-cover hover:opacity-80 transition-opacity duration-200"
-                                src={broker.brokerImage || "https://www.w3schools.com/howto/img_avatar.png"}
+                                src={getBrokerImageUrl(broker.brokerImage)}
                                 alt={broker.name || 'Broker'}
                                 onError={(e) => {
                                   console.log('🖼️ Image failed to load:', broker.brokerImage);
