@@ -22,7 +22,7 @@ interface Broker {
   }>;
   regionId: string | null;
   status: string;
-  approvedByAdmin: boolean;
+  approvedByAdmin: string;
   kycDocs: {
     aadhar: string;
     pan: string;
@@ -59,11 +59,24 @@ export default function BrokersPage() {
       setLoading(true);
       setError('');
 
+      console.log('🔄 Fetching brokers with statusFilter:', statusFilter);
       const approvedByAdmin = statusFilter === 'approved' ? true : statusFilter === 'pending' ? false : undefined;
       const response = await brokerAPI.getBrokers(currentPage, 10, approvedByAdmin);
       
       console.log('📊 API Response:', response); // Debug log
       console.log('📊 Brokers data:', response.data.brokers);
+      
+      // Debug each broker's approvedByAdmin value
+      if (response.data.brokers) {
+        response.data.brokers.forEach((broker: any, index: number) => {
+          console.log(`📊 Broker ${index + 1}:`, {
+            _id: broker._id,
+            name: broker.name,
+            approvedByAdmin: broker.approvedByAdmin,
+            type: typeof broker.approvedByAdmin
+          });
+        });
+      }
       
       setBrokers(response.data.brokers || []);
       setTotalPages(response.data.pagination.totalPages || 1);
@@ -82,6 +95,17 @@ export default function BrokersPage() {
       console.log('🟢 Approving broker with ID:', brokerId);
       const response = await brokerAPI.approveBroker(brokerId);
       console.log('🟢 Approve API response:', response);
+      
+      // Update local state immediately
+      setBrokers(prevBrokers => 
+        prevBrokers.map(broker => 
+          broker._id === brokerId 
+            ? { ...broker, approvedByAdmin: 'approved' }
+            : broker
+        )
+      );
+      
+      // Also refresh from API to get any other updates
       await fetchBrokers();
     } catch (err) {
       console.error('🟢 Approve error:', err);
@@ -97,11 +121,11 @@ export default function BrokersPage() {
       const response = await brokerAPI.rejectBroker(brokerId);
       console.log('🔴 Reject API response:', response);
       
-      // Manually update the broker status in local state since API doesn't update it
+      // Update local state immediately
       setBrokers(prevBrokers => 
         prevBrokers.map(broker => 
           broker._id === brokerId 
-            ? { ...broker, status: 'inactive', approvedByAdmin: false }
+            ? { ...broker, approvedByAdmin: 'rejected' }
             : broker
         )
       );
@@ -135,18 +159,21 @@ export default function BrokersPage() {
 
   // Helper functions
   const getStatusColor = (broker: Broker) => {
-    if (broker.approvedByAdmin) return 'bg-green-100 text-green-800';
+    if (broker.approvedByAdmin === 'approved') return 'bg-green-100 text-green-800';
+    if (broker.approvedByAdmin === 'rejected') return 'bg-red-100 text-red-800';
     return 'bg-yellow-100 text-yellow-800';
   };
 
   const getStatusText = (broker: Broker) => {
     console.log('🔍 Checking status for broker:', broker._id, 'approvedByAdmin:', broker.approvedByAdmin);
-    if (broker.approvedByAdmin) return 'Approved';
+    if (broker.approvedByAdmin === 'approved') return 'Approved';
+    if (broker.approvedByAdmin === 'rejected') return 'Rejected';
     return 'Pending';
   };
 
   const getStatusBadgeColor = (broker: Broker) => {
-    if (broker.approvedByAdmin) return 'bg-green-100 text-green-800 border-green-200';
+    if (broker.approvedByAdmin === 'approved') return 'bg-green-100 text-green-800 border-green-200';
+    if (broker.approvedByAdmin === 'rejected') return 'bg-red-100 text-red-800 border-red-200';
     return 'bg-yellow-100 text-yellow-800 border-yellow-200';
   };
 
@@ -209,8 +236,21 @@ export default function BrokersPage() {
       <div className=" space-y-6">
         {/* Page Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Brokers</h1>
-          <p className="text-gray-600 mt-1">View and manage all registered brokers</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Brokers</h1>
+              <p className="text-gray-600 mt-1">View and manage all registered brokers</p>
+            </div>
+            <button
+              onClick={() => {
+                console.log('🔄 Force refresh clicked');
+                fetchBrokers();
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              🔄 Refresh
+            </button>
+          </div>
         </div>
 
         {/* Search and Filter Bar */}
@@ -390,22 +430,24 @@ export default function BrokersPage() {
                       </td> */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          {/* <Link 
-                            href={`/brokers/${broker._id}`}
-                            className="inline-flex items-center px-3 py-1 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors cursor-pointer"
-                          >
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            View
-                          </Link> */}
-                          {broker.approvedByAdmin ? (
+                          {(() => {
+                            console.log('🔍 Broker ID:', broker._id, 'approvedByAdmin:', broker.approvedByAdmin, 'Type:', typeof broker.approvedByAdmin);
+                            if (broker.approvedByAdmin === 'approved') {
+                              return (
                             <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
                               <div className="w-2 h-2 rounded-full mr-2 bg-green-600"></div>
                               Approved
                             </span>
-                          ) : (
+                              );
+                            } else if (broker.approvedByAdmin === 'rejected') {
+                              return (
+                                <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 border border-red-200">
+                                  <div className="w-2 h-2 rounded-full mr-2 bg-red-600"></div>
+                                  Rejected
+                                </span>
+                              );
+                            } else {
+                              return (
                             <>
                               <button 
                                 onClick={() => handleApprove(broker._id)}
@@ -420,7 +462,9 @@ export default function BrokersPage() {
                                 Reject
                               </button>
                             </>
-                          )}
+                              );
+                            }
+                          })()}
                         </div>
                       </td>
                     </tr>
