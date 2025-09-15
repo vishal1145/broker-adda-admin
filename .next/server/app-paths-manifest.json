@@ -1,5 +1,6 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
+  "/api/image-proxy/route": "app/api/image-proxy/route.js",
   "/brokers/[id]/page": "app/brokers/[id]/page.js",
   "/brokers/page": "app/brokers/page.js",
   "/dashboard/page": "app/dashboard/page.js",

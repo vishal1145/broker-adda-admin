@@ -59,7 +59,29 @@
       "dangerouslyAllowSVG": false,
       "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;",
       "contentDispositionType": "attachment",
-      "remotePatterns": [],
+      "remotePatterns": [
+        {
+          "protocol": "http",
+          "hostname": "localhost",
+          "port": "5000",
+          "pathname": "/uploads/**"
+        },
+        {
+          "protocol": "https",
+          "hostname": "www.w3schools.com",
+          "pathname": "/howto/**"
+        },
+        {
+          "protocol": "https",
+          "hostname": "static.vecteezy.com",
+          "pathname": "/**"
+        },
+        {
+          "protocol": "https",
+          "hostname": "t4.ftcdn.net",
+          "pathname": "/**"
+        }
+      ],
       "unoptimized": false
     },
     "devIndicators": {

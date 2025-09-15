@@ -40,6 +40,8 @@ export default function RegionsPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [selectedState, setSelectedState] = useState<string>('');
+  const [selectedCity, setSelectedCity] = useState<string>('');
 
   // Load Google Maps API
   const { isLoaded } = useJsApiLoader({
@@ -50,12 +52,12 @@ export default function RegionsPage() {
 
   // Dropdown options
   const stateOptions = [
-    { value: 'up', label: 'Uttar Pradesh' },
+    { value: 'Uttar Pradesh', label: 'Uttar Pradesh' },
   ];
 
   const cityOptions = [
-    { value: 'noida', label: 'Noida' },
-    { value: 'agra', label: 'Agra' },
+    { value: 'Noida', label: 'Noida' },
+    { value: 'Agra', label: 'Agra' },
   ];
 
   // Handle input change and get suggestions
@@ -211,14 +213,25 @@ export default function RegionsPage() {
   };
 
 
-  // Pagination logic for regions
-  const getPaginatedRegions = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return regions.slice(startIndex, endIndex);
+  // Filter regions based on selected state and city
+  const getFilteredRegions = () => {
+    return regions.filter(region => {
+      const stateMatch = !selectedState || region.state === selectedState;
+      const cityMatch = !selectedCity || region.city === selectedCity;
+      return stateMatch && cityMatch;
+    });
   };
 
-  const totalPages = Math.ceil(regions.length / itemsPerPage);
+  // Pagination logic for filtered regions
+  const getPaginatedRegions = () => {
+    const filteredRegions = getFilteredRegions();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredRegions.slice(startIndex, endIndex);
+  };
+
+  const filteredRegions = getFilteredRegions();
+  const totalPages = Math.ceil(filteredRegions.length / itemsPerPage);
 
   // Skeleton loader component for region table rows
   const RegionSkeletonRow = () => (
@@ -262,13 +275,106 @@ export default function RegionsPage() {
           <p className="text-gray-600 mt-1">Manage regions and view brokers by region</p>
         </div>
 
-          {/* Add Region Button - Right side */}
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
-          >
-            {showForm ? 'Cancel' : 'Add Region'}
-          </button>
+          {/* Filters and Add Region Button - Right side */}
+          <div className="flex items-center space-x-4">
+            {/* State Filter */}
+            <div className="w-48">
+              <Select
+                options={[{ value: '', label: 'All States' }, ...stateOptions]}
+                value={{ value: selectedState, label: selectedState || 'All States' }}
+                onChange={(option) => {
+                  setSelectedState(option?.value || '');
+                  setCurrentPage(1); // Reset to first page when filter changes
+                }}
+                placeholder="Filter by State"
+                isSearchable={false}
+                isClearable={false}
+                styles={{
+                  control: (provided, state) => ({
+                    ...provided,
+                    minHeight: '40px',
+                    fontSize: '14px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    boxShadow: state.isFocused ? '0 0 0 1px rgba(59, 130, 246, 0.5)' : 'none',
+                    '&:hover': {
+                      border: '1px solid #9ca3af'
+                    }
+                  }),
+                  option: (provided, state) => ({
+                    ...provided,
+                    backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
+                    color: state.isSelected ? 'white' : '#374151',
+                    fontSize: '14px',
+                    padding: '8px 12px'
+                  }),
+                  singleValue: (provided) => ({
+                    ...provided,
+                    color: '#374151',
+                    fontSize: '14px'
+                  }),
+                  placeholder: (provided) => ({
+                    ...provided,
+                    color: '#9ca3af',
+                    fontSize: '14px'
+                  })
+                }}
+              />
+            </div>
+
+            {/* City Filter */}
+            <div className="w-48">
+              <Select
+                options={[{ value: '', label: 'All Cities' }, ...cityOptions]}
+                value={{ value: selectedCity, label: selectedCity || 'All Cities' }}
+                onChange={(option) => {
+                  setSelectedCity(option?.value || '');
+                  setCurrentPage(1); // Reset to first page when filter changes
+                }}
+                placeholder="Filter by City"
+                isSearchable={false}
+                isClearable={false}
+                styles={{
+                  control: (provided, state) => ({
+                    ...provided,
+                    minHeight: '40px',
+                    fontSize: '14px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    boxShadow: state.isFocused ? '0 0 0 1px rgba(59, 130, 246, 0.5)' : 'none',
+                    '&:hover': {
+                      border: '1px solid #9ca3af'
+                    }
+                  }),
+                  option: (provided, state) => ({
+                    ...provided,
+                    backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
+                    color: state.isSelected ? 'white' : '#374151',
+                    fontSize: '14px',
+                    padding: '8px 12px'
+                  }),
+                  singleValue: (provided) => ({
+                    ...provided,
+                    color: '#374151',
+                    fontSize: '14px'
+                  }),
+                  placeholder: (provided) => ({
+                    ...provided,
+                    color: '#9ca3af',
+                    fontSize: '14px'
+                  })
+                }}
+              />
+            </div>
+
+            {/* Add Region Button */}
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
+            >
+              {showForm ? 'Cancel' : 'Add Region'}
+            </button>
+          </div>
         </div>
 
         {/* Add Region Popup */}
@@ -572,6 +678,12 @@ export default function RegionsPage() {
                        No regions found. Create your first region above.
                      </td>
                    </tr>
+                 ) : filteredRegions.length === 0 ? (
+                   <tr>
+                     <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                       No regions match the selected filters. Try adjusting your filter criteria.
+                     </td>
+                   </tr>
                  ) : (
                    getPaginatedRegions().map((region) => (
                      <tr 
@@ -635,12 +747,15 @@ export default function RegionsPage() {
         </div>
 
         {/* Pagination */}
-        {!loading && regions.length > 0 && (
+        {!loading && filteredRegions.length > 0 && (
           <div className="flex items-center justify-between px-6 py-3">
             <div className="flex items-center text-sm text-gray-700">
               <span>
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, regions.length)} of {regions.length} results
-                                </span>
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredRegions.length)} of {filteredRegions.length} results
+                {regions.length !== filteredRegions.length && (
+                  <span className="text-gray-500 ml-1">(filtered from {regions.length} total)</span>
+                )}
+              </span>
             </div>
             <ReactPaginate
               pageCount={totalPages}

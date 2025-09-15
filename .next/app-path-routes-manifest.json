@@ -1,5 +1,6 @@
 {
   "/_not-found/page": "/_not-found",
+  "/api/image-proxy/route": "/api/image-proxy",
   "/brokers/[id]/page": "/brokers/[id]",
   "/brokers/page": "/brokers",
   "/dashboard/page": "/dashboard",
