@@ -49,6 +49,8 @@ export default function BrokersPage() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [membershipFilter, setMembershipFilter] = useState('all');
+  const [regionFilter, setRegionFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBrokers, setTotalBrokers] = useState(0);
@@ -138,13 +140,24 @@ export default function BrokersPage() {
     }
   };
 
-  // Filter brokers based on search term
-  const filteredBrokers = brokers.filter(broker =>
-    (broker.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (broker.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (broker.phone || '').includes(searchTerm) ||
-    broker.firmName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter brokers based on search term and filters
+  const filteredBrokers = brokers.filter(broker => {
+    // Search term filter
+    const matchesSearch = (broker.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (broker.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (broker.phone || '').includes(searchTerm) ||
+      broker.firmName.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Membership filter (hardcoded for now - all show as Premium)
+    const matchesMembership = membershipFilter === 'all' || membershipFilter === 'premium';
+
+    // Region filter
+    const matchesRegion = regionFilter === 'all' || 
+      (broker.region && broker.region.length > 0 && 
+       broker.region[0].name.toLowerCase().includes(regionFilter.toLowerCase()));
+
+    return matchesSearch && matchesMembership && matchesRegion;
+  });
 
 
   // Fetch brokers when component mounts or filters change
@@ -152,10 +165,10 @@ export default function BrokersPage() {
     fetchBrokers();
   }, [fetchBrokers]);
 
-  // Reset to page 1 when status filter changes
+  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, membershipFilter, regionFilter]);
 
   // Helper functions
 
@@ -210,6 +223,12 @@ export default function BrokersPage() {
         <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
         <div className="h-6 bg-gray-200 rounded-full animate-pulse w-20"></div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
@@ -255,52 +274,157 @@ export default function BrokersPage() {
             </div>
           </div>
 
-          {/* Status Filter */}
-          <div className="flex items-center space-x-4">
-            <label className="text-sm font-medium text-gray-700">Status:</label>
-            <div className="w-48">
-              <Select
-                options={[
-                  { value: 'all', label: 'All Brokers' },
-                  { value: 'pending', label: 'Pending Approval' },
-                  { value: 'approved', label: 'Approved' }
-                ]}
-                value={{ value: statusFilter, label: statusFilter === 'all' ? 'All Brokers' : statusFilter === 'pending' ? 'Pending Approval' : 'Approved' }}
-                onChange={(option) => setStatusFilter(option?.value || 'all')}
-                placeholder="Select Status"
-                isSearchable={false}
-                isClearable={false}
-                styles={{
-                  control: (provided, state) => ({
-                    ...provided,
-                    minHeight: '40px',
-                    fontSize: '14px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.5)' : 'none',
-                    '&:hover': {
-                      border: '1px solid #9ca3af'
-                    }
-                  }),
-                  option: (provided, state) => ({
-                    ...provided,
-                    backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
-                    color: state.isSelected ? 'white' : '#374151',
-                    fontSize: '14px',
-                    padding: '8px 12px'
-                  }),
-                  singleValue: (provided) => ({
-                    ...provided,
-                    color: '#374151',
-                    fontSize: '14px'
-                  }),
-                  placeholder: (provided) => ({
-                    ...provided,
-                    color: '#9ca3af',
-                    fontSize: '14px'
-                  })
-                }}
-              />
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            {/* Status Filter */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Status:</label>
+              <div className="w-40">
+                <Select
+                  options={[
+                    { value: 'all', label: 'All Brokers' },
+                    { value: 'pending', label: 'Pending Approval' },
+                    { value: 'approved', label: 'Approved' }
+                  ]}
+                  value={{ value: statusFilter, label: statusFilter === 'all' ? 'All Brokers' : statusFilter === 'pending' ? 'Pending Approval' : 'Approved' }}
+                  onChange={(option) => setStatusFilter(option?.value || 'all')}
+                  placeholder="Select Status"
+                  isSearchable={false}
+                  isClearable={false}
+                  styles={{
+                    control: (provided, state) => ({
+                      ...provided,
+                      minHeight: '40px',
+                      fontSize: '14px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.5)' : 'none',
+                      '&:hover': {
+                        border: '1px solid #9ca3af'
+                      }
+                    }),
+                    option: (provided, state) => ({
+                      ...provided,
+                      backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
+                      color: state.isSelected ? 'white' : '#374151',
+                      fontSize: '14px',
+                      padding: '8px 12px'
+                    }),
+                    singleValue: (provided) => ({
+                      ...provided,
+                      color: '#374151',
+                      fontSize: '14px'
+                    }),
+                    placeholder: (provided) => ({
+                      ...provided,
+                      color: '#9ca3af',
+                      fontSize: '14px'
+                    })
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Membership Filter */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Membership:</label>
+              <div className="w-40">
+                <Select
+                  options={[
+                    { value: 'all', label: 'All Memberships' },
+                    { value: 'premium', label: 'Premium' },
+                    { value: 'basic', label: 'Basic' },
+                    { value: 'gold', label: 'Gold' }
+                  ]}
+                  value={{ value: membershipFilter, label: membershipFilter === 'all' ? 'All Memberships' : membershipFilter === 'premium' ? 'Premium' : membershipFilter === 'basic' ? 'Basic' : 'Gold' }}
+                  onChange={(option) => setMembershipFilter(option?.value || 'all')}
+                  placeholder="Select Membership"
+                  isSearchable={false}
+                  isClearable={false}
+                  styles={{
+                    control: (provided, state) => ({
+                      ...provided,
+                      minHeight: '40px',
+                      fontSize: '14px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.5)' : 'none',
+                      '&:hover': {
+                        border: '1px solid #9ca3af'
+                      }
+                    }),
+                    option: (provided, state) => ({
+                      ...provided,
+                      backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
+                      color: state.isSelected ? 'white' : '#374151',
+                      fontSize: '14px',
+                      padding: '8px 12px'
+                    }),
+                    singleValue: (provided) => ({
+                      ...provided,
+                      color: '#374151',
+                      fontSize: '14px'
+                    }),
+                    placeholder: (provided) => ({
+                      ...provided,
+                      color: '#9ca3af',
+                      fontSize: '14px'
+                    })
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Region Filter */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Region:</label>
+              <div className="w-40">
+                <Select
+                  options={[
+                    { value: 'all', label: 'All Regions' },
+                    { value: 'mumbai', label: 'Mumbai' },
+                    { value: 'delhi', label: 'Delhi' },
+                    { value: 'bangalore', label: 'Bangalore' },
+                    { value: 'hyderabad', label: 'Hyderabad' },
+                    { value: 'pune', label: 'Pune' }
+                  ]}
+                  value={{ value: regionFilter, label: regionFilter === 'all' ? 'All Regions' : regionFilter.charAt(0).toUpperCase() + regionFilter.slice(1) }}
+                  onChange={(option) => setRegionFilter(option?.value || 'all')}
+                  placeholder="Select Region"
+                  isSearchable={false}
+                  isClearable={false}
+                  styles={{
+                    control: (provided, state) => ({
+                      ...provided,
+                      minHeight: '40px',
+                      fontSize: '14px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.5)' : 'none',
+                      '&:hover': {
+                        border: '1px solid #9ca3af'
+                      }
+                    }),
+                    option: (provided, state) => ({
+                      ...provided,
+                      backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
+                      color: state.isSelected ? 'white' : '#374151',
+                      fontSize: '14px',
+                      padding: '8px 12px'
+                    }),
+                    singleValue: (provided) => ({
+                      ...provided,
+                      color: '#374151',
+                      fontSize: '14px'
+                    }),
+                    placeholder: (provided) => ({
+                      ...provided,
+                      color: '#9ca3af',
+                      fontSize: '14px'
+                    })
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -321,6 +445,9 @@ export default function BrokersPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NAME</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CONTACT</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MEMBERSHIP</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO OF LEADS</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO OF PROPERTIES</th>
                   {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Firm NAME</th> */}
                   {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th> */}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
@@ -337,7 +464,7 @@ export default function BrokersPage() {
                   </>
                 ) : filteredBrokers.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                       No brokers found
                     </td>
                   </tr>
@@ -399,6 +526,23 @@ export default function BrokersPage() {
                               : 'No Region Assigned'
                             }
                           </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Premium
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex items-center">
+                          <span className="font-medium">{Math.floor(Math.random() * 50) + 10}</span>
+                          <span className="text-gray-500 ml-1">leads</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex items-center">
+                          <span className="font-medium">{Math.floor(Math.random() * 20) + 5}</span>
+                          <span className="text-gray-500 ml-1">properties</span>
                         </div>
                       </td>
                       {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
