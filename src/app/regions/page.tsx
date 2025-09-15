@@ -16,6 +16,7 @@ interface Region {
   city: string;
   centerLocation: string;
   radius: number;
+  brokerCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,6 +27,8 @@ export default function RegionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [brokerCounts, setBrokerCounts] = useState<Record<string, number>>({});
+  const [loadingBrokerCounts, setLoadingBrokerCounts] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -237,22 +240,17 @@ export default function RegionsPage() {
   const RegionSkeletonRow = () => (
     <tr className="bg-white border-b border-gray-200">
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-28 mb-2"></div>
+        <div className="h-3 bg-gray-200 rounded animate-pulse w-20"></div>
       </td>
       <td className="px-6 py-4">
         <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+      <td className="px-6 py-4">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-8"></div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center space-x-2">
@@ -368,12 +366,12 @@ export default function RegionsPage() {
             </div>
 
             {/* Add Region Button */}
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
-            >
-              {showForm ? 'Cancel' : 'Add Region'}
-            </button>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
+          >
+            {showForm ? 'Cancel' : 'Add Region'}
+          </button>
           </div>
         </div>
 
@@ -413,10 +411,9 @@ export default function RegionsPage() {
             
             <form onSubmit={handleSubmit} className="space-y-4">
 
-              
-              {/* UP Dropdown and Noida/Agra Dropdown - Side by Side */}
+              {/* State and City - Side by Side */}
               <div className="grid grid-cols-2 gap-4">
-                {/* State Dropdown (UP Dropdown) */}
+                {/* State Dropdown */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     State
@@ -461,7 +458,7 @@ export default function RegionsPage() {
                   />
                 </div>
 
-               
+                {/* City Dropdown */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     City
@@ -507,38 +504,8 @@ export default function RegionsPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Region Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                  placeholder="Enter region name"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                  placeholder="Enter region description"
-                  rows={3}
-                  required
-                />
-              </div>
-
-              {/* Center Location and Radius - Side by Side */}
-              <div>
-              
                   {/* Center Location */}
-                  <div className='mb-2'>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Center Location
                     </label>
@@ -619,8 +586,35 @@ export default function RegionsPage() {
                       <span className="text-sm text-gray-500 whitespace-nowrap">km</span>
                     </div>
                   </div>
+
+              {/* Region Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Region Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                  placeholder="Enter region name"
+                  required
+                />
+                </div>
                
-               
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                  placeholder="Enter region description"
+                  rows={3}
+                  required
+                />
               </div>
               <div className="flex space-x-3 pt-4">
                 <button
@@ -652,17 +646,15 @@ export default function RegionsPage() {
         <div className="shadow-sm rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-300">
-               <thead className="bg-gray-50">
-                 <tr>
-                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION NAME</th>
-                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATE</th>
-                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CITY</th>
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION NAME</th>
                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CENTER LOCATION</th>
-                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RADIUS</th>
-                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CREATED DATE</th>
-                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
-                 </tr>
-               </thead>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BROKER NUMBER</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
+                </tr>
+              </thead>
               <tbody className="bg-white divide-y divide-gray-300">
                 {loading ? (
                   <>
@@ -672,44 +664,51 @@ export default function RegionsPage() {
                     <RegionSkeletonRow />
                     <RegionSkeletonRow />
                   </>
-                 ) : !Array.isArray(regions) || regions.length === 0 ? (
-                   <tr>
-                     <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
-                       No regions found. Create your first region above.
-                     </td>
-                   </tr>
+                ) : !Array.isArray(regions) || regions.length === 0 ? (
+                  <tr>
+                     <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                      No regions found. Create your first region above.
+                    </td>
+                  </tr>
                  ) : filteredRegions.length === 0 ? (
                    <tr>
-                     <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                     <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                        No regions match the selected filters. Try adjusting your filter criteria.
                      </td>
                    </tr>
-                 ) : (
-                   getPaginatedRegions().map((region) => (
-                     <tr 
-                       key={region._id} 
-                       className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200"
-                     >
-                       <td className="px-6 py-4 whitespace-nowrap">
-                         <div className="text-sm font-medium text-gray-900">{region.name}</div>
+                ) : (
+                  getPaginatedRegions().map((region) => (
+                    <tr 
+                      key={region._id} 
+                      className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200"
+                    >
+                       {/* First Column: Region Name with City below and State in brackets */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{region.name}</div>
+                         <div className="text-sm text-gray-500">
+                           {region.city || 'N/A'}
+                           {region.state && ` (${region.state})`}
+                         </div>
                        </td>
-                       <td className="px-6 py-4 whitespace-nowrap">
-                         <div className="text-sm text-gray-900">{region.state || 'N/A'}</div>
-                       </td>
-                       <td className="px-6 py-4 whitespace-nowrap">
-                         <div className="text-sm text-gray-900">{region.city || 'N/A'}</div>
-                       </td>
+                       
+                       {/* Second Column: Center Location */}
                        <td className="px-6 py-4">
                          <div className="text-sm text-gray-900 max-w-xs truncate">{region.centerLocation || 'N/A'}</div>
-                       </td>
+                      </td>
+                       
+                       {/* Third Column: Description */}
+                      <td className="px-6 py-4">
+                         <div className="text-sm text-gray-900 max-w-xs truncate">{region.description || 'N/A'}</div>
+                      </td>
+                       
+                       {/* Fourth Column: Broker Number */}
                        <td className="px-6 py-4 whitespace-nowrap">
-                         <div className="text-sm text-gray-900">{region.radius ? `${region.radius} km` : 'N/A'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {formatDate(region.createdAt)}
-                        </div>
-                      </td>
+                         <div className="text-sm text-gray-900">
+                           {region.brokerCount || 0}
+                         </div>
+                       </td>
+                       
+                       {/* Fifth Column: Action */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <button
@@ -755,7 +754,7 @@ export default function RegionsPage() {
                 {regions.length !== filteredRegions.length && (
                   <span className="text-gray-500 ml-1">(filtered from {regions.length} total)</span>
                 )}
-              </span>
+                                </span>
             </div>
             <ReactPaginate
               pageCount={totalPages}
