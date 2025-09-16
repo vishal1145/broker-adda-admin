@@ -199,45 +199,27 @@ export default function BrokersPage() {
     return brokerImage;
   };
 
-  // Skeleton loader component for broker table rows
-  const BrokerSkeletonRow = () => (
-    <tr className="bg-white border-b border-gray-200">
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
+  // Skeleton loader component for broker cards
+  const BrokerSkeletonCard = () => (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+      <div className="flex items-start space-x-4">
+        <div className="flex-shrink-0">
+          <div className="h-16 w-16 bg-gray-200 rounded-full"></div>
+        </div>
+        <div className="flex-1 space-y-3">
+          <div className="h-5 bg-gray-200 rounded w-32"></div>
+          <div className="h-4 bg-gray-200 rounded w-24"></div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-40"></div>
+            <div className="h-4 bg-gray-200 rounded w-32"></div>
           </div>
-          <div className="ml-4 space-y-2">
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
-            <div className="h-3 bg-gray-200 rounded animate-pulse w-36"></div>
+          <div className="flex space-x-2">
+            <div className="h-6 bg-gray-200 rounded-full w-16"></div>
+            <div className="h-6 bg-gray-200 rounded-full w-20"></div>
           </div>
         </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-40"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-6 bg-gray-200 rounded-full animate-pulse w-20"></div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center space-x-2">
-          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
-        </div>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 
   return (
@@ -451,175 +433,169 @@ export default function BrokersPage() {
           </div>
         )}
 
-        {/* Brokers Table */}
-        <div className="shadow-sm rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-300">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NAME</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CONTACT</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MEMBERSHIP</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO OF LEADS</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO OF PROPERTIES</th>
-                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Firm NAME</th> */}
-                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th> */}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-300">
+        {/* Brokers Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
                 {loading ? (
                   <>
-                    <BrokerSkeletonRow />
-                    <BrokerSkeletonRow />
-                    <BrokerSkeletonRow />
-                    <BrokerSkeletonRow />
-                    <BrokerSkeletonRow />
+              <BrokerSkeletonCard />
+              <BrokerSkeletonCard />
+              <BrokerSkeletonCard />
+              <BrokerSkeletonCard />
+              <BrokerSkeletonCard />
+              <BrokerSkeletonCard />
                   </>
                 ) : filteredBrokers.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
-                      No brokers found
-                    </td>
-                  </tr>
+            <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+              <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No brokers found</h3>
+              <p className="text-gray-500">Try adjusting your search or filter criteria.</p>
+            </div>
                 ) : (
                   filteredBrokers.map((broker) => (
-                    <tr key={broker._id} className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0">
-                            <Link href={`/brokers/${broker._id}`} className="cursor-pointer">
-                              <img
-                                className="h-10 w-10 rounded-full object-cover hover:opacity-80 transition-opacity duration-200"
-                                src={getBrokerImageUrl(broker.brokerImage)}
-                                alt={broker.name || 'Broker'}
-                                onError={(e) => {
-                                  console.log('🖼️ Image failed to load:', broker.brokerImage);
-                                  e.currentTarget.src = "https://www.w3schools.com/howto/img_avatar.png";
-                                }}
-                              />
-                            </Link>
-                          </div>
-                          <div className="ml-4">
-                            <Link 
-                              href={`/brokers/${broker._id}`}
-                              className="text-sm font-medium text-gray-900 hover:text-primary transition-colors duration-200 cursor-pointer"
-                            >
-                              {broker.name || 'N/A'} 
-                            </Link>
-                            <div className="text-sm text-gray-500">{broker.firmName || 'N/A'}</div>
-                          </div>
+              <div key={broker._id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                {/* Card Header with Image and Basic Info */}
+                <div className="p-4 sm:p-6">
+                  <div className="flex items-start space-x-3 sm:space-x-4">
+                    <div className="flex-shrink-0">
+                      <Link href={`/brokers/${broker._id}`} className="cursor-pointer">
+                        <img
+                          className="h-12 w-12 sm:h-16 sm:w-16 rounded-full object-cover hover:opacity-80 transition-opacity duration-200"
+                          src={getBrokerImageUrl(broker.brokerImage)}
+                          alt={broker.name || 'Broker'}
+                          onError={(e) => {
+                            console.log('🖼️ Image failed to load:', broker.brokerImage);
+                            e.currentTarget.src = "https://www.w3schools.com/howto/img_avatar.png";
+                          }}
+                        />
+                      </Link>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Link 
+                        href={`/brokers/${broker._id}`}
+                        className="text-base sm:text-lg font-semibold text-gray-900 hover:text-primary transition-colors duration-200 cursor-pointer block truncate"
+                      >
+                        {broker.name || 'N/A'}
+                      </Link>
+                      <p className="text-xs sm:text-sm text-gray-600 truncate">{broker.firmName || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  {/* Contact Information and Location */}
+                  <div className="mt-3 sm:mt-4 space-y-2 sm:space-y-3">
+                    {/* Email */}
+                    <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 mr-1.5 sm:mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <span className="truncate">{broker.email || 'N/A'}</span>
+                      {broker.email && (
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 ml-1.5 sm:ml-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    
+                    {/* Phone */}
+                    <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500 mr-1.5 sm:mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      <span className="truncate">{broker.phone || 'N/A'}</span>
+                      {broker.phone && (
+                        <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-500 ml-1.5 sm:ml-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* Location */}
+                    <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1.5 sm:mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <div className="truncate">
+                        <span className="font-medium">{broker.region && broker.region.length > 0 ? broker.region[0].name : 'N/A'}</span>
+                        {broker.region && broker.region.length > 0 && (
+                          <span className="text-gray-500 ml-1">
+                            - {broker.region[0].city}, {broker.region[0].state}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats and Membership */}
+                  <div className="mt-3 sm:mt-4 flex items-center justify-between">
+                    <div className="flex space-x-3 sm:space-x-4">
+                      <div className="text-center">
+                        <div className="text-sm sm:text-lg font-semibold text-gray-900">{Math.floor(Math.random() * 50) + 10}</div>
+                        <div className="text-xs text-gray-500">Leads</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm sm:text-lg font-semibold text-gray-900">{Math.floor(Math.random() * 20) + 5}</div>
+                        <div className="text-xs text-gray-500">Properties</div>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Premium
+                    </span>
+                  </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex flex-col space-y-2">
-                          <div className="flex items-center text-gray-900">
-                            <svg className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            <span className="truncate">{broker.email || 'N/A'}</span>
-                            {broker.email && (
-                              <svg className="w-4 h-4 text-green-500 ml-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                          </div>
-                          <div className="flex items-center text-gray-500 text-xs">
-                            <svg className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                            </svg>
-                            <span className="truncate">{broker.phone || 'N/A'}</span>
-                            {broker.phone && (
-                              <svg className="w-3 h-3 text-green-500 ml-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex flex-col">
-                          <div>{broker.region && broker.region.length > 0 ? broker.region[0].name : 'N/A'}</div>
-                          <div className="text-gray-500 text-xs mt-1">
-                            {broker.region && broker.region.length > 0 
-                              ? `${broker.region[0].city}, ${broker.region[0].state}` 
-                              : 'No Region Assigned'
-                            }
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Premium
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex items-center">
-                          <span className="font-medium">{Math.floor(Math.random() * 50) + 10}</span>
-                          <span className="text-gray-500 ml-1">leads</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex items-center">
-                          <span className="font-medium">{Math.floor(Math.random() * 20) + 5}</span>
-                          <span className="text-gray-500 ml-1">properties</span>
-                        </div>
-                      </td>
-                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {broker.firmName || 'N/A'}
-                      </td> */}
-                      {/* <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border ${getStatusBadgeColor(broker)}`}>
-                          <div className={`w-2 h-2 rounded-full mr-2 ${broker.approvedByAdmin ? 'bg-green-600' : 'bg-yellow-600'}`}></div>
-                          {getStatusText(broker)}
-                        </span>
-                      </td> */}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          {(() => {
-                            console.log('🔍 Broker ID:', broker._id, 'approvedByAdmin:', broker.approvedByAdmin, 'Type:', typeof broker.approvedByAdmin);
-                            if (broker.approvedByAdmin === 'approved') {
-                              return (
-                            <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
-                              <div className="w-2 h-2 rounded-full mr-2 bg-green-600"></div>
+
+                {/* Card Footer with Actions */}
+                <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-t border-gray-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                    <div className="flex-1">
+                      {(() => {
+                        console.log('🔍 Broker ID:', broker._id, 'approvedByAdmin:', broker.approvedByAdmin, 'Type:', typeof broker.approvedByAdmin);
+                        if (broker.approvedByAdmin === 'approved') {
+                          return (
+                            <span className="inline-flex items-center px-2.5 sm:px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full mr-1.5 sm:mr-2 bg-green-600"></div>
                               Approved
                             </span>
-                              );
-                            } else if (broker.approvedByAdmin === 'rejected') {
-                              return (
-                                <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 border border-red-200">
-                                  <div className="w-2 h-2 rounded-full mr-2 bg-red-600"></div>
-                                  Rejected
-                                </span>
-                              );
-                            } else {
-                              return (
-                            <>
+                          );
+                        } else if (broker.approvedByAdmin === 'rejected') {
+                          return (
+                            <span className="inline-flex items-center px-2.5 sm:px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 border border-red-200">
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full mr-1.5 sm:mr-2 bg-red-600"></div>
+                              Rejected
+                            </span>
+                          );
+                        } else {
+                          return (
+                            <div className="flex space-x-1.5 sm:space-x-2">
                               <button 
                                 onClick={() => handleApprove(broker._id)}
-                                className="inline-flex items-center px-4 py-2 text-xs font-medium rounded text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors cursor-pointer"
+                                className="inline-flex items-center px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors cursor-pointer"
                               >
                                 Approve
                               </button>
                               <button 
                                 onClick={() => handleReject(broker._id)}
-                                className="inline-flex items-center px-4 py-2 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors cursor-pointer"
+                                className="inline-flex items-center px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors cursor-pointer"
                               >
                                 Reject
                               </button>
-                            </>
-                              );
-                            }
-                          })()}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
+                    <Link 
+                      href={`/brokers/${broker._id}`}
+                      className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+                    >
+                      View Details
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Pagination */}
