@@ -278,7 +278,6 @@ export default function BrokersPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
             {/* Status Filter */}
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Status:</label>
               <div className="w-40">
                 <Select
                   options={[
@@ -327,7 +326,6 @@ export default function BrokersPage() {
 
             {/* Membership Filter */}
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Membership:</label>
               <div className="w-40">
                 <Select
                   options={[
@@ -377,7 +375,6 @@ export default function BrokersPage() {
 
             {/* Region Filter */}
             <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Region:</label>
               <div className="w-40">
                 <Select
                   options={[
@@ -425,6 +422,24 @@ export default function BrokersPage() {
                   }}
                 />
               </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            <div className="flex items-center">
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setMembershipFilter('all');
+                  setRegionFilter('all');
+                }}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear Filters
+              </button>
             </div>
           </div>
         </div>
@@ -498,19 +513,25 @@ export default function BrokersPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex flex-col">
+                        <div className="flex flex-col space-y-2">
                           <div className="flex items-center text-gray-900">
-                            {broker.email || 'N/A'}
+                            <svg className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span className="truncate">{broker.email || 'N/A'}</span>
                             {broker.email && (
-                              <svg className="w-4 h-4 text-green-500 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-4 h-4 text-green-500 ml-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                               </svg>
                             )}
                           </div>
-                          <div className="flex items-center text-gray-500 text-xs mt-1">
-                            {broker.phone || 'N/A'}
+                          <div className="flex items-center text-gray-500 text-xs">
+                            <svg className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            <span className="truncate">{broker.phone || 'N/A'}</span>
                             {broker.phone && (
-                              <svg className="w-3 h-3 text-green-500 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-3 h-3 text-green-500 ml-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                               </svg>
                             )}
