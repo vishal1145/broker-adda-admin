@@ -28,9 +28,8 @@ export default function Layout({ children }: LayoutProps) {
       <div className="flex flex-col w-full overflow-hidden">
         {/* Top bar */}
         <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow-sm border-b border-gray-200">
-          {/* Logo and Menu - Left side */}
-          <div className="flex items-center px-6 space-x-8 ">
-            {/* Logo */}
+          {/* Logo - Left side */}
+          <div className="flex items-center px-6">
             <div className="flex items-center">
                <Image
                 src="/images/logo.png"
@@ -41,35 +40,31 @@ export default function Layout({ children }: LayoutProps) {
               />
               <h1 className="text-xl font-bold text-gray-800">Broker Adda</h1>
             </div>
-
-            {/* Broker Region Menu */}
-            <div className="flex items-center space-x-8 pl-20">
-              
-              <Link
-                href="/regions"
-                className={`text-sm font-medium transition-colors ${
-                  pathname === '/regions'
-                    ? 'text-primary '
-                    : 'text-gray-700 hover:text-primary border-transparent '
-                }`}
-              >
-                Regions
-              </Link>
-              <Link
-                href="/brokers"
-                className={`text-sm font-medium transition-colors  ${
-                  pathname === '/brokers'
-                    ? 'text-primary '
-                    : 'text-gray-700 hover:text-primary '
-                }`}
-              >
-                Brokers
-              </Link>
-            </div>
           </div>
 
-          {/* Spacer to push user profile to the right */}
-          <div className="flex-1"></div>
+          {/* Broker Region Menu - Centered */}
+          <div className="flex items-center justify-center flex-1 space-x-8">
+            <Link
+              href="/regions"
+              className={`text-sm font-medium transition-colors ${
+                pathname === '/regions'
+                  ? 'text-teal-600'
+                  : 'text-gray-700 hover:text-teal-600'
+              }`}
+            >
+              Regions
+            </Link>
+            <Link
+              href="/brokers"
+              className={`text-sm font-medium transition-colors ${
+                pathname === '/brokers'
+                  ? 'text-teal-600'
+                  : 'text-gray-700 hover:text-teal-600'
+              }`}
+            >
+              Brokers
+            </Link>
+          </div>
           
           {/* User Profile - Right side */}
           <div className="px-6 flex items-center">
@@ -88,7 +83,7 @@ export default function Layout({ children }: LayoutProps) {
                   />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-900">Rohit Tyagi</p>
+                  <p className="text-sm font-medium text-gray-900">Administrator</p>
                   <p className="text-xs text-gray-500">Admin</p>
                 </div>
               </div>
