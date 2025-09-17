@@ -38,7 +38,7 @@ export default function RegionsPage() {
     radius: ''
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage] = useState(9);
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -238,24 +238,34 @@ export default function RegionsPage() {
 
   // Skeleton loader component for region table rows
   const RegionSkeletonRow = () => (
-    <tr className="bg-white border-b border-gray-200">
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-28 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded animate-pulse w-20"></div>
+    <tr className="bg-white border-b border-gray-100">
+      <td className="px-8 py-6 whitespace-nowrap">
+        <div className="flex items-start space-x-3">
+          <div className="w-10 h-10 bg-gray-200 rounded-xl animate-pulse"></div>
+          <div className="flex-1">
+            <div className="h-5 bg-gray-200 rounded animate-pulse w-32 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+          </div>
+        </div>
       </td>
-      <td className="px-6 py-4">
+      <td className="px-8 py-6">
+        <div className="flex items-center space-x-2">
+          <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
         <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
+        </div>
       </td>
-      <td className="px-6 py-4">
+      <td className="px-8 py-6">
         <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-8"></div>
+      <td className="px-8 py-6 whitespace-nowrap">
+        <div className="flex justify-center">
+          <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
+        </div>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="flex items-center space-x-2">
-          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
-          <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+      <td className="px-8 py-6 whitespace-nowrap">
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div className="w-9 h-9 bg-gray-200 rounded-lg animate-pulse"></div>
         </div>
       </td>
     </tr>
@@ -642,81 +652,202 @@ export default function RegionsPage() {
           </div>
         )}
 
-        {/* Regions Table */}
-        <div className="shadow-sm rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-300">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">REGION NAME</th>
-                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CENTER LOCATION</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
-                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BROKER NUMBER</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-300">
+        {/* Regions Dashboard - Card Layout */}
+        <div className="space-y-6">
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 text-blue-900 shadow-sm border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-600 text-sm font-medium">Total Regions</p>
+                  <p className="text-3xl font-bold text-blue-800">{regions.length}</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-200 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 text-green-900 shadow-sm border border-green-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-600 text-sm font-medium">Total Brokers</p>
+                  <p className="text-3xl font-bold text-green-800">{regions.reduce((sum, region) => sum + (region.brokerCount || 0), 0)}</p>
+                </div>
+                <div className="w-12 h-12 bg-green-200 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 text-purple-900 shadow-sm border border-purple-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-600 text-sm font-medium">Active Cities</p>
+                  <p className="text-3xl font-bold text-purple-800">{new Set(regions.map(r => r.city)).size}</p>
+                </div>
+                <div className="w-12 h-12 bg-purple-200 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-6 text-orange-900 shadow-sm border border-orange-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-600 text-sm font-medium">Avg. Brokers/Region</p>
+                  <p className="text-3xl font-bold text-orange-800">
+                    {regions.length > 0 ? Math.round(regions.reduce((sum, region) => sum + (region.brokerCount || 0), 0) / regions.length) : 0}
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-orange-200 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Regions Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {loading ? (
                   <>
-                    <RegionSkeletonRow />
-                    <RegionSkeletonRow />
-                    <RegionSkeletonRow />
-                    <RegionSkeletonRow />
-                    <RegionSkeletonRow />
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 animate-pulse">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-16 h-16 bg-gray-200 rounded-2xl"></div>
+                      <div className="flex-1 space-y-3">
+                        <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-full"></div>
+                        <div className="flex justify-between items-center">
+                          <div className="h-6 bg-gray-200 rounded w-20"></div>
+                          <div className="flex space-x-2">
+                            <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                            <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
                   </>
                 ) : !Array.isArray(regions) || regions.length === 0 ? (
-                  <tr>
-                     <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                      No regions found. Create your first region above.
-                    </td>
-                  </tr>
+              <div className="col-span-full flex flex-col items-center justify-center py-16">
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-3xl flex items-center justify-center mb-6">
+                  <svg className="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">No regions found</h3>
+                <p className="text-gray-500 text-center max-w-md">Create your first region to get started with managing broker territories and locations.</p>
+              </div>
                  ) : filteredRegions.length === 0 ? (
-                   <tr>
-                     <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                       No regions match the selected filters. Try adjusting your filter criteria.
-                     </td>
-                   </tr>
-                ) : (
-                  getPaginatedRegions().map((region) => (
-                    <tr 
-                      key={region._id} 
-                      className="bg-white hover:bg-gray-50 border-b border-gray-200 transition-colors duration-200"
-                    >
-                       {/* First Column: Region Name with City below and State in brackets */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{region.name}</div>
-                         <div className="text-sm text-gray-500">
+              <div className="col-span-full flex flex-col items-center justify-center py-16">
+                <div className="w-24 h-24 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-3xl flex items-center justify-center mb-6">
+                  <svg className="w-12 h-12 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">No matching regions</h3>
+                <p className="text-gray-500 text-center max-w-md">Try adjusting your filter criteria to see more results.</p>
+              </div>
+            ) : (
+              getPaginatedRegions().map((region, index) => {
+                const colors = [
+                  'from-blue-200 to-blue-300',
+                  'from-green-200 to-green-300', 
+                  'from-purple-200 to-purple-300',
+                  'from-pink-200 to-pink-300',
+                  'from-indigo-200 to-indigo-300',
+                  'from-orange-200 to-orange-300'
+                ];
+                const bgColors = [
+                  'from-blue-50 to-blue-100',
+                  'from-green-50 to-green-100',
+                  'from-purple-50 to-purple-100', 
+                  'from-pink-50 to-pink-100',
+                  'from-indigo-50 to-indigo-100',
+                  'from-orange-50 to-orange-100'
+                ];
+                const colorIndex = index % colors.length;
+                
+                return (
+                  <div key={region._id} className="group bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden">
+                    {/* Header with gradient */}
+                    <div className={`h-2 bg-gradient-to-r ${colors[colorIndex]}`}></div>
+                    
+                    <div className="p-6">
+                      {/* Region Icon and Name */}
+                      <div className="flex items-start space-x-4 mb-4">
+                        <div className={`w-16 h-16 bg-gradient-to-br ${bgColors[colorIndex]} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                          <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors mb-1">
+                            {region.name}
+                          </h3>
+                          <div className="flex items-center space-x-2">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
                            {region.city || 'N/A'}
-                           {region.state && ` (${region.state})`}
+                            </span>
+                            {region.state && (
+                              <span className="text-sm text-gray-500">
+                                {region.state}
+                              </span>
+                            )}
                          </div>
-                       </td>
-                       
-                       {/* Second Column: Center Location */}
-                       <td className="px-6 py-4">
-                         <div className="text-sm text-gray-900 max-w-xs truncate">{region.centerLocation || 'N/A'}</div>
-                      </td>
-                       
-                       {/* Third Column: Description */}
-                      <td className="px-6 py-4">
-                         <div className="text-sm text-gray-900 max-w-xs truncate">{region.description || 'N/A'}</div>
-                      </td>
-                       
-                       {/* Fourth Column: Broker Number */}
-                       <td className="px-6 py-4 whitespace-nowrap">
-                         <div className="text-sm text-gray-900">
-                           {region.brokerCount || 0}
+                        </div>
+                      </div>
+                      
+                      {/* Description */}
+                      <div className="mb-4">
+                        <p className="text-gray-600 text-sm leading-relaxed line-clamp-2">
+                          {region.description || 'No description available'}
+                        </p>
+                      </div>
+                      
+                      {/* Center Location */}
+                      <div className="flex items-center space-x-2 mb-4 text-sm text-gray-500">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="truncate">{region.centerLocation || 'N/A'}</span>
+                      </div>
+                      
+                      {/* Stats and Actions */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-2 h-2 bg-gradient-to-r ${colors[colorIndex]} rounded-full`}></div>
+                            <span className="text-sm font-medium text-gray-700">
+                              {region.brokerCount || 0} Brokers
+                            </span>
                          </div>
-                       </td>
+                          <div className="text-sm text-gray-500">
+                            {region.radius}km radius
+                          </div>
+                        </div>
                        
-                       {/* Fifth Column: Action */}
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => {
-                              // TODO: Implement edit functionality
                               console.log('Edit region:', region._id);
                             }}
-                            className="text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
                             title="Edit Region"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -725,10 +856,9 @@ export default function RegionsPage() {
                           </button>
                           <button
                             onClick={() => {
-                              // TODO: Implement delete functionality
                               console.log('Delete region:', region._id);
                             }}
-                            className="text-red-500 hover:text-red-700 transition-colors cursor-pointer"
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                             title="Delete Region"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -736,43 +866,68 @@ export default function RegionsPage() {
                             </svg>
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
         {/* Pagination */}
         {!loading && filteredRegions.length > 0 && (
-          <div className="flex items-center justify-between px-6 py-3">
-            <div className="flex items-center text-sm text-gray-700">
-              <span>
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredRegions.length)} of {filteredRegions.length} results
-                {regions.length !== filteredRegions.length && (
-                  <span className="text-gray-500 ml-1">(filtered from {regions.length} total)</span>
-                )}
-                                </span>
+          <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center text-sm text-gray-600">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-200">
+                    <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredRegions.length)} of {filteredRegions.length} regions
+                    </p>
+                    {regions.length !== filteredRegions.length && (
+                      <p className="text-gray-500 text-xs">Filtered from {regions.length} total regions</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <ReactPaginate
+                pageCount={totalPages}
+                pageRangeDisplayed={3}
+                marginPagesDisplayed={1}
+                onPageChange={({ selected }) => setCurrentPage(selected + 1)}
+                forcePage={currentPage - 1}
+                previousLabel={
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span>Previous</span>
+                  </div>
+                }
+                nextLabel={
+                  <div className="flex items-center space-x-2">
+                    <span>Next</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                }
+                breakLabel="..."
+                containerClassName="flex items-center space-x-2"
+                pageClassName="px-4 py-2 text-sm font-medium rounded-xl cursor-pointer text-gray-600 bg-white hover:bg-blue-100 hover:text-blue-700 transition-all duration-200 border border-gray-200"
+                activeClassName="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300"
+                previousClassName="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-blue-100 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-200"
+                nextClassName="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-blue-100 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-200"
+                breakClassName="px-4 py-2 text-sm font-medium text-gray-400"
+                disabledClassName="opacity-50 cursor-not-allowed"
+              />
             </div>
-            <ReactPaginate
-              pageCount={totalPages}
-              pageRangeDisplayed={3}
-              marginPagesDisplayed={1}
-              onPageChange={({ selected }) => setCurrentPage(selected + 1)}
-              forcePage={currentPage - 1}
-              previousLabel="Previous"
-              nextLabel="Next"
-              breakLabel="..."
-              containerClassName="flex items-center space-x-1"
-              pageClassName="px-3 py-2 text-sm font-medium rounded-md cursor-pointer text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
-              activeClassName="bg-primary text-white border-primary"
-              previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-              nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-              breakClassName="px-3 py-2 text-sm font-medium text-gray-500"
-              disabledClassName="opacity-50 cursor-not-allowed"
-            />
           </div>
         )}
 
