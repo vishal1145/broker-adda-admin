@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Head from 'next/head';
-import Image from 'next/image';
 import Layout from '@/components/Layout';
 
 interface Broker {
@@ -14,6 +13,8 @@ interface Broker {
     _id: string;
     name: string;
     description: string;
+    state: string;
+    city: string;
   }>;
   regionId: string | null;
   status: string;
@@ -35,15 +36,33 @@ interface Broker {
   licenseNumber?: string;
   expertiseField?: string;
   state?: string;
-  leaders?: Array<{
+  brokerImage?: string;
+  gender?: string;
+  experience?: string;
+  dateOfBirth?: string;
+  specializations?: string[];
+  website?: string;
+  whatsapp?: string;
+  socialMedia?: {
+    instagram?: string;
+    linkedin?: string;
+    facebook?: string;
+    twitter?: string;
+  };
+  leads?: Array<{
     id: number;
     name: string;
-    role: string;
-    email: string;
-    phone: string;
+    inquiry: string;
+    property: string;
     status: string;
-    experience: string;
   }>;
+  subscription?: {
+    plan: string;
+    status: string;
+    paymentMethod: string;
+    nextBillingDate: string;
+    amountDue: string;
+  };
 }
 
 export default function BrokerDetailsPage() {
@@ -52,17 +71,15 @@ export default function BrokerDetailsPage() {
   const [broker, setBroker] = useState<Broker | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imageTitle, setImageTitle] = useState<string>('');
 
-  // Mock static data for demonstration
+  // Mock static data for demonstration - matching the image
   const mockBrokerData: Broker = {
     _id: params.id as string,
     userId: 'user123',
-    firmName: 'Alpha Financial Services',
+    firmName: 'Sterling & Co. Realty',
     region: [
-      { _id: 'reg1', name: 'Mumbai', description: 'Financial capital of India' },
-      { _id: 'reg2', name: 'Delhi', description: 'National capital region' }
+      { _id: 'reg1', name: 'Mumbai', description: 'Financial capital of India', state: 'Maharashtra', city: 'Mumbai' },
+      { _id: 'reg2', name: 'Delhi', description: 'National capital region', state: 'Delhi', city: 'New Delhi' }
     ],
     regionId: 'reg1',
     status: 'active',
@@ -75,14 +92,64 @@ export default function BrokerDetailsPage() {
     createdAt: '2024-01-15T10:30:00Z',
     updatedAt: '2024-01-20T14:45:00Z',
     __v: 0,
-    name: 'Rajesh Kumar Sharma',
-    email: 'rajesh.sharma@alphafinancial.com',
-    phone: '+91 98765 43210',
-    address: '123 Business Park, Andheri West, Mumbai - 400058',
-    accreditedBy: 'SEBI (Securities and Exchange Board of India)',
-    licenseNumber: 'SEBI/REG/2024/001234',
-    expertiseField: 'Equity Trading, Mutual Funds, Insurance',
-    state: 'Maharashtra'
+    name: 'Alexander Sterling',
+    email: 'alexander.sterling@sterlingrealty.com',
+    phone: '+1 (555) 123-4567',
+    address: '789 Grand Blvd, Suite 200, Minneapolis, CA 90210',
+    accreditedBy: 'NAR (National Association of Realtors)',
+    licenseNumber: 'BRB 907233567',
+    expertiseField: 'Residential Sales, Luxury Homes',
+    state: 'California',
+    brokerImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format&q=80',
+    gender: 'Male',
+    experience: '12 Years',
+    dateOfBirth: '1983-09-22',
+    specializations: ['Residential Sales', 'Luxury Homes'],
+    website: 'https://www.sterlingrealty.com/alexander-sterling',
+    whatsapp: '+1 (555) 123-4567',
+    socialMedia: {
+      instagram: 'https://instagram.com/alexsterling',
+      linkedin: 'https://linkedin.com/in/alexsterling',
+      facebook: 'https://facebook.com/alexsterling',
+      twitter: 'https://twitter.com/alexsterling'
+    },
+    leads: [
+      {
+        id: 1,
+        name: 'Alice Smith',
+        inquiry: 'Buying inquiry',
+        property: '456 Elmwood St',
+        status: 'New'
+      },
+      {
+        id: 2,
+        name: 'Bob Johnson',
+        inquiry: 'Selling inquiry',
+        property: '789 Oak Ave',
+        status: 'Follow Up'
+      },
+      {
+        id: 3,
+        name: 'Carol White',
+        inquiry: 'Rental inquiry',
+        property: '101 Pine St',
+        status: 'Qualified'
+      },
+      {
+        id: 4,
+        name: 'David Green',
+        inquiry: 'Commercial inquiry',
+        property: '303 Business Park',
+        status: 'New'
+      }
+    ],
+    subscription: {
+      plan: 'Pro Agent - Monthly',
+      status: 'Active',
+      paymentMethod: 'Visa ending in **** 1234',
+      nextBillingDate: '2023-08-20',
+      amountDue: '$39.99'
+    }
   };
 
   useEffect(() => {
@@ -106,60 +173,40 @@ export default function BrokerDetailsPage() {
     fetchBrokerDetails();
   }, [params.id]);
 
-  const getStatusColor = (approved: boolean) => {
-    return approved ? 'bg-green-100 text-green-800 border-green-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200';
-  };
-
-  const getStatusText = (approved: boolean) => {
-    return approved ? 'Approved' : 'Pending Approval';
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const openImageModal = (imageUrl: string, title: string) => {
-    setSelectedImage(imageUrl);
-    setImageTitle(title);
-  };
-
-  const closeImageModal = () => {
-    setSelectedImage(null);
-    setImageTitle('');
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'New':
+        return 'bg-gray-100 text-gray-800';
+      case 'Follow Up':
+        return 'bg-gray-100 text-gray-800';
+      case 'Qualified':
+        return 'bg-green-100 text-green-800';
+      case 'Active':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   // Skeleton loader component for broker details
   const BrokerDetailsSkeleton = () => (
     <div className="space-y-6">
-      {/* Profile Section Skeleton */}
-      <div className="bg-white rounded-xl border border-gray-200 p-8">
-        <div className="flex items-start">
-          {/* Left Section Skeleton */}
-          <div className="flex-shrink-0 text-center pr-8">
-            <div className="w-24 h-24 bg-gray-200 rounded-full animate-pulse mx-auto mb-6"></div>
-            <div className="h-6 bg-gray-200 rounded animate-pulse w-48 mb-3"></div>
-            <div className="space-y-2">
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-36 mx-auto"></div>
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-48 mx-auto"></div>
+      {/* Broker Information Skeleton */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-6 bg-gray-200 rounded animate-pulse w-40"></div>
+          <div className="h-8 bg-gray-200 rounded animate-pulse w-24"></div>
             </div>
-          </div>
-          
-          {/* Vertical Divider */}
-          <div className="flex-shrink-0 w-0.5 bg-gray-300 mx-6 h-full min-h-[200px]"></div>
-          
-          {/* Right Section Skeleton */}
-          <div className="flex-1 pl-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="h-3 bg-gray-200 rounded animate-pulse w-24 mb-2"></div>
+        <div className="flex items-start space-x-6">
+          <div className="w-20 h-20 bg-gray-200 rounded-full animate-pulse"></div>
+          <div className="flex-1 space-y-4">
+            <div className="h-6 bg-gray-200 rounded animate-pulse w-48"></div>
                   <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
+            <div className="grid grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
                 </div>
               ))}
             </div>
@@ -167,41 +214,51 @@ export default function BrokerDetailsPage() {
         </div>
       </div>
 
-      {/* KYC Documents Skeleton */}
-      <div className="mb-6">
-        <div className="h-6 bg-gray-200 rounded animate-pulse w-32 mb-6"></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="space-y-3">
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
-              <div className="h-48 bg-gray-200 rounded-lg animate-pulse"></div>
+      {/* Contact Details & Active Leads Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="h-6 bg-gray-200 rounded animate-pulse w-32 mb-4"></div>
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center space-x-3">
+                <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
             </div>
           ))}
         </div>
       </div>
-
-        {/* Team Lead Skeleton */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="h-6 bg-gray-200 rounded animate-pulse w-24"></div>
-            <div className="h-6 bg-gray-200 rounded-full animate-pulse w-20"></div>
-          </div>
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className="h-12 bg-gray-50"></div>
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="border-b border-gray-200 p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
-                    <div className="h-3 bg-gray-200 rounded animate-pulse w-40"></div>
-                  </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="h-6 bg-gray-200 rounded animate-pulse w-32 mb-4"></div>
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                <div className="space-y-2">
                   <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
-                  <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
-                  <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                  <div className="h-3 bg-gray-200 rounded animate-pulse w-32"></div>
                 </div>
+                <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Subscription & Payment Details Skeleton */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="h-6 bg-gray-200 rounded animate-pulse w-48 mb-4"></div>
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="space-y-2">
+                <div className="h-3 bg-gray-200 rounded animate-pulse w-24"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end space-x-3">
+            <div className="h-8 bg-gray-200 rounded animate-pulse w-24"></div>
+            <div className="h-8 bg-gray-200 rounded animate-pulse w-32"></div>
+          </div>
           </div>
         </div>
     </div>
@@ -216,7 +273,7 @@ export default function BrokerDetailsPage() {
         <div className="space-y-6">
         {/* Page Header */}
         <div className="mb-6">
-          <div className="flex items-center mb-4">
+          <div className="flex items-center">
             <button
               onClick={() => router.back()}
               className="text-gray-600 hover:text-gray-900 cursor-pointer mr-3"
@@ -227,7 +284,7 @@ export default function BrokerDetailsPage() {
             </button>
             <h1 className="text-2xl font-bold text-gray-900">Broker Details</h1>
           </div>
-          <p className="text-gray-600 mt-1">Complete information about the broker</p>
+          <p className="text-gray-500 mt-1 text-sm">Complete information about the broker</p>
         </div>
 
         {loading ? (
@@ -249,376 +306,531 @@ export default function BrokerDetailsPage() {
           </div>
         ) : (
           <>
-
-        {/* Cards Row - 4:4:4 ratio */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Profile Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">Profile</h2>
-              <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border ${broker.approvedByAdmin ? 'bg-green-50 text-green-800 border-green-200' : 'bg-yellow-50 text-yellow-800 border-yellow-200'}`}>
-                <div className={`w-2 h-2 rounded-full mr-1.5 ${broker.approvedByAdmin ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                {broker.approvedByAdmin ? 'Active' : 'Pending'}
-              </span>
+              {/* Broker Information Section */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                  <h2 className="text-xl font-bold text-gray-900">Broker Information</h2>
+                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors">
+                    Edit Profile
+                  </button>
             </div>
             
-            <div className="text-center">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden ring-4 ring-gray-100 shadow-md">
-                <Image 
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format&q=80" 
+                <div className="flex items-start space-x-6">
+                  {/* Profile Image */}
+                  <div className="flex-shrink-0">
+                    <img
+                      src={broker.brokerImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format&q=80"}
                   alt={broker.name || 'Broker'} 
-                  className="w-full h-full object-cover"
-                  width={96}
-                  height={96}
-                  unoptimized={true}
+                      className="w-20 h-20 rounded-full object-cover"
                 />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">{broker.name || 'N/A'}</h3>
-              <div className="space-y-1">
-                <div className="flex items-center justify-center text-gray-600">
-                  <svg className="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  
+                  {/* Profile Details */}
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-1">{broker.name || 'Alexander Sterling'}</h3>
+                    <p className="text-lg text-gray-600 mb-6">Senior Real Estate Agent</p>
+                    
+                    {/* Details Grid */}
+                    <div className="grid grid-cols-3 gap-8">
+                      {/* Left Column */}
+                      <div className="space-y-6">
+                        <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="text-xs font-medium">{broker.phone || 'N/A'}</span>
+                            <p className="text-sm font-medium text-gray-500">Firm</p>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900">{broker.firmName || 'Sterling & Co. Realty'}</p>
                 </div>
-                <div className="flex items-center justify-center text-gray-600">
-                  <svg className="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  <span className="text-xs font-medium">{broker.email || 'N/A'}</span>
+                            <p className="text-sm font-medium text-gray-500">Gender</p>
+                </div>
+                          <p className="text-sm font-semibold text-gray-900">{broker.gender || 'Male'}</p>
+            </div>
+          </div>
+
+                      {/* Middle Column */}
+                      <div className="space-y-6">
+                        <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-sm font-medium text-gray-500">Experience</p>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900">{broker.experience || '12 Years'}</p>
+                        </div>
+              <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p className="text-sm font-medium text-gray-500">Date of Birth</p>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900">{broker.dateOfBirth || '1985-05-20'}</p>
+                        </div>
+              </div>
+              
+                      {/* Right Column */}
+                      <div className="space-y-6">
+              <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p className="text-sm font-medium text-gray-500">License</p>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900">{broker.licenseNumber || 'BRE #01234567'}</p>
+              </div>
+              <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                            <p className="text-sm font-medium text-gray-500">Specializations</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {['Residential Sales', 'Commercial Leasing', 'Luxury Homes'].map((spec, index) => (
+                              <span key={index} className="inline-flex items-center px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+                                {spec}
+                    </span>
+                  ))}
+                          </div>
+                        </div>
+                      </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* About Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">About</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Firm Name</label>
-                <p className="text-sm font-semibold text-gray-900">{broker.firmName}</p>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Registration Date</label>
-                <p className="text-sm font-semibold text-gray-900">{new Date(broker.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Regions</label>
-                <div className="flex flex-wrap gap-1">
-                  {broker.region.map((region, index) => (
-                    <span key={region._id} className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-50 text-blue-700 rounded-full border border-blue-200">
-                      <svg className="w-2 h-2 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              {/* Contact Details & Active Leads Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Contact Details */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Contact Details</h2>
+                  
+                  <div className="space-y-5">
+                    <div className="flex items-start space-x-3">
+                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
-                      {region.name}
-                    </span>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Mobile</p>
+                        <p className="text-sm font-semibold text-teal-600">+1 (555) 123-4567</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">WhatsApp</p>
+                        <p className="text-sm font-semibold text-teal-600">+1 (555) 123-4567</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Email</p>
+                        <p className="text-sm font-semibold text-teal-600">alexander.sterling@sterlingrealty.com</p>
+                </div>
+              </div>
+
+                    <div className="flex items-start space-x-3">
+                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Office Address</p>
+                        <p className="text-sm font-semibold text-gray-900">789 Grand Blvd, Suite 200, Metropolis, CA 90210</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
+                      </svg>
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">Website</p>
+                        <a href="https://www.sterlingrealty.com/alexander-sterling" className="text-sm font-semibold text-teal-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                          https://www.sterlingrealty.com/alexander-sterling
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Social Media Section */}
+                  <div className="mt-6">
+                    <p className="text-sm font-medium text-gray-500 mb-3">Social Media</p>
+                    <div className="flex items-center space-x-4">
+                      <a href="#" className="text-gray-500 hover:text-blue-600 transition-colors">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                        </svg>
+                      </a>
+                      <a href="#" className="text-gray-500 hover:text-blue-400 transition-colors">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                        </svg>
+                      </a>
+                      <a href="#" className="text-gray-500 hover:text-pink-500 transition-colors">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987s11.987-5.367 11.987-11.987C24.014 5.367 18.647.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323c-.875.807-2.026 1.297-3.323 1.297zm7.718-1.297c-.875.807-2.026 1.297-3.323 1.297s-2.448-.49-3.323-1.297c-.807-.875-1.297-2.026-1.297-3.323s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323z"/>
+                        </svg>
+                      </a>
+                      <a href="#" className="text-gray-500 hover:text-blue-600 transition-colors">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Leads */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Active Leads</h2>
+                  
+                  <div className="space-y-3">
+                    {[
+                      { id: 1, name: 'Alice Smith', inquiry: 'Buying Inquiry', property: '456 Hilltop Rd', status: 'New' },
+                      { id: 2, name: 'Bob Johnson', inquiry: 'Selling Inquiry', property: '789 Oak Ave', status: 'Follow Up' },
+                      { id: 3, name: 'Carol White', inquiry: 'Rental Inquiry', property: '101 Pine St', status: 'Qualified' },
+                      { id: 4, name: 'David Green', inquiry: 'Commercial Inquiry', property: '202 Business Park', status: 'New' }
+                    ].map((lead) => (
+                      <div key={lead.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-1">{lead.name}</h3>
+                            <p className="text-sm text-gray-600">{lead.inquiry} • Property: {lead.property}</p>
+                          </div>
+                          <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                            lead.status === 'Qualified' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {lead.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Subscription & Payment Details Section */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Subscription & Payment Details</h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Current Plan</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="text-sm font-semibold text-gray-900">Pro Agent - Monthly</span>
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                          Active
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Payment Method</p>
+                      <p className="text-sm font-semibold text-gray-900">Visa ending in **** 1234</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Next Billing Date</p>
+                      <p className="text-sm font-semibold text-gray-900">2024-06-20</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Amount Due</p>
+                      <p className="text-sm font-semibold text-gray-900">$99.99</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex justify-end space-x-3">
+                    <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors">
+                      Upgrade Plan
+                    </button>
+                    <button className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors">
+                      Manage Subscription
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reviews & Ratings and Performance Snapshot Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Reviews & Ratings */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Reviews & Ratings</h2>
+                  
+                  <div className="mb-6">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="flex space-x-1">
+                        {[...Array(5)].map((_, i) => (
+                          <svg key={i} className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                      </div>
+                      <span className="text-2xl font-bold text-teal-600">4.9</span>
+                      <span className="text-sm text-gray-500">(185 Reviews)</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-700 mb-2">"Alexander made our home buying process incredibly smooth and stress-free. Highly recommend!"</p>
+                      <p className="text-xs text-gray-500">- Sarah L., 2024-03-15</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-700 mb-2">"Professional, knowledgeable, and always responsive. He found us the perfect commercial space."</p>
+                      <p className="text-xs text-gray-500">- Mark T., 2024-02-28</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Performance Snapshot */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Performance Snapshot</h2>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <div className="flex items-center space-x-2 mb-1">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-sm font-medium text-gray-500">Total Deals Closed</p>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900">125</p>
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center space-x-2 mb-1">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                        <p className="text-sm font-medium text-gray-500">Average Deal Value</p>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900">$1,200,000</p>
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center space-x-2 mb-3">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <p className="text-sm font-medium text-gray-500">Areas of Operation</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {['Beverly Hills', 'Malibu', 'Santa Monica', 'Hollywood Hills'].map((area) => (
+                          <span key={area} className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+                            {area}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center space-x-2 mb-3">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-sm font-medium text-gray-500">Recent Activity</p>
+                      </div>
+                      <ul className="space-y-2">
+                        <li className="flex items-start space-x-2">
+                          <div className="w-1.5 h-1.5 bg-gray-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <span className="text-sm text-gray-700">Closed deal: Luxury Estate on Ocean View Dr</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <div className="w-1.5 h-1.5 bg-gray-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <span className="text-sm text-gray-700">New listing: Modern Condo in Downtown LA</span>
+                        </li>
+                        <li className="flex items-start space-x-2">
+                          <div className="w-1.5 h-1.5 bg-gray-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <span className="text-sm text-gray-700">Client consultation: Commercial property investor</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Property Listings Section */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Property Listings</h2>
+                
+                <div className="mb-8">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-teal-600 mb-1">150</div>
+                      <div className="text-sm text-gray-500">Total Properties</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-gray-900 mb-1">25</div>
+                      <div className="text-sm text-gray-500">Active Listings</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-teal-600 mb-1">125</div>
+                      <div className="text-sm text-gray-500">Sold Deals</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Featured Properties</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[
+                      { 
+                        id: 1, 
+                        title: 'Modern Family Home', 
+                        price: '$2,850,000', 
+                        image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop&auto=format&q=80' 
+                      },
+                      { 
+                        id: 2, 
+                        title: 'Luxury Penthouse', 
+                        location: 'Downtown LA, CA',
+                        price: '$4,200,000', 
+                        image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=300&fit=crop&auto=format&q=80' 
+                      },
+                      { 
+                        id: 3, 
+                        title: 'Prime Commercial Space', 
+                        location: 'Santa Monica, CA',
+                        price: '$12,500/month', 
+                        image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop&auto=format&q=80' 
+                      },
+                      { 
+                        id: 4, 
+                        title: 'Charming Suburban Retreat', 
+                        location: 'Culver City, CA',
+                        price: '$1,500,000', 
+                        image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&h=300&fit=crop&auto=format&q=80' 
+                      },
+                      { 
+                        id: 5, 
+                        title: 'Mountain View Cabin', 
+                        location: 'Malibu, CA',
+                        price: '$3,100,000', 
+                        image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&h=300&fit=crop&auto=format&q=80' 
+                      },
+                      { 
+                        id: 6, 
+                        title: 'Beachfront Villa', 
+                        location: 'Malibu, CA',
+                        price: '$7,900,000', 
+                        image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&h=300&fit=crop&auto=format&q=80' 
+                      }
+                    ].map((property) => (
+                      <div key={property.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                        <div className="relative">
+                          <img
+                            src={property.image}
+                            alt={property.title}
+                            className="w-full h-48 object-cover"
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                            <h4 className="text-sm font-semibold text-white mb-1">{property.title}</h4>
+                            {property.location && (
+                              <p className="text-xs text-white/90 mb-2">{property.location}</p>
+                            )}
+                            <span className="text-sm font-semibold text-teal-400">{property.price}</span>
+                            <div className="flex justify-center mt-3">
+                              <button className="w-full px-4 py-1 text-s font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
+                                View Details
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Documents Section */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Documents</h2>
+                
+                <div className="space-y-0">
+                  {[
+                    { name: 'Broker License', type: 'PDF' },
+                    { name: 'Client Agreement Template', type: 'DOC' },
+                    { name: 'Property Listing Guide', type: 'PDF' },
+                    { name: 'Privacy Policy', type: 'PDF' }
+                  ].map((doc, index) => (
+                    <div key={index} className={`flex items-center justify-between py-4 ${index !== 3 ? 'border-b border-gray-200' : ''}`}>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <p className="text-sm font-semibold text-gray-900">{doc.name}</p>
+                          <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded">
+                            {doc.type}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <button className="flex items-center space-x-1 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          <span>Preview</span>
+                        </button>
+                        <button className="flex items-center space-x-1 px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span>Download</span>
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* KYC Documents Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">KYC Documents</h2>
-            
-            <div className="space-y-4">
-              {/* Aadhar Card */}
-              <div 
-                className="border border-cyan-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-cyan-50 hover:bg-cyan-100"
-                onClick={() => openImageModal(broker.kycDocs.aadhar, 'Aadhar Card')}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-cyan-900">Aadhar Card</p>
-                      <p className="text-xs text-cyan-600">Click to view</p>
-                    </div>
-                  </div>
-                  <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* PAN Card */}
-              <div 
-                className="border border-orange-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-orange-50 hover:bg-orange-100"
-                onClick={() => openImageModal(broker.kycDocs.pan, 'PAN Card')}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-orange-900">PAN Card</p>
-                      <p className="text-xs text-orange-600">Click to view</p>
-                    </div>
-                  </div>
-                  <svg className="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* GST Certificate */}
-              <div 
-                className="border border-pink-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-pink-50 hover:bg-pink-100"
-                onClick={() => openImageModal(broker.kycDocs.gst, 'GST Certificate')}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-pink-900">GST Certificate</p>
-                      <p className="text-xs text-pink-600">Click to view</p>
-                    </div>
-                  </div>
-                  <svg className="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Leads, Properties, and KYC Documents Cards - 4:4:4 ratio */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Leads Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Leads</h2>
-            </div>
-            
-            <div className="space-y-4">
-              {[
-                {
-                  id: 1,
-                  name: "John Allen",
-                  email: "john.allen@alphafinancial.com",
-                  phone: "+91 98765 43210",
-                  status: "Active",
-                  property: "Commercial Plaza"
-                },
-                {
-                  id: 2,
-                  name: "Sarah Johnson",
-                  email: "sarah.johnson@alphafinancial.com",
-                  phone: "+91 98765 43211",
-                  status: "Active",
-                  property: "Residential Complex"
-                },
-                {
-                  id: 3,
-                  name: "Michael Chen",
-                  email: "michael.chen@alphafinancial.com",
-                  phone: "+91 98765 43212",
-                  status: "On Leave",
-                  property: "Office Building"
-                }
-              ].map((leader) => (
-                <div key={leader.id} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Image 
-                    src={`data:image/jpeg;base64,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`}
-                    alt={leader.name}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                    width={40}
-                    height={40}
-                    unoptimized={true}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-gray-900 truncate">{leader.name}</h3>
-                      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full border ${
-                        leader.status === 'Active' 
-                          ? 'bg-green-50 text-green-700 border-green-200' 
-                          : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                      }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                          leader.status === 'Active' ? 'bg-green-500' : 'bg-yellow-500'
-                        }`}></div>
-                        {leader.status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 truncate">{leader.email}</p>
-                    <p className="text-xs text-gray-600 font-medium">{leader.phone}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Properties Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Properties</h2>
-            </div>
-            
-            <div className="space-y-4">
-              {[
-                {
-                  id: 1,
-                  name: "Commercial Plaza",
-                  location: "Andheri West, Mumbai",
-                  type: "Commercial",
-                  price: "₹2.5 Cr",
-                  status: "Available",
-                  image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=300&fit=crop&auto=format&q=80"
-                },
-                {
-                  id: 2,
-                  name: "Residential Complex",
-                  location: "Powai, Mumbai",
-                  type: "Residential",
-                  price: "₹1.8 Cr",
-                  status: "Sold",
-                  image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop&auto=format&q=80"
-                },
-                {
-                  id: 3,
-                  name: "Office Building",
-                  location: "BKC, Mumbai",
-                  type: "Office",
-                  price: "₹5.2 Cr",
-                  status: "Available",
-                  image: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop&auto=format&q=80"
-                }
-              ].map((property) => (
-                <div key={property.id} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                    <Image 
-                      src={property.image}
-                      alt={property.name}
-                      className="w-full h-full object-cover"
-                      width={48}
-                      height={48}
-                      unoptimized={true}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-gray-900 truncate">{property.name}</h3>
-                      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full border ${
-                        property.status === 'Available' 
-                          ? 'bg-green-50 text-green-700 border-green-200' 
-                          : 'bg-gray-50 text-gray-700 border-gray-200'
-                      }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                          property.status === 'Available' ? 'bg-green-500' : 'bg-gray-500'
-                        }`}></div>
-                        {property.status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 truncate">{property.location}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs text-gray-600 font-medium">{property.type}</span>
-                      <span className="text-sm font-bold text-gray-900">{property.price}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Payment Details Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Payment Details</h2>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Payment Status</label>
-                <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border bg-green-50 text-green-800 border-green-200">
-                  <div className="w-2 h-2 rounded-full mr-1.5 bg-green-500"></div>
-                  Up to Date
-                </span>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Last Payment</label>
-                <p className="text-sm font-semibold text-gray-900">₹15,000</p>
-                <p className="text-xs text-gray-500">January 15, 2024</p>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Next Payment Due</label>
-                <p className="text-sm font-semibold text-gray-900">February 15, 2024</p>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Commission</label>
-                <p className="text-lg font-bold text-green-600">₹2,45,000</p>
-              </div>
-            </div>
-          </div>
-        </div>
           </>
         )}
-
-      </div>
-
-      {/* Image Modal */}
-      {selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-10 " onClick={closeImageModal}>
-          <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-xl shadow-2xl border border-gray-200" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50 rounded-t-xl">
-              <h3 className="text-xl font-semibold text-gray-900">{imageTitle}</h3>
-              <button
-                onClick={closeImageModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-200"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            {/* Modal Body */}
-            <div className="p-6">
-              <Image
-                src={selectedImage}
-                alt={imageTitle}
-                className="max-w-full max-h-[60vh] object-contain mx-auto rounded-lg"
-                width={800}
-                height={600}
-                unoptimized={true}
-              />
-            </div>
-            
-            {/* Modal Footer */}
-            <div className="flex items-center justify-end p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-              <button
-                onClick={closeImageModal}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                Close
-              </button>
-            </div>
-          </div>
         </div>
-      )}
     </Layout>
     </>
   );
 }
-
-
