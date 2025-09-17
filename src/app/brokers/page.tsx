@@ -22,7 +22,7 @@ interface Broker {
   }>;
   regionId: string | null;
   status: string;
-  approvedByAdmin: string;
+  approvedByAdmin: string | boolean;
   kycDocs: {
     aadhar: string;
     pan: string;
@@ -54,6 +54,17 @@ export default function BrokersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBrokers, setTotalBrokers] = useState(0);
+
+  // Calculate broker statistics
+  const brokerStats = {
+    total: brokers.length,
+    pending: brokers.filter(broker => {
+      const status = broker.approvedByAdmin;
+      return status === 'pending' || status === undefined || status === null || status === false;
+    }).length,
+    approved: brokers.filter(broker => broker.approvedByAdmin === 'approved' || broker.approvedByAdmin === true).length,
+    rejected: brokers.filter(broker => broker.approvedByAdmin === 'rejected').length
+  };
 
   // Fetch brokers from API
   const fetchBrokers = useCallback(async () => {
@@ -233,6 +244,69 @@ export default function BrokersPage() {
           <p className="text-gray-600 mt-1">View and manage all registered brokers</p>
             </div>
          
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Total Brokers Card */}
+          <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-600 text-sm font-medium">Total Brokers</p>
+                <p className="text-2xl font-bold text-blue-900">{brokerStats.total}</p>
+              </div>
+              <div className="bg-blue-100 rounded-lg p-3">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Pending Brokers Card */}
+          <div className="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-yellow-600 text-sm font-medium">Pending</p>
+                <p className="text-2xl font-bold text-yellow-900">{brokerStats.pending}</p>
+              </div>
+              <div className="bg-yellow-100 rounded-lg p-3">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Approved Brokers Card */}
+          <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-600 text-sm font-medium">Approved</p>
+                <p className="text-2xl font-bold text-green-900">{brokerStats.approved}</p>
+              </div>
+              <div className="bg-green-100 rounded-lg p-3">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Rejected Brokers Card */}
+          <div className="bg-red-50 rounded-lg p-6 border border-red-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-red-600 text-sm font-medium">Rejected</p>
+                <p className="text-2xl font-bold text-red-900">{brokerStats.rejected}</p>
+              </div>
+              <div className="bg-red-100 rounded-lg p-3">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -551,7 +625,7 @@ export default function BrokersPage() {
                     <div className="flex-1">
                       {(() => {
                         console.log('🔍 Broker ID:', broker._id, 'approvedByAdmin:', broker.approvedByAdmin, 'Type:', typeof broker.approvedByAdmin);
-                        if (broker.approvedByAdmin === 'approved') {
+                        if (broker.approvedByAdmin === 'approved' || broker.approvedByAdmin === true) {
                           return (
                             <span className="inline-flex items-center px-2.5 sm:px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 border border-green-200">
                               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full mr-1.5 sm:mr-2 bg-green-600"></div>
