@@ -270,9 +270,9 @@ export default function BrokerDetailsPage() {
         <title>Broker Details - Broker Adda Admin</title>
       </Head>
       <Layout>
-        <div className="space-y-6">
+        <div className="space-y-6 px-6 sm:px-8 lg:px-14">
         {/* Page Header */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <div className="flex items-center">
             <button
               onClick={() => router.back()}
@@ -285,7 +285,7 @@ export default function BrokerDetailsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Broker Details</h1>
           </div>
           <p className="text-gray-500 mt-1 text-sm">Complete information about the broker</p>
-        </div>
+        </div> */}
 
         {loading ? (
           <BrokerDetailsSkeleton />
