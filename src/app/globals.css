@@ -66,3 +66,13 @@ body {
 .border-primary { border-color: var(--primary) !important; }
 .border-secondary { border-color: var(--secondary) !important; }
 .border-hover { border-color: var(--hover) !important; }
+
+/* Hide scrollbar for popup content */
+.popup-content::-webkit-scrollbar {
+  display: none;
+}
+
+.popup-content {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}

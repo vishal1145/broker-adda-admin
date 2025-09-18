@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import { regionAPI } from '@/services/api';
 import Popup from 'reactjs-popup';
@@ -21,14 +21,101 @@ interface Region {
   updatedAt: string;
 }
 
+// Skeleton Loader Components
+const Skeleton = ({ className = '', height = 'h-4', width = 'w-full', rounded = false }: { className?: string; height?: string; width?: string; rounded?: boolean }) => (
+  <div 
+    className={`bg-gray-200 animate-pulse ${height} ${width} ${rounded ? 'rounded-full' : 'rounded'} ${className}`}
+  />
+);
+
+const RegionsTableSkeleton = () => {
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* Table Header Skeleton */}
+      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+        <div className="grid grid-cols-5 gap-4">
+          <Skeleton height="h-4" width="w-20" />
+          <Skeleton height="h-4" width="w-24" />
+          <Skeleton height="h-4" width="w-16" />
+          <Skeleton height="h-4" width="w-20" />
+          <Skeleton height="h-4" width="w-16" />
+        </div>
+      </div>
+
+      {/* Table Body Skeleton */}
+      <div className="divide-y divide-gray-200">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="px-6 py-4">
+            <div className="grid grid-cols-5 gap-4 items-center">
+              {/* Name Column Skeleton */}
+              <div className="flex items-center space-x-3">
+                <Skeleton height="h-10" width="w-10" rounded />
+                <div className="space-y-2">
+                  <Skeleton height="h-4" width="w-24" />
+                  <Skeleton height="h-3" width="w-32" />
+                </div>
+              </div>
+
+              {/* Location Column Skeleton */}
+              <div className="space-y-2">
+                <Skeleton height="h-4" width="w-20" />
+                <Skeleton height="h-3" width="w-24" />
+              </div>
+
+              {/* Center Location Column Skeleton */}
+              <div className="space-y-2">
+                <Skeleton height="h-4" width="w-32" />
+                <Skeleton height="h-3" width="w-20" />
+              </div>
+
+              {/* Stats Column Skeleton */}
+              <div className="space-y-1">
+                <Skeleton height="h-4" width="w-16" />
+                <Skeleton height="h-3" width="w-20" />
+              </div>
+
+              {/* Action Column Skeleton */}
+              <div className="flex space-x-2">
+                <Skeleton height="h-7" width="w-16" rounded />
+                <Skeleton height="h-7" width="w-16" rounded />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const SummaryCardsSkeleton = () => {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div key={index} className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <Skeleton height="h-4" width="w-20" />
+              <Skeleton height="h-8" width="w-12" />
+            </div>
+            <div className="bg-gray-100 rounded-lg p-3">
+              <Skeleton height="h-6" width="w-6" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 
 export default function RegionsPage() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [brokerCounts, setBrokerCounts] = useState<Record<string, number>>({});
-  const [loadingBrokerCounts, setLoadingBrokerCounts] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stateFilter, setStateFilter] = useState('all');
+  const [cityFilter, setCityFilter] = useState('all');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -38,13 +125,11 @@ export default function RegionsPage() {
     radius: ''
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(9);
+  const [totalRegions, setTotalRegions] = useState(0);
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [selectedState, setSelectedState] = useState<string>('');
-  const [selectedCity, setSelectedCity] = useState<string>('');
 
   // Load Google Maps API
   const { isLoaded } = useJsApiLoader({
@@ -131,8 +216,16 @@ export default function RegionsPage() {
     };
   }, [searchTimeout]);
 
+  // Calculate region statistics
+  const regionStats = {
+    total: regions.length,
+    totalBrokers: regions.reduce((sum, region) => sum + (region.brokerCount || 0), 0),
+    activeCities: new Set(regions.map(r => r.city)).size,
+    avgBrokersPerRegion: regions.length > 0 ? Math.round(regions.reduce((sum, region) => sum + (region.brokerCount || 0), 0) / regions.length) : 0
+  };
+
   // Fetch regions from API
-  const fetchRegions = async () => {
+  const fetchRegions = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -142,24 +235,30 @@ export default function RegionsPage() {
       // Handle the actual API response structure: response.data.regions
       if (response && response.data && response.data.regions && Array.isArray(response.data.regions)) {
         setRegions(response.data.regions);
+        setTotalRegions(response.data.regions.length);
       } else if (Array.isArray(response)) {
         setRegions(response);
+        setTotalRegions(response.length);
       } else if (response.data && Array.isArray(response.data)) {
         setRegions(response.data);
+        setTotalRegions(response.data.length);
       } else if (response.regions && Array.isArray(response.regions)) {
         setRegions(response.regions);
+        setTotalRegions(response.regions.length);
       } else {
         console.warn('Unexpected API response structure:', response);
         setRegions([]);
+        setTotalRegions(0);
       }
     } catch (err) {
       console.error('Error fetching regions:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch regions');
       setRegions([]); // Ensure regions is always an array
+      setTotalRegions(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
 
 
@@ -192,6 +291,24 @@ export default function RegionsPage() {
   };
 
 
+  // Filter regions based on search term and filters
+  const filteredRegions = regions.filter(region => {
+    // Search term filter
+    const matchesSearch = region.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      region.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      region.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      region.state.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      region.centerLocation.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // State filter
+    const matchesState = stateFilter === 'all' || region.state === stateFilter;
+
+    // City filter
+    const matchesCity = cityFilter === 'all' || region.city === cityFilter;
+
+    return matchesSearch && matchesState && matchesCity;
+  });
+
   // Fetch regions when component mounts
   useEffect(() => {
     console.log('🚀 RegionsPage component mounted');
@@ -202,7 +319,12 @@ export default function RegionsPage() {
       console.log('🚀 Token preview:', token.substring(0, 20) + '...');
     }
     fetchRegions();
-  }, []);
+  }, [fetchRegions]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [stateFilter, cityFilter, searchTerm]);
 
 
 
@@ -215,172 +337,99 @@ export default function RegionsPage() {
     return `${day} ${month} ${year}`;
   };
 
-
-  // Filter regions based on selected state and city
-  const getFilteredRegions = () => {
-    return regions.filter(region => {
-      const stateMatch = !selectedState || region.state === selectedState;
-      const cityMatch = !selectedCity || region.city === selectedCity;
-      return stateMatch && cityMatch;
-    });
-  };
-
   // Pagination logic for filtered regions
-  const getPaginatedRegions = () => {
-    const filteredRegions = getFilteredRegions();
+  const itemsPerPage = 10;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return filteredRegions.slice(startIndex, endIndex);
-  };
-
-  const filteredRegions = getFilteredRegions();
+  const paginatedRegions = filteredRegions.slice(startIndex, endIndex);
   const totalPages = Math.ceil(filteredRegions.length / itemsPerPage);
 
-  // Skeleton loader component for region table rows
-  const RegionSkeletonRow = () => (
-    <tr className="bg-white border-b border-gray-100">
-      <td className="px-8 py-6 whitespace-nowrap">
-        <div className="flex items-start space-x-3">
-          <div className="w-10 h-10 bg-gray-200 rounded-xl animate-pulse"></div>
-          <div className="flex-1">
-            <div className="h-5 bg-gray-200 rounded animate-pulse w-32 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
-          </div>
-        </div>
-      </td>
-      <td className="px-8 py-6">
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
-        </div>
-      </td>
-      <td className="px-8 py-6">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
-      </td>
-      <td className="px-8 py-6 whitespace-nowrap">
-        <div className="flex justify-center">
-          <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
-        </div>
-      </td>
-      <td className="px-8 py-6 whitespace-nowrap">
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 bg-gray-200 rounded-lg animate-pulse"></div>
-          <div className="w-9 h-9 bg-gray-200 rounded-lg animate-pulse"></div>
-        </div>
-      </td>
-    </tr>
-  );
 
 
 
   return (
     <Layout>
-      <div className=" space-y-6 ">
+      <div className="space-y-6">
         {/* Page Header */}
-        <div className="mb-6 flex justify-between items-start">
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
           <div>
-          <h1 className="text-2xl font-bold text-gray-900">Region Management</h1>
-          <p className="text-gray-600 mt-1">Manage regions and view brokers by region</p>
+              <h1 className="text-2xl font-bold text-gray-900">Regions</h1>
+              <p className="text-gray-500 mt-1 text-sm">View and manage all regions</p>
+            </div>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors"
+            >
+              {showForm ? 'Cancel' : 'Add Region'}
+            </button>
+          </div>
         </div>
 
-          {/* Filters and Add Region Button - Right side */}
-          <div className="flex items-center space-x-4">
+        {/* Search and Filter Bar */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 mb-6">
+          {/* Search Bar */}
+          <div className="flex-1 max-w-md">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search by Region Name, City, State"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            </div>
+
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
             {/* State Filter */}
-            <div className="w-48">
-              <Select
-                options={[{ value: '', label: 'All States' }, ...stateOptions]}
-                value={{ value: selectedState, label: selectedState || 'All States' }}
-                onChange={(option) => {
-                  setSelectedState(option?.value || '');
-                  setCurrentPage(1); // Reset to first page when filter changes
-                }}
-                placeholder="Filter by State"
-                isSearchable={false}
-                isClearable={false}
-                styles={{
-                  control: (provided, state) => ({
-                    ...provided,
-                    minHeight: '40px',
-                    fontSize: '14px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxShadow: state.isFocused ? '0 0 0 1px rgba(59, 130, 246, 0.5)' : 'none',
-                    '&:hover': {
-                      border: '1px solid #9ca3af'
-                    }
-                  }),
-                  option: (provided, state) => ({
-                    ...provided,
-                    backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
-                    color: state.isSelected ? 'white' : '#374151',
-                    fontSize: '14px',
-                    padding: '8px 12px'
-                  }),
-                  singleValue: (provided) => ({
-                    ...provided,
-                    color: '#374151',
-                    fontSize: '14px'
-                  }),
-                  placeholder: (provided) => ({
-                    ...provided,
-                    color: '#9ca3af',
-                    fontSize: '14px'
-                  })
-                }}
-              />
+            <div className="relative">
+              <select
+                value={stateFilter}
+                onChange={(e) => setStateFilter(e.target.value)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none pr-8"
+              >
+                <option value="all">All States</option>
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
-
             {/* City Filter */}
-            <div className="w-48">
-              <Select
-                options={[{ value: '', label: 'All Cities' }, ...cityOptions]}
-                value={{ value: selectedCity, label: selectedCity || 'All Cities' }}
-                onChange={(option) => {
-                  setSelectedCity(option?.value || '');
-                  setCurrentPage(1); // Reset to first page when filter changes
-                }}
-                placeholder="Filter by City"
-                isSearchable={false}
-                isClearable={false}
-                styles={{
-                  control: (provided, state) => ({
-                    ...provided,
-                    minHeight: '40px',
-                    fontSize: '14px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxShadow: state.isFocused ? '0 0 0 1px rgba(59, 130, 246, 0.5)' : 'none',
-                    '&:hover': {
-                      border: '1px solid #9ca3af'
-                    }
-                  }),
-                  option: (provided, state) => ({
-                    ...provided,
-                    backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
-                    color: state.isSelected ? 'white' : '#374151',
-                    fontSize: '14px',
-                    padding: '8px 12px'
-                  }),
-                  singleValue: (provided) => ({
-                    ...provided,
-                    color: '#374151',
-                    fontSize: '14px'
-                  }),
-                  placeholder: (provided) => ({
-                    ...provided,
-                    color: '#9ca3af',
-                    fontSize: '14px'
-                  })
-                }}
-              />
+            <div className="relative">
+              <select
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none pr-8"
+              >
+                <option value="all">All Cities</option>
+                <option value="Noida">Noida</option>
+                <option value="Agra">Agra</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
             </div>
-
-            {/* Add Region Button */}
+            </div>
           <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
-          >
-            {showForm ? 'Cancel' : 'Add Region'}
+              onClick={() => {
+                setSearchTerm('');
+                setStateFilter('all');
+                setCityFilter('all');
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Clear Filters
           </button>
           </div>
         </div>
@@ -400,13 +449,17 @@ export default function RegionsPage() {
             borderRadius: '8px',
             padding: '0',
             border: 'none',
-            maxWidth: '500px',
             width: '90%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
             margin: 'auto',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-          }}
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'auto',
+            scrollbarWidth: 'none', /* Firefox */
+            msOverflowStyle: 'none' /* Internet Explorer 10+ */
+          } as React.CSSProperties}
         >
-          <div className="p-6">
+          <div className="popup-content p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Add New Region</h3>
               <button
@@ -419,7 +472,7 @@ export default function RegionsPage() {
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
 
               {/* State and City - Side by Side */}
               <div className="grid grid-cols-2 gap-4">
@@ -428,44 +481,22 @@ export default function RegionsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     State
                   </label>
-                  <Select
-                    options={stateOptions}
-                    value={stateOptions.find(option => option.value === formData.state)}
-                    onChange={(option) => setFormData({ ...formData, state: option?.value || '' })}
-                    placeholder="Select State"
-                    isSearchable={false}
-                    isClearable={false}
-                    styles={{
-                      control: (provided, state) => ({
-                        ...provided,
-                        minHeight: '40px',
-                        fontSize: '14px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        boxShadow: state.isFocused ? '0 0 0 1px rgba(59, 130, 246, 0.5)' : 'none',
-                        '&:hover': {
-                          border: '1px solid #9ca3af'
-                        }
-                      }),
-                      option: (provided, state) => ({
-                        ...provided,
-                        backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
-                        color: state.isSelected ? 'white' : '#374151',
-                        fontSize: '14px',
-                        padding: '8px 12px'
-                      }),
-                      singleValue: (provided) => ({
-                        ...provided,
-                        color: '#374151',
-                        fontSize: '14px'
-                      }),
-                      placeholder: (provided) => ({
-                        ...provided,
-                        color: '#9ca3af',
-                        fontSize: '14px'
-                      })
-                    }}
-                  />
+                        <div className="relative">
+                          <select
+                            value={formData.state}
+                            onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                            className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                            required
+                          >
+                            <option value="">Select State</option>
+                            <option value="Uttar Pradesh">Uttar Pradesh</option>
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
                 </div>
 
                 {/* City Dropdown */}
@@ -473,44 +504,23 @@ export default function RegionsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     City
                   </label>
-                  <Select
-                    options={cityOptions}
-                    value={cityOptions.find(option => option.value === formData.city)}
-                    onChange={(option) => setFormData({ ...formData, city: option?.value || '' })}
-                    placeholder="Select City"
-                    isSearchable={false}
-                    isClearable={false}
-                    styles={{
-                      control: (provided, state) => ({
-                        ...provided,
-                        minHeight: '40px',
-                        fontSize: '14px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        boxShadow: state.isFocused ? '0 0 0 1px rgba(59, 130, 246, 0.5)' : 'none',
-                        '&:hover': {
-                          border: '1px solid #9ca3af'
-                        }
-                      }),
-                      option: (provided, state) => ({
-                        ...provided,
-                        backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#f3f4f6' : 'white',
-                        color: state.isSelected ? 'white' : '#374151',
-                        fontSize: '14px',
-                        padding: '8px 12px'
-                      }),
-                      singleValue: (provided) => ({
-                        ...provided,
-                        color: '#374151',
-                        fontSize: '14px'
-                      }),
-                      placeholder: (provided) => ({
-                        ...provided,
-                        color: '#9ca3af',
-                        fontSize: '14px'
-                      })
-                    }}
-                  />
+                        <div className="relative">
+                          <select
+                            value={formData.city}
+                            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                            required
+                          >
+                            <option value="">Select City</option>
+                            <option value="Noida">Noida</option>
+                            <option value="Agra">Agra</option>
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
                 </div>
               </div>
 
@@ -530,12 +540,12 @@ export default function RegionsPage() {
                             onChange={handleInputChange}
                             onFocus={handleInputFocus}
                             onBlur={handleInputBlur}
-                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Search center location"
                             required
                           />
                           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
@@ -587,7 +597,7 @@ export default function RegionsPage() {
                         type="number"
                         value={formData.radius}
                         onChange={(e) => setFormData({ ...formData, radius: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Enter radius"
                         min="1"
                         max="1000"
@@ -606,7 +616,7 @@ export default function RegionsPage() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter region name"
                   required
                 />
@@ -620,7 +630,7 @@ export default function RegionsPage() {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter region description"
                   rows={3}
                   required
@@ -629,7 +639,7 @@ export default function RegionsPage() {
               <div className="flex space-x-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
                 >
                   Create Region
                 </button>
@@ -652,18 +662,20 @@ export default function RegionsPage() {
           </div>
         )}
 
-        {/* Regions Dashboard - Card Layout */}
-        <div className="space-y-6">
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 text-blue-900 shadow-sm border border-blue-200">
+        {/* Summary Cards */}
+        {loading ? (
+          <SummaryCardsSkeleton />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {/* Total Regions Card */}
+            <div className="bg-teal-50 rounded-lg p-6 border border-teal-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-600 text-sm font-medium">Total Regions</p>
-                  <p className="text-3xl font-bold text-blue-800">{regions.length}</p>
+                  <p className="text-teal-600 text-sm font-medium">Total Regions</p>
+                  <p className="text-2xl font-bold text-teal-700">{regionStats.total}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-200 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-teal-100 rounded-lg p-3">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -671,230 +683,152 @@ export default function RegionsPage() {
               </div>
             </div>
             
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 text-green-900 shadow-sm border border-green-200">
+            {/* Total Brokers Card */}
+            <div className="bg-green-50 rounded-lg p-6 border border-green-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-600 text-sm font-medium">Total Brokers</p>
-                  <p className="text-3xl font-bold text-green-800">{regions.reduce((sum, region) => sum + (region.brokerCount || 0), 0)}</p>
+                  <p className="text-gray-800 text-sm font-medium">Total Brokers</p>
+                  <p className="text-2xl font-bold text-gray-800">{regionStats.totalBrokers}</p>
                 </div>
-                <div className="w-12 h-12 bg-green-200 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-green-100 rounded-lg p-3">
+                  <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
               </div>
             </div>
             
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 text-purple-900 shadow-sm border border-purple-200">
+            {/* Active Cities Card */}
+            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-600 text-sm font-medium">Active Cities</p>
-                  <p className="text-3xl font-bold text-purple-800">{new Set(regions.map(r => r.city)).size}</p>
+                  <p className="text-gray-800 text-sm font-medium">Active Cities</p>
+                  <p className="text-2xl font-bold text-gray-800">{regionStats.activeCities}</p>
                 </div>
-                <div className="w-12 h-12 bg-purple-200 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-blue-100 rounded-lg p-3">
+                  <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
               </div>
             </div>
             
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-6 text-orange-900 shadow-sm border border-orange-200">
+            {/* Avg Brokers/Region Card */}
+            <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-600 text-sm font-medium">Avg. Brokers/Region</p>
-                  <p className="text-3xl font-bold text-orange-800">
-                    {regions.length > 0 ? Math.round(regions.reduce((sum, region) => sum + (region.brokerCount || 0), 0) / regions.length) : 0}
-                  </p>
+                  <p className="text-gray-800 text-sm font-medium">Avg. Brokers/Region</p>
+                  <p className="text-2xl font-bold text-gray-800">{regionStats.avgBrokersPerRegion}</p>
                 </div>
-                <div className="w-12 h-12 bg-orange-200 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-purple-100 rounded-lg p-3">
+                  <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Regions Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Regions Table */}
                 {loading ? (
-                  <>
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 animate-pulse">
-                    <div className="flex items-start space-x-4">
-                      <div className="w-16 h-16 bg-gray-200 rounded-2xl"></div>
-                      <div className="flex-1 space-y-3">
-                        <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                        <div className="h-4 bg-gray-200 rounded w-full"></div>
-                        <div className="flex justify-between items-center">
-                          <div className="h-6 bg-gray-200 rounded w-20"></div>
-                          <div className="flex space-x-2">
-                            <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
-                            <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                  </>
-                ) : !Array.isArray(regions) || regions.length === 0 ? (
-              <div className="col-span-full flex flex-col items-center justify-center py-16">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-3xl flex items-center justify-center mb-6">
-                  <svg className="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          <RegionsTableSkeleton />
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {filteredRegions.length === 0 ? (
+              <div className="p-12 text-center">
+                <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No regions found</h3>
+                <p className="text-gray-500">Try adjusting your search or filter criteria.</p>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">No regions found</h3>
-                <p className="text-gray-500 text-center max-w-md">Create your first region to get started with managing broker territories and locations.</p>
-              </div>
-                 ) : filteredRegions.length === 0 ? (
-              <div className="col-span-full flex flex-col items-center justify-center py-16">
-                <div className="w-24 h-24 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-3xl flex items-center justify-center mb-6">
-                  <svg className="w-12 h-12 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">No matching regions</h3>
-                <p className="text-gray-500 text-center max-w-md">Try adjusting your filter criteria to see more results.</p>
-              </div>
             ) : (
-              getPaginatedRegions().map((region, index) => {
-                const colors = [
-                  'from-blue-200 to-blue-300',
-                  'from-green-200 to-green-300', 
-                  'from-purple-200 to-purple-300',
-                  'from-pink-200 to-pink-300',
-                  'from-indigo-200 to-indigo-300',
-                  'from-orange-200 to-orange-300'
-                ];
-                const bgColors = [
-                  'from-blue-50 to-blue-100',
-                  'from-green-50 to-green-100',
-                  'from-purple-50 to-purple-100', 
-                  'from-pink-50 to-pink-100',
-                  'from-indigo-50 to-indigo-100',
-                  'from-orange-50 to-orange-100'
-                ];
-                const colorIndex = index % colors.length;
-                
-                return (
-                  <div key={region._id} className="group bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden">
-                    {/* Header with gradient */}
-                    <div className={`h-2 bg-gradient-to-r ${colors[colorIndex]}`}></div>
-                    
-                    <div className="p-6">
-                      {/* Region Icon and Name */}
-                      <div className="flex items-start space-x-4 mb-4">
-                        <div className={`w-16 h-16 bg-gradient-to-br ${bgColors[colorIndex]} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                          <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <>
+                {/* Table Header */}
+                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                  <div className="grid grid-cols-5 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    <div>Region</div>
+                    <div>Location</div>
+                    <div>Center</div>
+                    <div>Brokers</div>
+                    <div>Action</div>
+              </div>
+                </div>
+
+                {/* Table Body */}
+                <div className="divide-y divide-gray-200">
+                  {paginatedRegions.map((region, index) => (
+                    <div key={region._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                      <div className="grid grid-cols-5 gap-4 items-center">
+                        {/* Region Column */}
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                            <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors mb-1">
-                            {region.name}
-                          </h3>
-                          <div className="flex items-center space-x-2">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
-                           {region.city || 'N/A'}
-                            </span>
-                            {region.state && (
-                              <span className="text-sm text-gray-500">
-                                {region.state}
-                              </span>
-                            )}
-                         </div>
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">{region.name}</div>
+                            <div className="text-gray-500 text-xs">{region.description || 'No description available'}</div>
                         </div>
                       </div>
                       
-                      {/* Description */}
-                      <div className="mb-4">
-                        <p className="text-gray-600 text-sm leading-relaxed line-clamp-2">
-                          {region.description || 'No description available'}
-                        </p>
+                        {/* Location Column */}
+                        <div className="text-sm text-gray-900">
+                          <div className="font-semibold text-gray-900">{region.city}</div>
+                          <div className="text-gray-500 text-xs">{region.state}</div>
                       </div>
                       
-                      {/* Center Location */}
-                      <div className="flex items-center space-x-2 mb-4 text-sm text-gray-500">
-                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span className="truncate">{region.centerLocation || 'N/A'}</span>
+                        {/* Center Location Column */}
+                        <div className="text-sm text-gray-900">
+                          <div className="font-semibold text-gray-900">{region.centerLocation || 'N/A'}</div>
                       </div>
                       
-                      {/* Stats and Actions */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-2">
-                            <div className={`w-2 h-2 bg-gradient-to-r ${colors[colorIndex]} rounded-full`}></div>
-                            <span className="text-sm font-medium text-gray-700">
-                              {region.brokerCount || 0} Brokers
-                            </span>
-                         </div>
-                          <div className="text-sm text-gray-500">
-                            {region.radius}km radius
-                          </div>
+                        {/* Stats Column */}
+                        <div className="text-sm">
+                          <div className="font-semibold text-gray-900">{region.brokerCount || 0} brokers</div>
+                          <div className="text-gray-500 text-xs">{region.radius}km radius</div>
                         </div>
                        
-                        <div className="flex items-center space-x-2">
+                        {/* Action Column */}
+                        <div className="flex space-x-2">
                           <button
                             onClick={() => {
                               console.log('Edit region:', region._id);
                             }}
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
-                            title="Edit Region"
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
+                            Edit
                           </button>
                           <button
                             onClick={() => {
                               console.log('Delete region:', region._id);
                             }}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
-                            title="Delete Region"
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            Delete
                           </button>
                         </div>
                       </div>
                     </div>
+                  ))}
                   </div>
-                );
-              })
+              </>
             )}
           </div>
-        </div>
+        )}
 
         {/* Pagination */}
-        {!loading && filteredRegions.length > 0 && (
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+        {filteredRegions.length > 0 && (
+          <div className="bg-white px-6 py-4 border-t border-gray-200">
             <div className="flex items-center justify-between">
-              <div className="flex items-center text-sm text-gray-600">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-200">
-                    <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-800">
-                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredRegions.length)} of {filteredRegions.length} regions
-                    </p>
-                    {regions.length !== filteredRegions.length && (
-                      <p className="text-gray-500 text-xs">Filtered from {regions.length} total regions</p>
-                    )}
-                  </div>
-                </div>
+              <div className="flex items-center text-sm text-gray-700">
+                <span>
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredRegions.length)} of {filteredRegions.length} results
+                </span>
               </div>
               <ReactPaginate
                 pageCount={totalPages}
@@ -902,29 +836,15 @@ export default function RegionsPage() {
                 marginPagesDisplayed={1}
                 onPageChange={({ selected }) => setCurrentPage(selected + 1)}
                 forcePage={currentPage - 1}
-                previousLabel={
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    <span>Previous</span>
-                  </div>
-                }
-                nextLabel={
-                  <div className="flex items-center space-x-2">
-                    <span>Next</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                }
+                previousLabel="Previous"
+                nextLabel="Next"
                 breakLabel="..."
-                containerClassName="flex items-center space-x-2"
-                pageClassName="px-4 py-2 text-sm font-medium rounded-xl cursor-pointer text-gray-600 bg-white hover:bg-blue-100 hover:text-blue-700 transition-all duration-200 border border-gray-200"
-                activeClassName="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300"
-                previousClassName="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-blue-100 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-200"
-                nextClassName="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-blue-100 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-200"
-                breakClassName="px-4 py-2 text-sm font-medium text-gray-400"
+                containerClassName="flex items-center space-x-1"
+                pageClassName="px-3 py-2 text-sm font-medium rounded-md cursor-pointer text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                activeClassName="bg-blue-600 text-white border-blue-600"
+                previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                breakClassName="px-3 py-2 text-sm font-medium text-gray-500"
                 disabledClassName="opacity-50 cursor-not-allowed"
               />
             </div>
