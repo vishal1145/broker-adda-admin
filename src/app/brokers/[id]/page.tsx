@@ -613,11 +613,11 @@ export default function BrokerDetailsPage() {
                   
                   <div className="space-y-4">
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-700 mb-2">"Alexander made our home buying process incredibly smooth and stress-free. Highly recommend!"</p>
+                      <p className="text-sm text-gray-700 mb-2">&ldquo;Alexander made our home buying process incredibly smooth and stress-free. Highly recommend!&rdquo;</p>
                       <p className="text-xs text-gray-500">- Sarah L., 2024-03-15</p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-700 mb-2">"Professional, knowledgeable, and always responsive. He found us the perfect commercial space."</p>
+                      <p className="text-sm text-gray-700 mb-2">&ldquo;Professional, knowledgeable, and always responsive. He found us the perfect commercial space.&rdquo;</p>
                       <p className="text-xs text-gray-500">- Mark T., 2024-02-28</p>
                     </div>
                   </div>
