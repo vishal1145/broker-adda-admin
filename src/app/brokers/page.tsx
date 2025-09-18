@@ -548,7 +548,7 @@ export default function BrokersPage() {
                       <div className="grid grid-cols-6 gap-4 items-center">
                         {/* Name Column */}
                         <div className="flex items-center space-x-3">
-                          <Link href={`/brokers/${broker._id}`} className="cursor-pointer">
+                          <Link href={`/brokers/${broker.userId}`} className="cursor-pointer">
                             <img
                               className="h-10 w-10 rounded-full object-cover hover:opacity-80 transition-opacity"
                               src={getBrokerImageUrl(broker.brokerImage)}
@@ -560,7 +560,7 @@ export default function BrokersPage() {
                           </Link>
                           <div>
                             <Link 
-                              href={`/brokers/${broker._id}`}
+                              href={`/brokers/${broker.userId}`}
                               className="text-sm font-semibold text-gray-900 hover:text-teal-600 transition-colors cursor-pointer capitalize"
                             >
                               {broker.name || 'N/A'}
