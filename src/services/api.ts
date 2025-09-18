@@ -4,14 +4,14 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5
 // Broker API functions
 export const brokerAPI = {
   // Get brokers with pagination and filters
-  getBrokers: async (page: number, limit: number, approvedByAdmin?: boolean) => {
+  getBrokers: async (page: number, limit: number, approvedByAdmin?: string) => {
     const token = localStorage.getItem('adminToken');
     if (!token) throw new Error('No authentication token found');
 
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
-      ...(approvedByAdmin !== undefined && { approvedByAdmin: approvedByAdmin.toString() })
+      ...(approvedByAdmin && { approvedByAdmin: approvedByAdmin })
     });
 
     const response = await fetch(`${API_BASE_URL}/brokers?${params}`, {
@@ -86,9 +86,9 @@ export const brokerAPI = {
     return result;
   },
 
-  // Reject a broker
-  rejectBroker: async (brokerId: string) => {
-    console.log('🔴 brokerAPI.rejectBroker called with ID:', brokerId);
+  // Block a broker (using existing reject endpoint)
+  blockBroker: async (brokerId: string) => {
+    console.log('🔴 brokerAPI.blockBroker called with ID:', brokerId);
     
     const token = localStorage.getItem('adminToken');
     console.log('🔴 Token found:', token ? 'Yes' : 'No');
@@ -114,14 +114,52 @@ export const brokerAPI = {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('🔴 API Error:', errorText);
-      throw new Error('Failed to reject broker');
+      throw new Error('Failed to block broker');
     }
     
-      const result = await response.json();
-      console.log('🔴 API Response:', result);
-      console.log('🔴 API Response data:', result.data);
-      console.log('🔴 Updated broker:', result.data);
-      return result;
+    const result = await response.json();
+    console.log('🔴 API Response:', result);
+    console.log('🔴 API Response data:', result.data);
+    console.log('🔴 Updated broker:', result.data);
+    return result;
+  },
+
+  // Unblock a broker (using existing approve endpoint)
+  unblockBroker: async (brokerId: string) => {
+    console.log('🟢 brokerAPI.unblockBroker called with ID:', brokerId);
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('🟢 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/brokers/${brokerId}/approve`;
+    console.log('🟢 Making API call to:', url);
+    console.log('🟢 API_BASE_URL:', API_BASE_URL);
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({})
+    });
+
+    console.log('🟢 Response status:', response.status);
+    console.log('🟢 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to unblock broker');
+    }
+    
+    const result = await response.json();
+    console.log('🟢 API Response:', result);
+    console.log('🟢 API Response data:', result.data);
+    console.log('🟢 Updated broker:', result.data);
+    return result;
   }
 };
 

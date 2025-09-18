@@ -23,7 +23,7 @@ interface Broker {
   }>;
   regionId: string | null;
   status: string;
-  approvedByAdmin: string | boolean;
+  approvedByAdmin: "unblocked" | "blocked";
   kycDocs: {
     aadhar: string;
     pan: string;
@@ -37,6 +37,7 @@ interface Broker {
   email?: string;
   phone?: string;
   address?: string;
+  gender?: string;
   accreditedBy?: string;
   licenseNumber?: string;
   expertiseField?: string;
@@ -159,12 +160,8 @@ export default function BrokersPage() {
   // Calculate broker statistics
   const brokerStats = {
     total: brokers.length,
-    pending: brokers.filter(broker => {
-      const status = broker.approvedByAdmin;
-      return status === 'pending' || status === undefined || status === null || status === false;
-    }).length,
-    approved: brokers.filter(broker => broker.approvedByAdmin === 'approved' || broker.approvedByAdmin === true).length,
-    rejected: brokers.filter(broker => broker.approvedByAdmin === 'rejected').length
+    unblocked: brokers.filter(broker => broker.approvedByAdmin === 'unblocked').length,
+    blocked: brokers.filter(broker => broker.approvedByAdmin === 'blocked').length
   };
 
   // Fetch brokers from API
@@ -174,7 +171,7 @@ export default function BrokersPage() {
       setError('');
 
       console.log('🔄 Fetching brokers with statusFilter:', statusFilter);
-      const approvedByAdmin = statusFilter === 'approved' ? true : statusFilter === 'pending' ? false : undefined;
+      const approvedByAdmin = statusFilter === 'unblocked' ? 'unblocked' : statusFilter === 'blocked' ? 'blocked' : undefined;
       const response = await brokerAPI.getBrokers(currentPage, 10, approvedByAdmin);
       
       console.log('📊 API Response:', response); // Debug log
@@ -202,19 +199,19 @@ export default function BrokersPage() {
     }
   }, [currentPage, statusFilter]);
 
-  // Handle broker approval
-  const handleApprove = async (brokerId: string) => {
+  // Handle broker disabling
+  const handleDisable = async (brokerId: string) => {
     try {
       setError('');
-      console.log('🟢 Approving broker with ID:', brokerId);
-      const response = await brokerAPI.approveBroker(brokerId);
-      console.log('🟢 Approve API response:', response);
+      console.log('🔴 Disabling broker with ID:', brokerId);
+      const response = await brokerAPI.blockBroker(brokerId);
+      console.log('🔴 Disable API response:', response);
       
       // Update local state immediately
       setBrokers(prevBrokers => 
         prevBrokers.map(broker => 
           broker._id === brokerId 
-            ? { ...broker, approvedByAdmin: 'approved' }
+            ? { ...broker, approvedByAdmin: 'blocked' }
             : broker
         )
       );
@@ -222,24 +219,24 @@ export default function BrokersPage() {
       // Also refresh from API to get any other updates
       await fetchBrokers();
     } catch (err) {
-      console.error('🟢 Approve error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to approve broker');
+      console.error('🔴 Disable error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to disable broker');
     }
   };
 
-  // Handle broker rejection
-  const handleReject = async (brokerId: string) => {
+  // Handle broker unblocking
+  const handleUnblock = async (brokerId: string) => {
     try {
       setError('');
-      console.log('🔴 Rejecting broker with ID:', brokerId);
-      const response = await brokerAPI.rejectBroker(brokerId);
-      console.log('🔴 Reject API response:', response);
+      console.log('🟢 Unblocking broker with ID:', brokerId);
+      const response = await brokerAPI.unblockBroker(brokerId);
+      console.log('🟢 Unblock API response:', response);
       
       // Update local state immediately
       setBrokers(prevBrokers => 
         prevBrokers.map(broker => 
           broker._id === brokerId 
-            ? { ...broker, approvedByAdmin: 'rejected' }
+            ? { ...broker, approvedByAdmin: 'unblocked' }
             : broker
         )
       );
@@ -247,8 +244,8 @@ export default function BrokersPage() {
       // Also refresh from API to get any other updates
       await fetchBrokers();
     } catch (err) {
-      console.error('🔴 Reject error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to reject broker');
+      console.error('🟢 Unblock error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to unblock broker');
     }
   };
 
@@ -370,9 +367,8 @@ export default function BrokersPage() {
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none pr-8"
               >
                 <option value="all">All Brokers</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="pending">Pending</option>
+                <option value="unblocked">Unblocked</option>
+                <option value="blocked">Blocked</option>
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -465,46 +461,31 @@ export default function BrokersPage() {
               </div>
             </div>
 
-            {/* Pending Brokers Card */}
-            <div className="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-800 text-sm font-medium">Pending</p>
-                  <p className="text-2xl font-bold text-gray-800">{brokerStats.pending}</p>
-                </div>
-                <div className="bg-yellow-100 rounded-lg p-3">
-                  <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Approved Brokers Card */}
+            {/* Unblocked Brokers Card */}
             <div className="bg-green-50 rounded-lg p-6 border border-green-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-800 text-sm font-medium">Approved</p>
-                  <p className="text-2xl font-bold text-gray-800">{brokerStats.approved}</p>
+                  <p className="text-green-600 text-sm font-medium">Unblocked</p>
+                  <p className="text-2xl font-bold text-green-700">{brokerStats.unblocked}</p>
                 </div>
                 <div className="bg-green-100 rounded-lg p-3">
-                  <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
               </div>
             </div>
 
-            {/* Rejected Brokers Card */}
+            {/* Disabled Brokers Card */}
             <div className="bg-red-50 rounded-lg p-6 border border-red-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-red-600 text-sm font-medium">Rejected</p>
-                  <p className="text-2xl font-bold text-red-600">{brokerStats.rejected}</p>
+                  <p className="text-red-600 text-sm font-medium">Blocked</p>
+                  <p className="text-2xl font-bold text-red-600">{brokerStats.blocked}</p>
                 </div>
                 <div className="bg-red-100 rounded-lg p-3">
                   <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM5 19L19 5" />
                   </svg>
                 </div>
               </div>
@@ -627,40 +608,42 @@ export default function BrokersPage() {
                         {/* Action Column */}
                         <div>
                           {(() => {
-                            if (broker.approvedByAdmin === 'approved' || broker.approvedByAdmin === true) {
+                            if (broker.approvedByAdmin === 'unblocked') {
                               return (
-                                <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full bg-teal-100 text-teal-800">
-                                  Approved
-                                </span>
+                                <button 
+                                  onClick={() => handleDisable(broker._id)}
+                                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors text-sm"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM5 19L19 5" />
+                                  </svg>
+                                  <span>Blocked</span>
+                                </button>
                               );
-                            } else if (broker.approvedByAdmin === 'rejected') {
+                            } else if (broker.approvedByAdmin === 'blocked') {
                               return (
-                                <span className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
-                                  Rejected
-                                </span>
+                                <button 
+                                  onClick={() => handleUnblock(broker._id)}
+                                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors text-sm"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>Unblock</span>
+                                </button>
                               );
                             } else {
+                              // Default to unblocked if status is undefined - show block button
                               return (
-                                <div className="flex space-x-2">
-                                  <button 
-                                    onClick={() => handleApprove(broker._id)}
-                                    className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
-                                    title="Approve"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                  </button>
-                                  <button 
-                                    onClick={() => handleReject(broker._id)}
-                                    className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                                    title="Reject"
-                                  >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                  </button>
-                                </div>
+                                <button 
+                                  onClick={() => handleDisable(broker._id)}
+                                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors text-sm"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM5 19L19 5" />
+                                  </svg>
+                                  <span>Disable</span>
+                                </button>
                               );
                             }
                           })()}
