@@ -5,10 +5,18 @@ import { useParams, useRouter } from 'next/navigation';
 import Head from 'next/head';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { useAuth } from '@/contexts/AuthContext';
+import { brokerAPI } from '@/services/api';
 
 interface Broker {
   _id: string;
-  userId: string;
+  userId: {
+    _id: string;
+    phone: string;
+    status: string;
+    email: string;
+    name: string;
+  };
   firmName: string;
   region: Array<{
     _id: string;
@@ -16,10 +24,12 @@ interface Broker {
     description: string;
     state: string;
     city: string;
+    centerLocation: string;
+    radius: number;
   }>;
-  regionId: string | null;
+  brokerImage: string;
   status: string;
-  approvedByAdmin: boolean;
+  approvedByAdmin: string;
   kycDocs: {
     aadhar: string;
     pan: string;
@@ -28,17 +38,16 @@ interface Broker {
   createdAt: string;
   updatedAt: string;
   __v: number;
-  // Optional fields that might be populated
-  name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
+  email: string;
+  name: string;
+  phone: string;
+  address: string;
+  gender: string;
+  // Hardcoded fields for other sections
   accreditedBy?: string;
   licenseNumber?: string;
   expertiseField?: string;
   state?: string;
-  brokerImage?: string;
-  gender?: string;
   experience?: string;
   dateOfBirth?: string;
   specializations?: string[];
@@ -69,110 +78,46 @@ interface Broker {
 export default function BrokerDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const { token } = useAuth();
   const [broker, setBroker] = useState<Broker | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [downloading, setDownloading] = useState<string | null>(null);
 
-  // Mock static data for demonstration - matching the image
-  const mockBrokerData: Broker = {
-    _id: params.id as string,
-    userId: 'user123',
-    firmName: 'Sterling & Co. Realty',
-    region: [
-      { _id: 'reg1', name: 'Mumbai', description: 'Financial capital of India', state: 'Maharashtra', city: 'Mumbai' },
-      { _id: 'reg2', name: 'Delhi', description: 'National capital region', state: 'Delhi', city: 'New Delhi' }
-    ],
-    regionId: 'reg1',
-    status: 'active',
-    approvedByAdmin: true,
-    kycDocs: {
-      aadhar: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=300&fit=crop&auto=format&q=80',
-      pan: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=300&fit=crop&auto=format&q=80',
-      gst: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=300&fit=crop&auto=format&q=80'
-    },
-    createdAt: '2024-01-15T10:30:00Z',
-    updatedAt: '2024-01-20T14:45:00Z',
-    __v: 0,
-    name: 'Alexander Sterling',
-    email: 'alexander.sterling@sterlingrealty.com',
-    phone: '+1 (555) 123-4567',
-    address: '789 Grand Blvd, Suite 200, Minneapolis, CA 90210',
-    accreditedBy: 'NAR (National Association of Realtors)',
-    licenseNumber: 'BRB 907233567',
-    expertiseField: 'Residential Sales, Luxury Homes',
-    state: 'California',
-    brokerImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format&q=80',
-    gender: 'Male',
-    experience: '12 Years',
-    dateOfBirth: '1983-09-22',
-    specializations: ['Residential Sales', 'Luxury Homes'],
-    website: 'https://www.sterlingrealty.com/alexander-sterling',
-    whatsapp: '+1 (555) 123-4567',
-    socialMedia: {
-      instagram: 'https://instagram.com/alexsterling',
-      linkedin: 'https://linkedin.com/in/alexsterling',
-      facebook: 'https://facebook.com/alexsterling',
-      twitter: 'https://twitter.com/alexsterling'
-    },
-    leads: [
-      {
-        id: 1,
-        name: 'Alice Smith',
-        inquiry: 'Buying inquiry',
-        property: '456 Elmwood St',
-        status: 'New'
-      },
-      {
-        id: 2,
-        name: 'Bob Johnson',
-        inquiry: 'Selling inquiry',
-        property: '789 Oak Ave',
-        status: 'Follow Up'
-      },
-      {
-        id: 3,
-        name: 'Carol White',
-        inquiry: 'Rental inquiry',
-        property: '101 Pine St',
-        status: 'Qualified'
-      },
-      {
-        id: 4,
-        name: 'David Green',
-        inquiry: 'Commercial inquiry',
-        property: '303 Business Park',
-        status: 'New'
-      }
-    ],
-    subscription: {
-      plan: 'Pro Agent - Monthly',
-      status: 'Active',
-      paymentMethod: 'Visa ending in **** 1234',
-      nextBillingDate: '2023-08-20',
-      amountDue: '$39.99'
-    }
-  };
 
   useEffect(() => {
-    // Simulate API call with static data
     const fetchBrokerDetails = async () => {
       try {
         setLoading(true);
         setError('');
         
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (!token) {
+          setError('Authentication token not found. Please login again.');
+          return;
+        }
         
-        setBroker(mockBrokerData);
+        console.log('🔄 Fetching broker details for ID:', params.id);
+        const response = await brokerAPI.getBrokerById(params.id as string);
+        
+        console.log('📊 API Response:', response);
+        
+        if (response.success && response.data.broker) {
+          setBroker(response.data.broker);
+        } else {
+          throw new Error(response.message || 'Failed to fetch broker details');
+        }
       } catch (err) {
+        console.error('❌ Error fetching broker details:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch broker details');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBrokerDetails();
-  }, [params.id]);
+    if (params.id && token) {
+      fetchBrokerDetails();
+    }
+  }, [params.id, token]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -321,14 +266,14 @@ export default function BrokerDetailsPage() {
                   <div className="flex-shrink-0">
                     <img
                       src={broker.brokerImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format&q=80"}
-                  alt={broker.name || 'Broker'} 
+                      alt={broker.name || 'Broker'} 
                       className="w-20 h-20 rounded-full object-cover"
-                />
-              </div>
+                    />
+                  </div>
                   
                   {/* Profile Details */}
                   <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-1">{broker.name || 'Alexander Sterling'}</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-1">{broker.name || 'N/A'}</h3>
                     <p className="text-lg text-gray-600 mb-6">Senior Real Estate Agent</p>
                     
                     {/* Details Grid */}
@@ -339,21 +284,21 @@ export default function BrokerDetailsPage() {
                           <div className="flex items-center space-x-2 mb-1">
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                            </svg>
                             <p className="text-sm font-medium text-gray-500">Firm</p>
                           </div>
-                          <p className="text-sm font-semibold text-gray-900">{broker.firmName || 'Sterling & Co. Realty'}</p>
-                </div>
+                          <p className="text-sm font-semibold text-gray-900">{broker.firmName || 'N/A'}</p>
+                        </div>
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                            </svg>
                             <p className="text-sm font-medium text-gray-500">Gender</p>
-                </div>
-                          <p className="text-sm font-semibold text-gray-900">{broker.gender || 'Male'}</p>
-            </div>
-          </div>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-900">{broker.gender || 'N/A'}</p>
+                        </div>
+                      </div>
 
                       {/* Middle Column */}
                       <div className="space-y-6">
@@ -362,24 +307,30 @@ export default function BrokerDetailsPage() {
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <p className="text-sm font-medium text-gray-500">Experience</p>
+                            <p className="text-sm font-medium text-gray-500">Status</p>
                           </div>
-                          <p className="text-sm font-semibold text-gray-900">{broker.experience || '12 Years'}</p>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            broker.status === 'active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {broker.status || 'N/A'}
+                          </span>
                         </div>
-              <div>
+                        <div>
                           <div className="flex items-center space-x-2 mb-1">
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <p className="text-sm font-medium text-gray-500">Date of Birth</p>
+                            <p className="text-sm font-medium text-gray-500">Joined Date</p>
                           </div>
-                          <p className="text-sm font-semibold text-gray-900">{broker.dateOfBirth || '1985-05-20'}</p>
+                          <p className="text-sm font-semibold text-gray-900">{broker.createdAt ? new Date(broker.createdAt).toLocaleDateString() : 'N/A'}</p>
                         </div>
-              </div>
+                      </div>
               
                       {/* Right Column */}
                       <div className="space-y-6">
-              <div>
+                        <div>
                           <div className="flex items-center space-x-2 mb-1">
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -387,20 +338,28 @@ export default function BrokerDetailsPage() {
                             <p className="text-sm font-medium text-gray-500">License</p>
                           </div>
                           <p className="text-sm font-semibold text-gray-900">{broker.licenseNumber || 'BRE #01234567'}</p>
-              </div>
-              <div>
+                        </div>
+                        <div>
                           <div className="flex items-center space-x-2 mb-1">
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
+                            </svg>
                             <p className="text-sm font-medium text-gray-500">Specializations</p>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            {['Residential Sales', 'Commercial Leasing', 'Luxury Homes'].map((spec, index) => (
-                              <span key={index} className="inline-flex items-center px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
-                                {spec}
-                    </span>
-                  ))}
+                            {(broker.specializations && broker.specializations.length > 0) ? (
+                              broker.specializations.map((spec, index) => (
+                                <span key={index} className="inline-flex items-center px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+                                  {spec}
+                                </span>
+                              ))
+                            ) : (
+                              ['Residential Sales', 'Commercial Leasing', 'Luxury Homes'].map((spec, index) => (
+                                <span key={index} className="inline-flex items-center px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+                                  {spec}
+                                </span>
+                              ))
+                            )}
                           </div>
                         </div>
                       </div>
@@ -422,7 +381,7 @@ export default function BrokerDetailsPage() {
                       </svg>
                       <div>
                         <p className="text-sm font-medium text-gray-500">Mobile</p>
-                        <p className="text-sm font-semibold text-teal-600">+1 (555) 123-4567</p>
+                        <p className="text-sm font-semibold text-teal-600">{broker.phone || 'N/A'}</p>
                       </div>
                     </div>
                     
@@ -430,21 +389,21 @@ export default function BrokerDetailsPage() {
                       <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
-                    <div>
+                      <div>
                         <p className="text-sm font-medium text-gray-500">WhatsApp</p>
-                        <p className="text-sm font-semibold text-teal-600">+1 (555) 123-4567</p>
+                        <p className="text-sm font-semibold text-teal-600">{broker.phone || 'N/A'}</p>
                       </div>
                     </div>
                     
                     <div className="flex items-start space-x-3">
                       <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
+                      </svg>
                       <div>
                         <p className="text-sm font-medium text-gray-500">Email</p>
-                        <p className="text-sm font-semibold text-teal-600">alexander.sterling@sterlingrealty.com</p>
-                </div>
-              </div>
+                        <p className="text-sm font-semibold text-teal-600">{broker.email || 'N/A'}</p>
+                      </div>
+                    </div>
 
                     <div className="flex items-start space-x-3">
                       <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -453,7 +412,7 @@ export default function BrokerDetailsPage() {
                       </svg>
                       <div>
                         <p className="text-sm font-medium text-gray-500">Office Address</p>
-                        <p className="text-sm font-semibold text-gray-900">789 Grand Blvd, Suite 200, Metropolis, CA 90210</p>
+                        <p className="text-sm font-semibold text-gray-900">{broker.address || 'N/A'}</p>
                       </div>
                     </div>
                     
@@ -498,30 +457,127 @@ export default function BrokerDetailsPage() {
                   </div>
                 </div>
 
-                {/* Active Leads */}
+                {/* Documents */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Active Leads</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Documents</h2>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-0">
                     {[
-                      { id: 1, name: 'Alice Smith', inquiry: 'Buying Inquiry', property: '456 Hilltop Rd', status: 'New' },
-                      { id: 2, name: 'Bob Johnson', inquiry: 'Selling Inquiry', property: '789 Oak Ave', status: 'Follow Up' },
-                      { id: 3, name: 'Carol White', inquiry: 'Rental Inquiry', property: '101 Pine St', status: 'Qualified' },
-                      { id: 4, name: 'David Green', inquiry: 'Commercial Inquiry', property: '202 Business Park', status: 'New' }
-                    ].map((lead) => (
-                      <div key={lead.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h3 className="text-sm font-semibold text-gray-900 mb-1">{lead.name}</h3>
-                            <p className="text-sm text-gray-600">{lead.inquiry} • Property: {lead.property}</p>
+                      { name: 'Aadhar Card', type: 'PNG', url: broker.kycDocs?.aadhar },
+                      { name: 'PAN Card', type: 'PNG', url: broker.kycDocs?.pan },
+                      { name: 'GST Certificate', type: 'PNG', url: broker.kycDocs?.gst }
+                    ].map((doc, index) => (
+                      <div key={index} className={`flex items-center justify-between py-4 ${index !== 2 ? 'border-b border-gray-200' : ''}`}>
+                        <div className="flex items-center space-x-4">
+                          <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
                           </div>
-                          <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                            lead.status === 'Qualified' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {lead.status}
-                          </span>
+                          <div className="flex items-center space-x-3">
+                            <p className="text-sm font-semibold text-gray-900">{doc.name}</p>
+                            <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded">
+                              {doc.type}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <button 
+                            onClick={() => {
+                              if (doc.url) {
+                                console.log('👁️ Previewing document:', doc.name, 'URL:', doc.url);
+                                try {
+                                  window.open(doc.url, '_blank', 'noopener,noreferrer');
+                                } catch (error) {
+                                  console.error('❌ Preview failed:', error);
+                                }
+                              } else {
+                                console.warn('⚠️ No URL available for document:', doc.name);
+                              }
+                            }}
+                            className="flex items-center space-x-1 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors cursor-pointer"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>Preview</span>
+                          </button>
+                          <button 
+                            onClick={async () => {
+                              if (doc.url) {
+                                setDownloading(doc.name);
+                                console.log('📥 Downloading document:', doc.name, 'URL:', doc.url);
+                                try {
+                                  // Try direct download first
+                                  const link = document.createElement('a');
+                                  link.href = doc.url;
+                                  link.download = `${doc.name.replace(/\s+/g, '_')}.${doc.type.toLowerCase()}`;
+                                  link.target = '_blank';
+                                  
+                                  // Add to DOM, click, and remove
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  
+                                  console.log('✅ Download initiated for:', doc.name);
+                                } catch (error) {
+                                  console.error('❌ Direct download failed, trying fetch method:', error);
+                                  try {
+                                    // Fallback: fetch with auth headers
+                                    const response = await fetch(doc.url, {
+                                      method: 'GET',
+                                      headers: {
+                                        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                                      },
+                                    });
+                                    
+                                    if (!response.ok) {
+                                      throw new Error(`HTTP error! status: ${response.status}`);
+                                    }
+                                    
+                                    // Convert to blob
+                                    const blob = await response.blob();
+                                    
+                                    // Create download link
+                                    const url = window.URL.createObjectURL(blob);
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = `${doc.name.replace(/\s+/g, '_')}.${doc.type.toLowerCase()}`;
+                                    
+                                    // Add to DOM, click, and remove
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    
+                                    // Clean up the URL object
+                                    window.URL.revokeObjectURL(url);
+                                    
+                                    console.log('✅ Download completed for:', doc.name);
+                                  } catch (fetchError) {
+                                    console.error('❌ Fetch download also failed:', fetchError);
+                                    // Last resort: open in new tab
+                                    window.open(doc.url, '_blank');
+                                  }
+                                } finally {
+                                  setDownloading(null);
+                                }
+                              } else {
+                                console.warn('⚠️ No URL available for document:', doc.name);
+                              }
+                            }}
+                            disabled={downloading === doc.name}
+                            className={`flex items-center space-x-1 px-3 py-1 text-sm font-medium border border-gray-300 rounded transition-colors ${
+                              downloading === doc.name 
+                                ? 'text-gray-400 bg-gray-50 cursor-not-allowed' 
+                                : 'text-gray-700 bg-gray-100 hover:bg-gray-200 cursor-pointer'
+                            }`}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>{downloading === doc.name ? 'Downloading...' : 'Download'}</span>
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -594,33 +650,33 @@ export default function BrokerDetailsPage() {
 
               {/* Reviews & Ratings and Performance Snapshot Section */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Reviews & Ratings */}
+                {/* Active Leads */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Reviews & Ratings</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Active Leads</h2>
                   
-                  <div className="mb-6">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="flex space-x-1">
-                        {[...Array(5)].map((_, i) => (
-                          <svg key={i} className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
+                  <div className="space-y-3">
+                    {[
+                      { id: 1, name: 'Alice Smith', inquiry: 'Buying Inquiry', property: '456 Hilltop Rd', status: 'New' },
+                      { id: 2, name: 'Bob Johnson', inquiry: 'Selling Inquiry', property: '789 Oak Ave', status: 'Follow Up' },
+                      { id: 3, name: 'Carol White', inquiry: 'Rental Inquiry', property: '101 Pine St', status: 'Qualified' },
+                      { id: 4, name: 'David Green', inquiry: 'Commercial Inquiry', property: '202 Business Park', status: 'New' }
+                    ].map((lead) => (
+                      <div key={lead.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-1">{lead.name}</h3>
+                            <p className="text-sm text-gray-600">{lead.inquiry} • Property: {lead.property}</p>
+                          </div>
+                          <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                            lead.status === 'Qualified' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {lead.status}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-teal-600">4.9</span>
-                      <span className="text-sm text-gray-500">(185 Reviews)</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-700 mb-2">&ldquo;Alexander made our home buying process incredibly smooth and stress-free. Highly recommend!&rdquo;</p>
-                      <p className="text-xs text-gray-500">- Sarah L., 2024-03-15</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-700 mb-2">&ldquo;Professional, knowledgeable, and always responsive. He found us the perfect commercial space.&rdquo;</p>
-                      <p className="text-xs text-gray-500">- Mark T., 2024-02-28</p>
-                    </div>
+                    ))}
                   </div>
                 </div>
 
@@ -784,48 +840,33 @@ export default function BrokerDetailsPage() {
                 </div>
               </div>
               
-              {/* Documents Section */}
+              {/* Reviews & Ratings Section */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Documents</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Reviews & Ratings</h2>
                 
-                <div className="space-y-0">
-                  {[
-                    { name: 'Broker License', type: 'PDF' },
-                    { name: 'Client Agreement Template', type: 'DOC' },
-                    { name: 'Property Listing Guide', type: 'PDF' },
-                    { name: 'Privacy Policy', type: 'PDF' }
-                  ].map((doc, index) => (
-                    <div key={index} className={`flex items-center justify-between py-4 ${index !== 3 ? 'border-b border-gray-200' : ''}`}>
-                      <div className="flex items-center space-x-4">
-                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <p className="text-sm font-semibold text-gray-900">{doc.name}</p>
-                          <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded">
-                            {doc.type}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <button className="flex items-center space-x-1 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          <span>Preview</span>
-                        </button>
-                        <button className="flex items-center space-x-1 px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 transition-colors">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <span>Download</span>
-                        </button>
-                      </div>
+                <div className="mb-6">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="flex space-x-1">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
                     </div>
-                  ))}
+                    <span className="text-2xl font-bold text-teal-600">4.9</span>
+                    <span className="text-sm text-gray-500">(185 Reviews)</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-700 mb-2">&ldquo;Alexander made our home buying process incredibly smooth and stress-free. Highly recommend!&rdquo;</p>
+                    <p className="text-xs text-gray-500">- Sarah L., 2024-03-15</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-700 mb-2">&ldquo;Professional, knowledgeable, and always responsive. He found us the perfect commercial space.&rdquo;</p>
+                    <p className="text-xs text-gray-500">- Mark T., 2024-02-28</p>
+                  </div>
                 </div>
               </div>
           </>
@@ -834,4 +875,4 @@ export default function BrokerDetailsPage() {
       </Layout>
     </ProtectedRoute>
   );
-}
+}  

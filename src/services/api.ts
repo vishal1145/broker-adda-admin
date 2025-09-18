@@ -25,6 +25,29 @@ export const brokerAPI = {
     return response.json();
   },
 
+  // Get single broker by ID
+  getBrokerById: async (brokerId: string) => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/brokers/${brokerId}`, {
+    // const response = await fetch(`${API_BASE_URL}/brokers/68c8f174b9f8967a7fae49eb`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication failed. Please login again.');
+      }
+      throw new Error(`Failed to fetch broker details: ${response.status}`);
+    }
+    
+    return response.json();
+  },
+
   // Approve a broker
   approveBroker: async (brokerId: string) => {
     console.log('🟢 brokerAPI.approveBroker called with ID:', brokerId);
