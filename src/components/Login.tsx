@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -11,6 +12,14 @@ export default function Login() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const { login, isAuthenticated } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/regions');
+    }
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,14 +45,14 @@ export default function Login() {
         // Store token if provided (check nested structure)
         const token = data.data?.token || data.token || data.accessToken || data.access_token || data.authToken;
         if (token) {
-          localStorage.setItem('adminToken', token);
-          console.log('Token saved to localStorage:', token); // Debug log
+          login(token);
+          console.log('Token saved via context:', token); // Debug log
+          router.push('/regions');
         } else {
           console.log('No token found in response:', data); // Debug log
           setError('No authentication token received from server.');
           return;
         }
-        router.push('/regions');
       } else {
         setError(data.message || 'Login failed. Please try again.');
       }

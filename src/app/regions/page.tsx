@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { regionAPI } from '@/services/api';
 import Popup from 'reactjs-popup';
 import ReactPaginate from 'react-paginate';
@@ -130,6 +131,8 @@ export default function RegionsPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [showDescriptionPopup, setShowDescriptionPopup] = useState(false);
+  const [selectedDescription, setSelectedDescription] = useState('');
 
   // Load Google Maps API
   const { isLoaded } = useJsApiLoader({
@@ -215,6 +218,12 @@ export default function RegionsPage() {
       }
     };
   }, [searchTimeout]);
+
+  // Handle description popup
+  const handleShowDescription = (description: string) => {
+    setSelectedDescription(description);
+    setShowDescriptionPopup(true);
+  };
 
   // Calculate region statistics
   const regionStats = {
@@ -348,8 +357,9 @@ export default function RegionsPage() {
 
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <ProtectedRoute>
+      <Layout>
+        <div className="space-y-6">
         {/* Page Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
@@ -421,7 +431,8 @@ export default function RegionsPage() {
                 </svg>
             </div>
             </div>
-          <button
+          {(searchTerm || stateFilter !== 'all' || cityFilter !== 'all') && (
+            <button
               onClick={() => {
                 setSearchTerm('');
                 setStateFilter('all');
@@ -430,7 +441,8 @@ export default function RegionsPage() {
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
             >
               Clear Filters
-          </button>
+            </button>
+          )}
           </div>
         </div>
 
@@ -655,6 +667,61 @@ export default function RegionsPage() {
           </div>
         </Popup>
 
+        {/* Description Popup */}
+        <Popup
+          open={showDescriptionPopup}
+          closeOnDocumentClick
+          onClose={() => setShowDescriptionPopup(false)}
+          modal
+          overlayStyle={{
+            background: 'rgba(0, 0, 0, 0.8)',
+            zIndex: 9999
+          }}
+          contentStyle={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '0',
+            border: 'none',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            margin: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'auto',
+            scrollbarWidth: 'none', /* Firefox */
+            msOverflowStyle: 'none' /* Internet Explorer 10+ */
+          } as React.CSSProperties}
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Region Description</h3>
+              <button
+                onClick={() => setShowDescriptionPopup(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {selectedDescription || 'No description available'}
+              </p>
+            </div>
+            
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setShowDescriptionPopup(false)}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </Popup>
+
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -750,7 +817,7 @@ export default function RegionsPage() {
                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
                   <div className="grid grid-cols-5 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                     <div>Region</div>
-                    <div>Location</div>
+                    <div>Description</div>
                     <div>Center</div>
                     <div>Brokers</div>
                     <div>Action</div>
@@ -772,25 +839,43 @@ export default function RegionsPage() {
                         </div>
                           <div>
                             <div className="text-sm font-semibold text-gray-900">{region.name}</div>
-                            <div className="text-gray-500 text-xs">{region.description || 'No description available'}</div>
+                            <div className="text-gray-500 text-xs">{region.city}, {region.state}</div>
                         </div>
                       </div>
                       
-                        {/* Location Column */}
+                        {/* Description Column */}
                         <div className="text-sm text-gray-900">
-                          <div className="font-semibold text-gray-900">{region.city}</div>
-                          <div className="text-gray-500 text-xs">{region.state}</div>
-                      </div>
+                          <div className="flex items-center space-x-2">
+                            <div className="text-gray-500 text-xs truncate flex-1" title={region.description || 'No description available'}>
+                              {region.description || 'No description available'}
+                            </div>
+                            {region.description && region.description.length > 30 && (
+                              <button
+                                onClick={() => handleShowDescription(region.description)}
+                                className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+                                title="View full description"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                          {/* <div className="font-semibold text-gray-900">{region.city}</div>
+                          <div className="text-gray-500 text-xs">{region.state}</div> */}
+                        </div>
                       
                         {/* Center Location Column */}
                         <div className="text-sm text-gray-900">
-                          <div className="font-semibold text-gray-900">{region.centerLocation || 'N/A'}</div>
-                      </div>
+                          <div className="font-semibold text-gray-900 truncate" title={region.centerLocation || 'N/A'}>{region.centerLocation || 'N/A'}</div>
+                          <div className="text-gray-500 text-xs">{region.radius}km Radius</div>
+                        </div>
                       
                         {/* Stats Column */}
                         <div className="text-sm">
-                          <div className="font-semibold text-gray-900">{region.brokerCount || 0} brokers</div>
-                          <div className="text-gray-500 text-xs">{region.radius}km radius</div>
+                          <div className="font-semibold text-gray-900">{region.brokerCount || 0} Brokers</div>
+                          
                         </div>
                        
                         {/* Action Column */}
@@ -799,17 +884,23 @@ export default function RegionsPage() {
                             onClick={() => {
                               console.log('Edit region:', region._id);
                             }}
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
+                            title="Edit"
                           >
-                            Edit
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
                           </button>
                           <button
                             onClick={() => {
                               console.log('Delete region:', region._id);
                             }}
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                            title="Delete"
                           >
-                            Delete
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                           </button>
                         </div>
                       </div>
@@ -841,18 +932,20 @@ export default function RegionsPage() {
                 breakLabel="..."
                 containerClassName="flex items-center space-x-1"
                 pageClassName="px-3 py-2 text-sm font-medium rounded-md cursor-pointer text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
-                activeClassName="bg-blue-600 text-white border-blue-600"
+                activeClassName="!bg-blue-600 !text-white !border-blue-600"
                 previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 breakClassName="px-3 py-2 text-sm font-medium text-gray-500"
                 disabledClassName="opacity-50 cursor-not-allowed"
+                renderOnZeroPageCount={null}
               />
             </div>
           </div>
         )}
 
       
-      </div>
-    </Layout>
+        </div>
+      </Layout>
+    </ProtectedRoute>
   );
 }

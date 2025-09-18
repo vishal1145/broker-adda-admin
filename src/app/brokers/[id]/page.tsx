@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Head from 'next/head';
 import Layout from '@/components/Layout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface Broker {
   _id: string;
@@ -265,7 +266,7 @@ export default function BrokerDetailsPage() {
   );
 
   return (
-    <>
+    <ProtectedRoute>
       <Head>
         <title>Broker Details - Broker Adda Admin</title>
       </Head>
@@ -830,7 +831,7 @@ export default function BrokerDetailsPage() {
           </>
         )}
         </div>
-    </Layout>
-    </>
+      </Layout>
+    </ProtectedRoute>
   );
 }

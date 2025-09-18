@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Layout from '@/components/Layout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState('This Month');
@@ -81,8 +82,9 @@ export default function Dashboard() {
   ];
 
   return (
-    <Layout>
-      <div className=" space-y-6">
+    <ProtectedRoute>
+      <Layout>
+        <div className=" space-y-6">
         {/* Header with Time Filter */}
         <div className="flex justify-between items-center">
           <div>
@@ -441,7 +443,8 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
-    </Layout>
+        </div>
+      </Layout>
+    </ProtectedRoute>
   );
 }

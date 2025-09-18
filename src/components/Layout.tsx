@@ -1,8 +1,9 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,13 +11,10 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const pathname = usePathname();
-  const router = useRouter();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    // Remove adminToken from localStorage
-    localStorage.removeItem('adminToken');
-    // Redirect to login page
-    router.push('/login');
+    logout();
   };
 
   return (

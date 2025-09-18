@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Layout from '@/components/Layout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { brokerAPI } from '@/services/api';
 import Select from 'react-select';
 import ReactPaginate from 'react-paginate';
@@ -327,8 +328,9 @@ export default function BrokersPage() {
 
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <ProtectedRoute>
+      <Layout>
+        <div className="space-y-6">
         {/* Page Header */}
         <div className="mb-6">
           <div className="flex items-center">
@@ -420,17 +422,19 @@ export default function BrokersPage() {
                 </svg>
               </div>
             </div>
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setStatusFilter('all');
-                setMembershipFilter('all');
-                setRegionFilter('all');
-              }}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              Clear Filters
-            </button>
+            {(searchTerm || statusFilter !== 'all' || membershipFilter !== 'all' || regionFilter !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setMembershipFilter('all');
+                  setRegionFilter('all');
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         </div>
 
@@ -557,11 +561,11 @@ export default function BrokersPage() {
                           <div>
                             <Link 
                               href={`/brokers/${broker._id}`}
-                              className="text-sm font-semibold text-gray-900 hover:text-teal-600 transition-colors cursor-pointer"
+                              className="text-sm font-semibold text-gray-900 hover:text-teal-600 transition-colors cursor-pointer capitalize"
                             >
                               {broker.name || 'N/A'}
                             </Link>
-                            <div className="text-gray-500 text-xs">{broker.firmName || 'N/A'}</div>
+                            <div className="text-gray-500 text-xs capitalize">{broker.firmName || 'N/A'}</div>
                           </div>
                         </div>
 
@@ -616,8 +620,8 @@ export default function BrokersPage() {
 
                         {/* Numbers Column */}
                         <div className="text-sm">
-                          <div className="font-semibold text-gray-900">{sampleData.leads} leads</div>
-                          <div className="text-gray-500 text-xs">{sampleData.properties} properties</div>
+                          <div className="capitalize text-gray-500">{sampleData.leads} leads</div>
+                          <div className="text-gray-500 text-xs capitalize">{sampleData.properties} properties</div>
                         </div>
 
                         {/* Action Column */}
@@ -640,15 +644,21 @@ export default function BrokersPage() {
                                 <div className="flex space-x-2">
                                   <button 
                                     onClick={() => handleApprove(broker._id)}
-                                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
+                                    title="Approve"
                                   >
-                                    Approve
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
                                   </button>
                                   <button 
                                     onClick={() => handleReject(broker._id)}
-                                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                    title="Reject"
                                   >
-                                    Reject
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
                                   </button>
                                 </div>
                               );
@@ -685,16 +695,18 @@ export default function BrokersPage() {
                 breakLabel="..."
                 containerClassName="flex items-center space-x-1"
                 pageClassName="px-3 py-2 text-sm font-medium rounded-md cursor-pointer text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
-                activeClassName="bg-blue-600 text-white border-blue-600"
+                activeClassName="!bg-blue-600 !text-white !border-blue-600"
                 previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 breakClassName="px-3 py-2 text-sm font-medium text-gray-500"
                 disabledClassName="opacity-50 cursor-not-allowed"
+                renderOnZeroPageCount={null}
               />
             </div>
           </div>
         )}
-      </div>
-    </Layout>
+        </div>
+      </Layout>
+    </ProtectedRoute>
   );
 }
