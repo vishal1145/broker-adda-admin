@@ -210,6 +210,14 @@ export default function RegionsPage() {
     setTimeout(() => setShowSuggestions(false), 200);
   };
 
+  // Reset form function
+  const resetForm = () => {
+    setFormData({ name: '', description: '', state: '', city: '', center: '', radius: '' });
+    setInputValue(''); // Clear the center location input value
+    setSuggestions([]); // Clear suggestions
+    setShowSuggestions(false); // Hide suggestions dropdown
+  };
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -289,7 +297,7 @@ export default function RegionsPage() {
       );
       console.log('Create region API Response:', response); // Debug log
       
-      setFormData({ name: '', description: '', state: '', city: '', center: '', radius: '' });
+      resetForm(); // Reset all form fields including center location input
       setShowForm(false);
       console.log('Refreshing regions list...'); // Debug log
       fetchRegions(); // Refresh the regions list
@@ -368,7 +376,12 @@ export default function RegionsPage() {
               <p className="text-gray-500 mt-1 text-sm">View and manage all regions</p>
             </div>
             <button
-              onClick={() => setShowForm(!showForm)}
+              onClick={() => {
+                if (showForm) {
+                  resetForm(); // Reset form when canceling
+                }
+                setShowForm(!showForm);
+              }}
               className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors"
             >
               {showForm ? 'Cancel' : 'Add Region'}
@@ -453,7 +466,10 @@ export default function RegionsPage() {
         <Popup
           open={showForm}
           closeOnDocumentClick
-          onClose={() => setShowForm(false)}
+          onClose={() => {
+            resetForm(); // Reset form when closing popup
+            setShowForm(false);
+          }}
           modal
           overlayStyle={{
             background: 'rgba(0, 0, 0, 0.8)',
@@ -478,7 +494,10 @@ export default function RegionsPage() {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Add New Region</h3>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  resetForm(); // Reset form when closing
+                  setShowForm(false);
+                }}
                 className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -660,7 +679,10 @@ export default function RegionsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    resetForm(); // Reset form when canceling
+                    setShowForm(false);
+                  }}
                   className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors cursor-pointer"
                 >
                   Cancel
