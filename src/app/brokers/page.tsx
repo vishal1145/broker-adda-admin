@@ -157,6 +157,10 @@ export default function BrokersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBrokers, setTotalBrokers] = useState(0);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [showUnblockConfirm, setShowUnblockConfirm] = useState(false);
+  const [selectedBrokerId, setSelectedBrokerId] = useState<string | null>(null);
+  const [selectedBrokerName, setSelectedBrokerName] = useState<string>('');
 
   // Calculate broker statistics
   const brokerStats = {
@@ -206,18 +210,34 @@ export default function BrokersPage() {
     }
   }, [currentPage, statusFilter]);
 
-  // Handle broker disabling
-  const handleDisable = async (brokerId: string) => {
+  // Handle broker blocking confirmation
+  const handleBlockClick = (brokerId: string, brokerName: string) => {
+    setSelectedBrokerId(brokerId);
+    setSelectedBrokerName(brokerName);
+    setShowBlockConfirm(true);
+  };
+
+  // Handle broker unblocking confirmation
+  const handleUnblockClick = (brokerId: string, brokerName: string) => {
+    setSelectedBrokerId(brokerId);
+    setSelectedBrokerName(brokerName);
+    setShowUnblockConfirm(true);
+  };
+
+  // Handle broker blocking
+  const handleBlock = async () => {
+    if (!selectedBrokerId) return;
+    
     try {
       setError('');
-      console.log('🔴 Disabling broker with ID:', brokerId);
-      const response = await brokerAPI.blockBroker(brokerId);
-      console.log('🔴 Disable API response:', response);
+      console.log('🔴 Blocking broker with ID:', selectedBrokerId);
+      const response = await brokerAPI.blockBroker(selectedBrokerId);
+      console.log('🔴 Block API response:', response);
       
       // Update local state immediately
       setBrokers(prevBrokers => 
         prevBrokers.map(broker => 
-          broker._id === brokerId 
+          broker._id === selectedBrokerId 
             ? { ...broker, approvedByAdmin: 'blocked' }
             : broker
         )
@@ -225,24 +245,31 @@ export default function BrokersPage() {
       
       // Also refresh from API to get any other updates
       await fetchBrokers();
+      
+      // Close confirmation dialog
+      setShowBlockConfirm(false);
+      setSelectedBrokerId(null);
+      setSelectedBrokerName('');
     } catch (err) {
-      console.error('🔴 Disable error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to disable broker');
+      console.error('🔴 Block error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to block broker');
     }
   };
 
   // Handle broker unblocking
-  const handleUnblock = async (brokerId: string) => {
+  const handleUnblock = async () => {
+    if (!selectedBrokerId) return;
+    
     try {
       setError('');
-      console.log('🟢 Unblocking broker with ID:', brokerId);
-      const response = await brokerAPI.unblockBroker(brokerId);
+      console.log('🟢 Unblocking broker with ID:', selectedBrokerId);
+      const response = await brokerAPI.unblockBroker(selectedBrokerId);
       console.log('🟢 Unblock API response:', response);
       
       // Update local state immediately
       setBrokers(prevBrokers => 
         prevBrokers.map(broker => 
-          broker._id === brokerId 
+          broker._id === selectedBrokerId 
             ? { ...broker, approvedByAdmin: 'unblocked' }
             : broker
         )
@@ -250,6 +277,11 @@ export default function BrokersPage() {
       
       // Also refresh from API to get any other updates
       await fetchBrokers();
+      
+      // Close confirmation dialog
+      setShowUnblockConfirm(false);
+      setSelectedBrokerId(null);
+      setSelectedBrokerName('');
     } catch (err) {
       console.error('🟢 Unblock error:', err);
       setError(err instanceof Error ? err.message : 'Failed to unblock broker');
@@ -434,9 +466,12 @@ export default function BrokersPage() {
                   setMembershipFilter('all');
                   setRegionFilter('all');
                 }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
+                className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
               >
-                Clear Filters
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span>Clear Filters</span>
               </button>
             )}
           </div>
@@ -623,19 +658,19 @@ export default function BrokersPage() {
                             if (broker.approvedByAdmin === 'unblocked') {
                               return (
                                 <button 
-                                  onClick={() => handleDisable(broker._id)}
+                                  onClick={() => handleBlockClick(broker._id, broker.name || 'Broker')}
                                   className="inline-flex items-center space-x-1 px-3 py-1.5 rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors text-sm"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM5 19L19 5" />
                                   </svg>
-                                  <span>Blocked</span>
+                                  <span>Block</span>
                                 </button>
                               );
                             } else if (broker.approvedByAdmin === 'blocked') {
                               return (
                                 <button 
-                                  onClick={() => handleUnblock(broker._id)}
+                                  onClick={() => handleUnblockClick(broker._id, broker.name || 'Broker')}
                                   className="inline-flex items-center space-x-1 px-3 py-1.5 rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors text-sm"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -648,13 +683,13 @@ export default function BrokersPage() {
                               // Default to unblocked if status is undefined - show block button
                               return (
                                 <button 
-                                  onClick={() => handleDisable(broker._id)}
+                                  onClick={() => handleBlockClick(broker._id, broker.name || 'Broker')}
                                   className="inline-flex items-center space-x-1 px-3 py-1.5 rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors text-sm"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM5 19L19 5" />
                                   </svg>
-                                  <span>Disable</span>
+                                  <span>Block</span>
                                 </button>
                               );
                             }
@@ -697,6 +732,86 @@ export default function BrokersPage() {
                 disabledClassName="opacity-50 cursor-not-allowed"
                 renderOnZeroPageCount={null}
               />
+            </div>
+          </div>
+        )}
+
+        {/* Block Confirmation Dialog */}
+        {showBlockConfirm && (
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Block Broker</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Are you sure you want to block <span className="font-semibold">{selectedBrokerName}</span>? 
+                  This will prevent them from accessing the platform.
+                </p>
+                <div className="flex space-x-3 justify-center">
+                  <button
+                    onClick={() => {
+                      setShowBlockConfirm(false);
+                      setSelectedBrokerId(null);
+                      setSelectedBrokerName('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleBlock}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Block Broker
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Unblock Confirmation Dialog */}
+        {showUnblockConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Unblock Broker</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Are you sure you want to unblock <span className="font-semibold">{selectedBrokerName}</span>? 
+                  This will restore their access to the platform.
+                </p>
+                <div className="flex space-x-3 justify-center">
+                  <button
+                    onClick={() => {
+                      setShowUnblockConfirm(false);
+                      setSelectedBrokerId(null);
+                      setSelectedBrokerName('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUnblock}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    Unblock Broker
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
