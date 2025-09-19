@@ -43,6 +43,7 @@ interface Broker {
   expertiseField?: string;
   state?: string;
   brokerImage?: string;
+  membership?: "basic" | "standard" | "premium";
 }
 
 // Skeleton Loader Components
@@ -189,7 +190,13 @@ export default function BrokersPage() {
         });
       }
       
-      setBrokers(response.data.brokers || []);
+      // Add sample membership data for testing if not present
+      const brokersWithMembership = (response.data.brokers || []).map((broker: Broker, index: number) => ({
+        ...broker,
+        membership: broker.membership || (['basic', 'standard', 'premium'][index % 3] as 'basic' | 'standard' | 'premium')
+      }));
+      
+      setBrokers(brokersWithMembership);
       setTotalPages(response.data.pagination.totalPages || 1);
       setTotalBrokers(response.data.pagination.totalBrokers || 0);
     } catch (err) {
@@ -257,8 +264,9 @@ export default function BrokersPage() {
       (broker.phone || '').includes(searchTerm) ||
       broker.firmName.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Membership filter (hardcoded for now - all show as Premium)
-    const matchesMembership = membershipFilter === 'all' || membershipFilter === 'premium';
+    // Membership filter - check actual broker membership data
+    const matchesMembership = membershipFilter === 'all' || 
+      (broker.membership && broker.membership.toLowerCase() === membershipFilter.toLowerCase());
 
     // Region filter
     const matchesRegion = regionFilter === 'all' || 
@@ -591,11 +599,15 @@ export default function BrokersPage() {
                         {/* Membership Column */}
                         <div>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            sampleData.membership === 'Premium'
+                            broker.membership === 'premium'
                               ? 'bg-teal-100 text-teal-800' 
+                              : broker.membership === 'standard'
+                              ? 'bg-blue-100 text-blue-800'
+                              : broker.membership === 'basic'
+                              ? 'bg-gray-100 text-gray-800'
                               : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {sampleData.membership}
+                            {broker.membership ? broker.membership.charAt(0).toUpperCase() + broker.membership.slice(1) : 'N/A'}
                           </span>
                         </div>
 
