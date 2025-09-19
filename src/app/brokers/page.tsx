@@ -164,7 +164,7 @@ export default function BrokersPage() {
 
   // Calculate broker statistics
   const brokerStats = {
-    total: brokers.length,
+    total: totalBrokers, // Use totalBrokers from API pagination
     unblocked: brokers.filter(broker => broker.approvedByAdmin === 'unblocked').length,
     blocked: brokers.filter(broker => broker.approvedByAdmin === 'blocked').length
   };
