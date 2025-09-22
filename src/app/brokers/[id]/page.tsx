@@ -34,6 +34,8 @@ interface Broker {
     aadhar: string;
     pan: string;
     gst: string;
+    brokerLicense: string;
+    companyId: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -52,7 +54,7 @@ interface Broker {
   dateOfBirth?: string;
   specializations?: string[];
   website?: string;
-  whatsapp?: string;
+  whatsappNumber?: string;
   socialMedia?: {
     instagram?: string;
     linkedin?: string;
@@ -497,7 +499,7 @@ export default function BrokerDetailsPage() {
                       </svg>
                       <div>
                         <p className="text-sm font-medium text-gray-500">WhatsApp</p>
-                        <p className="text-sm font-semibold text-teal-600">{broker.phone || 'N/A'}</p>
+                        <p className="text-sm font-semibold text-teal-600">{broker.whatsappNumber || broker.phone || 'N/A'}</p>
                       </div>
                     </div>
                     
@@ -533,12 +535,20 @@ export default function BrokerDetailsPage() {
                       <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
                       </svg>
-                    <div>
+                      <div>
                         <p className="text-sm font-medium text-gray-500">Website</p>
-                        {/* <a href="https://www.sterlingrealty.com/alexander-sterling" className="text-sm font-semibold text-teal-600 hover:underline" target="_blank" rel="noopener noreferrer">
-                          https://www.sterlingrealty.com/alexander-sterling
-                        </a> */}
-                        <div>-</div>
+                        {broker.website ? (
+                          <a 
+                            href={broker.website.startsWith('http') ? broker.website : `https://${broker.website}`} 
+                            className="text-sm font-semibold text-teal-600 hover:underline" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                          >
+                            {broker.website}
+                          </a>
+                        ) : (
+                          <p className="text-sm font-semibold text-gray-900">-</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -610,7 +620,9 @@ export default function BrokerDetailsPage() {
                     {[
                       { name: 'Aadhar Card', url: broker.kycDocs?.aadhar },
                       { name: 'PAN Card', url: broker.kycDocs?.pan },
-                      { name: 'GST Certificate', url: broker.kycDocs?.gst }
+                      { name: 'GST Certificate', url: broker.kycDocs?.gst },
+                      { name: 'Broker License', url: broker.kycDocs?.brokerLicense },
+                      { name: 'Company ID', url: broker.kycDocs?.companyId }
                     ].map((doc, index) => {
                       // Extract file extension from URL
                       const getFileExtension = (url: string | undefined) => {
@@ -623,7 +635,7 @@ export default function BrokerDetailsPage() {
                       const fileType = getFileExtension(doc.url);
                       
                       return (
-                      <div key={index} className={`flex items-center justify-between py-4 ${index !== 2 ? 'border-b border-gray-200' : ''}`}>
+                      <div key={index} className={`flex items-center justify-between py-4 ${index !== 4 ? 'border-b border-gray-200' : ''}`}>
                         <div className="flex items-center space-x-4">
                           <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

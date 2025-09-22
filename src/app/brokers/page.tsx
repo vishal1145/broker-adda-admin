@@ -166,6 +166,7 @@ export default function BrokersPage() {
   const [showUnblockConfirm, setShowUnblockConfirm] = useState(false);
   const [selectedBrokerId, setSelectedBrokerId] = useState<string | null>(null);
   const [selectedBrokerName, setSelectedBrokerName] = useState<string>('');
+  const [isSearching, setIsSearching] = useState(false);
 
   // Fetch brokers from API
   const fetchBrokers = useCallback(async () => {
@@ -324,15 +325,27 @@ export default function BrokersPage() {
   });
 
 
-  // Fetch brokers when component mounts or filters change
+  // Fetch brokers when component mounts
   useEffect(() => {
     fetchBrokers();
   }, [fetchBrokers]);
 
-  // Reset to page 1 when filters change
+  // Handle search and filter changes with debouncing
   useEffect(() => {
-    setCurrentPage(1);
-  }, [statusFilter, membershipFilter, regionFilter]);
+    // Set searching state when filters change
+    setIsSearching(true);
+    
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1);
+      fetchBrokers();
+      setIsSearching(false);
+    }, 500); // 500ms debounce
+
+    return () => {
+      clearTimeout(timeoutId);
+      setIsSearching(false);
+    };
+  }, [searchTerm, statusFilter, membershipFilter, regionFilter, fetchBrokers]);
 
   // Helper functions
 
@@ -398,9 +411,15 @@ export default function BrokersPage() {
           <div className="flex-1 max-w-md">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                {isSearching ? (
+                  <svg className="h-5 w-5 text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                )}
               </div>
               <input
                 type="text"

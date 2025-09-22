@@ -160,6 +160,7 @@ export default function RegionsPage() {
   const [showEditSuggestions, setShowEditSuggestions] = useState(false);
   const [editSearchTimeout, setEditSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Load Google Maps API
   const { isLoaded } = useJsApiLoader({
@@ -519,12 +520,19 @@ export default function RegionsPage() {
 
   // Handle search and filter changes with debouncing
   useEffect(() => {
+    // Set searching state when filters change
+    setIsSearching(true);
+    
     const timeoutId = setTimeout(() => {
       setCurrentPage(1);
       fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
+      setIsSearching(false);
     }, 500); // 500ms debounce
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      setIsSearching(false);
+    };
   }, [searchTerm, stateFilter, cityFilter, fetchRegions, itemsPerPage]);
 
   // Handle page changes
@@ -582,9 +590,15 @@ export default function RegionsPage() {
           <div className="flex-1 max-w-md">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                {isSearching ? (
+                  <svg className="h-5 w-5 text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                )}
               </div>
               <input
                 type="text"
