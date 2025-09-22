@@ -83,6 +83,9 @@ export default function BrokerDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [showUnblockConfirm, setShowUnblockConfirm] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
 
   useEffect(() => {
@@ -131,6 +134,68 @@ export default function BrokerDetailsPage() {
         return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Handle broker blocking confirmation
+  const handleBlockClick = () => {
+    setShowBlockConfirm(true);
+  };
+
+  // Handle broker unblocking confirmation
+  const handleUnblockClick = () => {
+    setShowUnblockConfirm(true);
+  };
+
+  // Handle broker blocking
+  const handleBlock = async () => {
+    if (!broker) return;
+    
+    try {
+      setActionLoading(true);
+      setError('');
+      console.log('🔴 Blocking broker with ID:', broker._id);
+      const response = await brokerAPI.blockBroker(broker._id);
+      console.log('🔴 Block API response:', response);
+      
+      // Update local state
+      setBroker(prevBroker => 
+        prevBroker ? { ...prevBroker, approvedByAdmin: 'blocked' } : null
+      );
+      
+      // Close confirmation dialog
+      setShowBlockConfirm(false);
+    } catch (err) {
+      console.error('🔴 Block error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to block broker');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle broker unblocking
+  const handleUnblock = async () => {
+    if (!broker) return;
+    
+    try {
+      setActionLoading(true);
+      setError('');
+      console.log('🟢 Unblocking broker with ID:', broker._id);
+      const response = await brokerAPI.unblockBroker(broker._id);
+      console.log('🟢 Unblock API response:', response);
+      
+      // Update local state
+      setBroker(prevBroker => 
+        prevBroker ? { ...prevBroker, approvedByAdmin: 'unblocked' } : null
+      );
+      
+      // Close confirmation dialog
+      setShowUnblockConfirm(false);
+    } catch (err) {
+      console.error('🟢 Unblock error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to unblock broker');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -256,9 +321,40 @@ export default function BrokerDetailsPage() {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
                   <h2 className="text-xl font-bold text-gray-900">Broker Information</h2>
-                  {/* <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors">
-                    Edit Profile
-                  </button> */}
+                  {broker.approvedByAdmin === 'unblocked' ? (
+                    <button 
+                      onClick={handleBlockClick}
+                      disabled={actionLoading}
+                      className="inline-flex items-center space-x-1 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM5 19L19 5" />
+                      </svg>
+                      <span>{actionLoading ? 'Blocking...' : 'Block'}</span>
+                    </button>
+                  ) : broker.approvedByAdmin === 'blocked' ? (
+                    <button 
+                      onClick={handleUnblockClick}
+                      disabled={actionLoading}
+                      className="inline-flex items-center space-x-1 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{actionLoading ? 'Unblocking...' : 'Unblock'}</span>
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={handleBlockClick}
+                      disabled={actionLoading}
+                      className="inline-flex items-center space-x-1 px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM5 19L19 5" />
+                      </svg>
+                      <span>{actionLoading ? 'Blocking...' : 'Block Broker'}</span>
+                    </button>
+                  )}
             </div>
             
                 <div className="flex items-start space-x-6">
@@ -904,6 +1000,82 @@ export default function BrokerDetailsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Block Confirmation Dialog */}
+              {showBlockConfirm && (
+                <div className="fixed inset-0 bg-[rgba(0,0,0,0.8)] flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+                    <div className="flex items-center mb-4">
+                      <div className="flex-shrink-0 w-10 h-10 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+                        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Block Broker</h3>
+                      <p className="text-sm text-gray-500 mb-6">
+                        Are you sure you want to block <span className="font-semibold">{broker?.name || 'this broker'}</span>? 
+                        This will prevent them from accessing the platform.
+                      </p>
+                      <div className="flex space-x-3 justify-center">
+                        <button
+                          onClick={() => setShowBlockConfirm(false)}
+                          disabled={actionLoading}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleBlock}
+                          disabled={actionLoading}
+                          className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {actionLoading ? 'Blocking...' : 'Block Broker'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Unblock Confirmation Dialog */}
+              {showUnblockConfirm && (
+                <div className="fixed inset-0 bg-[rgba(0,0,0,0.8)] flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+                    <div className="flex items-center mb-4">
+                      <div className="flex-shrink-0 w-10 h-10 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Unblock Broker</h3>
+                      <p className="text-sm text-gray-500 mb-6">
+                        Are you sure you want to unblock <span className="font-semibold">{broker?.name || 'this broker'}</span>? 
+                        This will restore their access to the platform.
+                      </p>
+                      <div className="flex space-x-3 justify-center">
+                        <button
+                          onClick={() => setShowUnblockConfirm(false)}
+                          disabled={actionLoading}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleUnblock}
+                          disabled={actionLoading}
+                          className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {actionLoading ? 'Unblocking...' : 'Unblock'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
           </>
         )}
         </div>

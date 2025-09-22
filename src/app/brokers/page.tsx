@@ -738,7 +738,7 @@ export default function BrokersPage() {
 
         {/* Block Confirmation Dialog */}
         {showBlockConfirm && (
-          <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-[rgba(0,0,0,0.8)]">
             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 w-10 h-10 mx-auto bg-red-100 rounded-full flex items-center justify-center">
@@ -778,7 +778,7 @@ export default function BrokersPage() {
 
         {/* Unblock Confirmation Dialog */}
         {showUnblockConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-[rgba(0,0,0,0.8)]" >
             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
               <div className="flex items-center mb-4">
                 <div className="flex-shrink-0 w-10 h-10 mx-auto bg-green-100 rounded-full flex items-center justify-center">
