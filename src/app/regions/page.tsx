@@ -90,8 +90,8 @@ const RegionsTableSkeleton = () => {
 
 const SummaryCardsSkeleton = () => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      {Array.from({ length: 4 }).map((_, index) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      {Array.from({ length: 5 }).map((_, index) => (
         <div key={index} className="bg-gray-50 rounded-lg p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="space-y-2">
@@ -127,6 +127,15 @@ export default function RegionsPage() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRegions, setTotalRegions] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [itemsPerPage] = useState(10);
+  const [regionStats, setRegionStats] = useState({
+    totalRegions: 0,
+    totalBrokers: 0,
+    activeCities: 0,
+    activeStates: 0,
+    avgBrokersPerRegion: 0
+  });
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -271,7 +280,8 @@ export default function RegionsPage() {
       setRegionToDelete(null);
       
       // Refresh the regions list
-      fetchRegions();
+      fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
+      fetchRegionStats(); // Refresh the statistics
     } catch (err) {
       console.error('Error deleting region:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete region');
@@ -399,7 +409,8 @@ export default function RegionsPage() {
       console.log('Region updated successfully');
       resetEditForm();
       setShowEditForm(false);
-      fetchRegions(); // Refresh the regions list
+      fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : ''); // Refresh the regions list
+      fetchRegionStats(); // Refresh the statistics
     } catch (err) {
       console.error('Error updating region:', err);
       setError(err instanceof Error ? err.message : 'Failed to update region');
@@ -408,39 +419,46 @@ export default function RegionsPage() {
     }
   };
 
-  // Calculate region statistics
-  const regionStats = {
-    total: regions.length,
-    totalBrokers: regions.reduce((sum, region) => sum + (region.brokerCount || 0), 0),
-    activeCities: new Set(regions.map(r => r.city)).size,
-    avgBrokersPerRegion: regions.length > 0 ? Math.round(regions.reduce((sum, region) => sum + (region.brokerCount || 0), 0) / regions.length) : 0
-  };
+  // Fetch region statistics from API
+  const fetchRegionStats = useCallback(async () => {
+    try {
+      const response = await regionAPI.getRegionStats();
+      console.log('Region Stats API Response:', response);
+      
+      if (response && response.success && response.data) {
+        setRegionStats({
+          totalRegions: response.data.totalRegions || 0,
+          totalBrokers: response.data.totalBrokers || 0,
+          activeCities: response.data.activeCities || 0,
+          activeStates: response.data.activeStates || 0,
+          avgBrokersPerRegion: response.data.avgBrokersPerRegion || 0
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching region statistics:', err);
+      // Don't set error state for stats, just log it
+    }
+  }, []);
 
   // Fetch regions from API
-  const fetchRegions = useCallback(async () => {
+  const fetchRegions = useCallback(async (page = 1, limit = 10, search = '', state = '', city = '') => {
     try {
       setLoading(true);
       setError('');
-      const response = await regionAPI.getRegions();
+      const response = await regionAPI.getRegions(page, limit, search, state, city);
       console.log('Regions API Response:', response); // Debug log
       
-      // Handle the actual API response structure: response.data.regions
-      if (response && response.data && response.data.regions && Array.isArray(response.data.regions)) {
+      // Handle the new API response structure with pagination
+      if (response && response.success && response.data && response.data.regions && Array.isArray(response.data.regions)) {
         setRegions(response.data.regions);
-        setTotalRegions(response.data.regions.length);
-      } else if (Array.isArray(response)) {
-        setRegions(response);
-        setTotalRegions(response.length);
-      } else if (response.data && Array.isArray(response.data)) {
-        setRegions(response.data);
-        setTotalRegions(response.data.length);
-      } else if (response.regions && Array.isArray(response.regions)) {
-        setRegions(response.regions);
-        setTotalRegions(response.regions.length);
+        setTotalRegions(response.data.pagination.totalRegions);
+        setCurrentPage(response.data.pagination.currentPage);
+        setTotalPages(response.data.pagination.totalPages);
       } else {
         console.warn('Unexpected API response structure:', response);
         setRegions([]);
         setTotalRegions(0);
+        setTotalPages(0);
       }
     } catch (err) {
       console.error('Error fetching regions:', err);
@@ -475,7 +493,8 @@ export default function RegionsPage() {
       resetForm(); // Reset all form fields including center location input
       setShowForm(false);
       console.log('Refreshing regions list...'); // Debug log
-      fetchRegions(); // Refresh the regions list
+      fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : ''); // Refresh the regions list
+      fetchRegionStats(); // Refresh the statistics
     } catch (err) {
       console.error('Error creating region:', err);
       setError(err instanceof Error ? err.message : 'Failed to create region');
@@ -483,25 +502,9 @@ export default function RegionsPage() {
   };
 
 
-  // Filter regions based on search term and filters
-  const filteredRegions = regions.filter(region => {
-    // Search term filter
-    const matchesSearch = region.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      region.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      region.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      region.state.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      region.centerLocation.toLowerCase().includes(searchTerm.toLowerCase());
+  // No client-side filtering needed - using server-side filtering
 
-    // State filter
-    const matchesState = stateFilter === 'all' || region.state === stateFilter;
-
-    // City filter
-    const matchesCity = cityFilter === 'all' || region.city === cityFilter;
-
-    return matchesSearch && matchesState && matchesCity;
-  });
-
-  // Fetch regions when component mounts
+  // Fetch regions and statistics when component mounts
   useEffect(() => {
     console.log('🚀 RegionsPage component mounted');
     console.log('🚀 Checking for admin token...');
@@ -510,13 +513,25 @@ export default function RegionsPage() {
     if (token) {
       console.log('🚀 Token preview:', token.substring(0, 20) + '...');
     }
-    fetchRegions();
-  }, [fetchRegions]);
+    fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
+    fetchRegionStats();
+  }, [fetchRegions, fetchRegionStats, itemsPerPage]);
 
-  // Reset to page 1 when filters change
+  // Handle search and filter changes with debouncing
   useEffect(() => {
-    setCurrentPage(1);
-  }, [stateFilter, cityFilter, searchTerm]);
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1);
+      fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, stateFilter, cityFilter, fetchRegions, itemsPerPage]);
+
+  // Handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchRegions(page, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
+  };
 
 
 
@@ -529,12 +544,9 @@ export default function RegionsPage() {
     return `${day} ${month} ${year}`;
   };
 
-  // Pagination logic for filtered regions
-  const itemsPerPage = 10;
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-  const paginatedRegions = filteredRegions.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(filteredRegions.length / itemsPerPage);
+  // Pagination logic - using server-side pagination
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalRegions);
 
 
 
@@ -1278,13 +1290,13 @@ export default function RegionsPage() {
         {loading ? (
           <SummaryCardsSkeleton />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             {/* Total Regions Card */}
             <div className="bg-teal-50 rounded-lg p-6 border border-teal-200">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-teal-600 text-sm font-medium">Total Regions</p>
-                  <p className="text-2xl font-bold text-teal-700">{regionStats.total}</p>
+                  <p className="text-2xl font-bold text-teal-700">{regionStats.totalRegions}</p>
                 </div>
                 <div className="bg-teal-100 rounded-lg p-3">
                   <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1325,6 +1337,21 @@ export default function RegionsPage() {
               </div>
             </div>
             
+            {/* Active States Card */}
+            <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-600 text-sm font-medium">Active States</p>
+                  <p className="text-2xl font-bold text-orange-700">{regionStats.activeStates}</p>
+                </div>
+                <div className="bg-orange-100 rounded-lg p-3">
+                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
             {/* Avg Brokers/Region Card */}
             <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
               <div className="flex items-center justify-between">
@@ -1347,7 +1374,7 @@ export default function RegionsPage() {
           <RegionsTableSkeleton />
         ) : (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            {filteredRegions.length === 0 ? (
+            {regions.length === 0 ? (
               <div className="p-12 text-center">
                 <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -1371,7 +1398,7 @@ export default function RegionsPage() {
 
                 {/* Table Body */}
                 <div className="divide-y divide-gray-200">
-                  {paginatedRegions.map((region, index) => (
+                  {regions.map((region, index) => (
                     <div key={region._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                       <div className="grid grid-cols-5 gap-4 items-center">
                         {/* Region Column */}
@@ -1458,19 +1485,19 @@ export default function RegionsPage() {
         )}
 
         {/* Pagination */}
-        {filteredRegions.length > 0 && (
+        {regions.length > 0 && (
           <div className="bg-white px-6 py-4 border-t border-gray-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center text-sm text-gray-700">
                 <span>
-                  Showing {startIndex + 1} to {Math.min(endIndex, filteredRegions.length)} of {filteredRegions.length} results
+                  Showing {startIndex + 1} to {endIndex} of {totalRegions} results
                 </span>
               </div>
               <ReactPaginate
                 pageCount={totalPages}
                 pageRangeDisplayed={3}
                 marginPagesDisplayed={1}
-                onPageChange={({ selected }) => setCurrentPage(selected + 1)}
+                onPageChange={({ selected }) => handlePageChange(selected + 1)}
                 forcePage={currentPage - 1}
                 previousLabel="Previous"
                 nextLabel="Next"

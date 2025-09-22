@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const imageUrl = searchParams.get('url');
+  const download = searchParams.get('download');
 
   if (!imageUrl) {
     return NextResponse.json({ error: 'Image URL is required' }, { status: 400 });
@@ -21,14 +22,25 @@ export async function GET(request: NextRequest) {
 
     const imageBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('content-type') || 'image/jpeg';
+    
+    // Extract filename from URL for download
+    const urlParts = imageUrl.split('/');
+    const filename = urlParts[urlParts.length - 1] || 'document';
+
+    const headers: Record<string, string> = {
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=31536000',
+      'Access-Control-Allow-Origin': '*',
+    };
+
+    // Add download headers if download parameter is present
+    if (download === 'true') {
+      headers['Content-Disposition'] = `attachment; filename="${filename}"`;
+    }
 
     return new NextResponse(imageBuffer, {
       status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers,
     });
   } catch (error) {
     console.error('Image proxy error:', error);

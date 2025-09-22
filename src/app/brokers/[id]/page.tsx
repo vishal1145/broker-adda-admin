@@ -653,62 +653,81 @@ export default function BrokerDetailsPage() {
                               if (doc.url) {
                                 setDownloading(doc.name);
                                 console.log('📥 Downloading document:', doc.name, 'URL:', doc.url);
+                                
                                 try {
-                                  // Try direct download first
+                                  // Method 1: Use the image proxy route to handle CORS
+                                  const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(doc.url)}&download=true`;
+                                  const response = await fetch(proxyUrl, {
+                                    method: 'GET',
+                                    headers: {
+                                      'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+                                    },
+                                  });
+                                  
+                                  if (!response.ok) {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                  }
+                                  
+                                  // Convert to blob
+                                  const blob = await response.blob();
+                                  
+                                  // Create download link
+                                  const url = window.URL.createObjectURL(blob);
                                   const link = document.createElement('a');
-                                  link.href = doc.url;
+                                  link.href = url;
                                   link.download = `${doc.name.replace(/\s+/g, '_')}.${doc.type.toLowerCase()}`;
-                                  link.target = '_blank';
+                                  link.style.display = 'none';
                                   
                                   // Add to DOM, click, and remove
                                   document.body.appendChild(link);
                                   link.click();
                                   document.body.removeChild(link);
                                   
-                                  console.log('✅ Download initiated for:', doc.name);
-                                } catch (error) {
-                                  console.error('❌ Direct download failed, trying fetch method:', error);
+                                  // Clean up the URL object
+                                  setTimeout(() => window.URL.revokeObjectURL(url), 100);
+                                  
+                                  console.log('✅ Download completed for:', doc.name);
+                                } catch (fetchError) {
+                                  console.error('❌ Fetch download failed, trying direct method:', fetchError);
+                                  
                                   try {
-                                    // Fallback: fetch with auth headers
-                                    const response = await fetch(doc.url, {
-                                      method: 'GET',
-                                      headers: {
-                                        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-                                      },
-                                    });
-                                    
-                                    if (!response.ok) {
-                                      throw new Error(`HTTP error! status: ${response.status}`);
-                                    }
-                                    
-                                    // Convert to blob
-                                    const blob = await response.blob();
-                                    
-                                    // Create download link
-                                    const url = window.URL.createObjectURL(blob);
+                                    // Method 2: Use proxy URL directly for download
+                                    const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(doc.url)}&download=true`;
                                     const link = document.createElement('a');
-                                    link.href = url;
+                                    link.href = proxyUrl;
                                     link.download = `${doc.name.replace(/\s+/g, '_')}.${doc.type.toLowerCase()}`;
+                                    link.target = '_blank';
+                                    link.rel = 'noopener noreferrer';
+                                    link.style.display = 'none';
                                     
                                     // Add to DOM, click, and remove
                                     document.body.appendChild(link);
                                     link.click();
                                     document.body.removeChild(link);
                                     
-                                    // Clean up the URL object
-                                    window.URL.revokeObjectURL(url);
+                                    console.log('✅ Proxy download initiated for:', doc.name);
+                                  } catch (directError) {
+                                    console.error('❌ Direct download also failed:', directError);
                                     
-                                    console.log('✅ Download completed for:', doc.name);
-                                  } catch (fetchError) {
-                                    console.error('❌ Fetch download also failed:', fetchError);
-                                    // Last resort: open in new tab
-                                    window.open(doc.url, '_blank');
+                                    try {
+                                      // Method 3: Open proxy URL in new tab for manual download
+                                      const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(doc.url)}&download=true`;
+                                      const newWindow = window.open(proxyUrl, '_blank', 'noopener,noreferrer');
+                                      if (!newWindow) {
+                                        throw new Error('Popup blocked');
+                                      }
+                                      console.log('✅ Opened proxy URL in new tab for manual download:', doc.name);
+                                    } catch (openError) {
+                                      console.error('❌ All download methods failed:', openError);
+                                      alert(`Unable to download ${doc.name}. Please try right-clicking the preview button and selecting "Save link as..."`);
+                                    }
                                   }
                                 } finally {
                                   setDownloading(null);
                                 }
                               } else {
                                 console.warn('⚠️ No URL available for document:', doc.name);
+                                alert('No download URL available for this document.');
                               }
                             }}
                             disabled={downloading === doc.name}

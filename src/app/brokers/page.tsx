@@ -157,17 +157,15 @@ export default function BrokersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBrokers, setTotalBrokers] = useState(0);
+  const [brokerStats, setBrokerStats] = useState({
+    total: 0,
+    unblocked: 0,
+    blocked: 0
+  });
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showUnblockConfirm, setShowUnblockConfirm] = useState(false);
   const [selectedBrokerId, setSelectedBrokerId] = useState<string | null>(null);
   const [selectedBrokerName, setSelectedBrokerName] = useState<string>('');
-
-  // Calculate broker statistics
-  const brokerStats = {
-    total: totalBrokers, // Use totalBrokers from API pagination
-    unblocked: brokers.filter(broker => broker.approvedByAdmin === 'unblocked').length,
-    blocked: brokers.filter(broker => broker.approvedByAdmin === 'blocked').length
-  };
 
   // Fetch brokers from API
   const fetchBrokers = useCallback(async () => {
@@ -203,6 +201,15 @@ export default function BrokersPage() {
       setBrokers(brokersWithMembership);
       setTotalPages(response.data.pagination.totalPages || 1);
       setTotalBrokers(response.data.pagination.totalBrokers || 0);
+      
+      // Update broker statistics from API response
+      if (response.data.stats) {
+        setBrokerStats({
+          total: response.data.stats.totalAllBrokers || 0,
+          unblocked: response.data.stats.totalUnblockedBrokers || 0,
+          blocked: response.data.stats.totalBlockedBrokers || 0
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch brokers');
     } finally {
@@ -243,6 +250,13 @@ export default function BrokersPage() {
         )
       );
       
+      // Update stats immediately
+      setBrokerStats(prevStats => ({
+        ...prevStats,
+        unblocked: prevStats.unblocked - 1,
+        blocked: prevStats.blocked + 1
+      }));
+      
       // Also refresh from API to get any other updates
       await fetchBrokers();
       
@@ -274,6 +288,13 @@ export default function BrokersPage() {
             : broker
         )
       );
+      
+      // Update stats immediately
+      setBrokerStats(prevStats => ({
+        ...prevStats,
+        unblocked: prevStats.unblocked + 1,
+        blocked: prevStats.blocked - 1
+      }));
       
       // Also refresh from API to get any other updates
       await fetchBrokers();

@@ -165,16 +165,24 @@ export const brokerAPI = {
 
 // Region API functions
 export const regionAPI = {
-  // Get all regions
-  getRegions: async () => {
-    console.log('🟢 regionAPI.getRegions called');
+  // Get all regions with pagination and filters
+  getRegions: async (page: number = 1, limit: number = 10, search: string = '', state: string = '', city: string = '') => {
+    console.log('🟢 regionAPI.getRegions called with:', { page, limit, search, state, city });
     
     const token = localStorage.getItem('adminToken');
     console.log('🟢 Token found:', token ? 'Yes' : 'No');
     
     if (!token) throw new Error('No authentication token found');
 
-    const url = `${API_BASE_URL}/regions`;
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(search && { search }),
+      ...(state && { state }),
+      ...(city && { city })
+    });
+
+    const url = `${API_BASE_URL}/regions?${params}`;
     console.log('🟢 Making API call to:', url);
 
     const response = await fetch(url, {
@@ -370,6 +378,39 @@ export const regionAPI = {
     
     const result = await response.json();
     console.log('🟡 API Response:', result);
+    return result;
+  },
+
+  // Get region statistics
+  getRegionStats: async () => {
+    console.log('📊 regionAPI.getRegionStats called');
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('📊 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/regions/stats`;
+    console.log('📊 Making API call to:', url);
+
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('📊 Response status:', response.status);
+    console.log('📊 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to fetch region statistics');
+    }
+    
+    const result = await response.json();
+    console.log('📊 API Response:', result);
     return result;
   }
 };
