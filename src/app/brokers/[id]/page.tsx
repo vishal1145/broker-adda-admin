@@ -608,10 +608,21 @@ export default function BrokerDetailsPage() {
                   
                   <div className="space-y-0">
                     {[
-                      { name: 'Aadhar Card', type: 'PNG', url: broker.kycDocs?.aadhar },
-                      { name: 'PAN Card', type: 'PNG', url: broker.kycDocs?.pan },
-                      { name: 'GST Certificate', type: 'PNG', url: broker.kycDocs?.gst }
-                    ].map((doc, index) => (
+                      { name: 'Aadhar Card', url: broker.kycDocs?.aadhar },
+                      { name: 'PAN Card', url: broker.kycDocs?.pan },
+                      { name: 'GST Certificate', url: broker.kycDocs?.gst }
+                    ].map((doc, index) => {
+                      // Extract file extension from URL
+                      const getFileExtension = (url: string | undefined) => {
+                        if (!url) return 'N/A';
+                        const extension = url.split('.').pop()?.toUpperCase();
+                        console.log('📄 File extension extracted:', extension, 'from URL:', url);
+                        return extension || 'N/A';
+                      };
+                      
+                      const fileType = getFileExtension(doc.url);
+                      
+                      return (
                       <div key={index} className={`flex items-center justify-between py-4 ${index !== 2 ? 'border-b border-gray-200' : ''}`}>
                         <div className="flex items-center space-x-4">
                           <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -622,7 +633,7 @@ export default function BrokerDetailsPage() {
                           <div className="flex items-center space-x-3">
                             <p className="text-sm font-semibold text-gray-900">{doc.name}</p>
                             <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded">
-                              {doc.type}
+                              {fileType}
                             </span>
                           </div>
                         </div>
@@ -675,7 +686,7 @@ export default function BrokerDetailsPage() {
                                   const url = window.URL.createObjectURL(blob);
                                   const link = document.createElement('a');
                                   link.href = url;
-                                  link.download = `${doc.name.replace(/\s+/g, '_')}.${doc.type.toLowerCase()}`;
+                                  link.download = `${doc.name.replace(/\s+/g, '_')}.${fileType.toLowerCase()}`;
                                   link.style.display = 'none';
                                   
                                   // Add to DOM, click, and remove
@@ -695,7 +706,7 @@ export default function BrokerDetailsPage() {
                                     const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(doc.url)}&download=true`;
                                     const link = document.createElement('a');
                                     link.href = proxyUrl;
-                                    link.download = `${doc.name.replace(/\s+/g, '_')}.${doc.type.toLowerCase()}`;
+                                    link.download = `${doc.name.replace(/\s+/g, '_')}.${fileType.toLowerCase()}`;
                                     link.target = '_blank';
                                     link.rel = 'noopener noreferrer';
                                     link.style.display = 'none';
@@ -744,7 +755,8 @@ export default function BrokerDetailsPage() {
                           </button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>

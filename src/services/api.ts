@@ -4,14 +4,15 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5
 // Broker API functions
 export const brokerAPI = {
   // Get brokers with pagination and filters
-  getBrokers: async (page: number, limit: number, approvedByAdmin?: string) => {
+  getBrokers: async (page: number, limit: number, approvedByAdmin?: string, search?: string) => {
     const token = localStorage.getItem('adminToken');
     if (!token) throw new Error('No authentication token found');
 
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
-      ...(approvedByAdmin && { approvedByAdmin: approvedByAdmin })
+      ...(approvedByAdmin && { approvedByAdmin: approvedByAdmin }),
+      ...(search && { search: search })
     });
 
     const response = await fetch(`${API_BASE_URL}/brokers?${params}`, {

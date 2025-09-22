@@ -994,7 +994,7 @@ export default function RegionsPage() {
               
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-700">
-                  You are about to delete the region <strong>"{regionToDelete?.name}"</strong> from <strong>{regionToDelete?.city}, {regionToDelete?.state}</strong>.
+                  You are about to delete the region <strong>&ldquo;{regionToDelete?.name}&rdquo;</strong> from <strong>{regionToDelete?.city}, {regionToDelete?.state}</strong>.
                 </p>
                 {regionToDelete?.brokerCount && regionToDelete.brokerCount > 0 && (
                   <p className="text-sm text-red-600 mt-2 font-medium">

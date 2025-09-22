@@ -173,9 +173,9 @@ export default function BrokersPage() {
       setLoading(true);
       setError('');
 
-      console.log('🔄 Fetching brokers with statusFilter:', statusFilter);
+      console.log('🔄 Fetching brokers with statusFilter:', statusFilter, 'searchTerm:', searchTerm);
       const approvedByAdmin = statusFilter === 'unblocked' ? 'unblocked' : statusFilter === 'blocked' ? 'blocked' : undefined;
-      const response = await brokerAPI.getBrokers(currentPage, 10, approvedByAdmin);
+      const response = await brokerAPI.getBrokers(currentPage, 10, approvedByAdmin, searchTerm);
       
       console.log('📊 API Response:', response); // Debug log
       console.log('📊 Brokers data:', response.data.brokers);
@@ -215,7 +215,7 @@ export default function BrokersPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter]);
+  }, [currentPage, statusFilter, searchTerm]);
 
   // Handle broker blocking confirmation
   const handleBlockClick = (brokerId: string, brokerName: string) => {
@@ -309,14 +309,8 @@ export default function BrokersPage() {
     }
   };
 
-  // Filter brokers based on search term and filters
+  // Filter brokers based on membership and region filters (search is now server-side)
   const filteredBrokers = brokers.filter(broker => {
-    // Search term filter
-    const matchesSearch = (broker.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (broker.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (broker.phone || '').includes(searchTerm) ||
-      broker.firmName.toLowerCase().includes(searchTerm.toLowerCase());
-
     // Membership filter - check actual broker membership data
     const matchesMembership = membershipFilter === 'all' || 
       (broker.membership && broker.membership.toLowerCase() === membershipFilter.toLowerCase());
@@ -326,7 +320,7 @@ export default function BrokersPage() {
       (broker.region && broker.region.length > 0 && 
        broker.region[0].name.toLowerCase().includes(regionFilter.toLowerCase()));
 
-    return matchesSearch && matchesMembership && matchesRegion;
+    return matchesMembership && matchesRegion;
   });
 
 
