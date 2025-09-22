@@ -133,6 +133,24 @@ export default function RegionsPage() {
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [showDescriptionPopup, setShowDescriptionPopup] = useState(false);
   const [selectedDescription, setSelectedDescription] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [regionToDelete, setRegionToDelete] = useState<Region | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingRegion, setEditingRegion] = useState<Region | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    state: '',
+    city: '',
+    center: '',
+    radius: ''
+  });
+  const [editInputValue, setEditInputValue] = useState('');
+  const [editSuggestions, setEditSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [showEditSuggestions, setShowEditSuggestions] = useState(false);
+  const [editSearchTimeout, setEditSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   // Load Google Maps API
   const { isLoaded } = useJsApiLoader({
@@ -224,13 +242,170 @@ export default function RegionsPage() {
       if (searchTimeout) {
         clearTimeout(searchTimeout);
       }
+      if (editSearchTimeout) {
+        clearTimeout(editSearchTimeout);
+      }
     };
-  }, [searchTimeout]);
+  }, [searchTimeout, editSearchTimeout]);
 
   // Handle description popup
   const handleShowDescription = (description: string) => {
     setSelectedDescription(description);
     setShowDescriptionPopup(true);
+  };
+
+  // Handle delete region
+  const handleDeleteRegion = async () => {
+    if (!regionToDelete) return;
+    
+    try {
+      setDeleting(true);
+      setError('');
+      console.log('Deleting region:', regionToDelete._id);
+      
+      await regionAPI.deleteRegion(regionToDelete._id);
+      console.log('Region deleted successfully');
+      
+      // Close confirmation dialog
+      setShowDeleteConfirm(false);
+      setRegionToDelete(null);
+      
+      // Refresh the regions list
+      fetchRegions();
+    } catch (err) {
+      console.error('Error deleting region:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete region');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Handle delete button click
+  const handleDeleteClick = (region: Region) => {
+    setRegionToDelete(region);
+    setShowDeleteConfirm(true);
+  };
+
+  // Handle edit button click
+  const handleEditClick = async (region: Region) => {
+    try {
+      setEditingRegion(region);
+      setShowEditForm(true);
+      
+      // Pre-fill form with existing data
+      setEditFormData({
+        name: region.name,
+        description: region.description,
+        state: region.state,
+        city: region.city,
+        center: region.centerLocation,
+        radius: region.radius.toString()
+      });
+      setEditInputValue(region.centerLocation);
+    } catch (err) {
+      console.error('Error preparing edit form:', err);
+      setError('Failed to prepare edit form');
+    }
+  };
+
+  // Handle edit form input change and get suggestions
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEditInputValue(value);
+    setEditFormData(prev => ({ ...prev, center: value }));
+    
+    // Clear previous timeout
+    if (editSearchTimeout) {
+      clearTimeout(editSearchTimeout);
+    }
+    
+    if (value.length > 0 && window.google && window.google.maps && window.google.maps.places) {
+      // Add small delay to avoid too many API calls
+      const timeout = setTimeout(() => {
+        const service = new window.google.maps.places.AutocompleteService();
+        service.getPlacePredictions(
+          { 
+            input: value, 
+            componentRestrictions: { country: ['in'] },
+            types: ['establishment', 'geocode']
+          },
+          (predictions, status) => {
+            if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+              setEditSuggestions(predictions);
+              setShowEditSuggestions(true);
+            } else {
+              setEditSuggestions([]);
+              setShowEditSuggestions(false);
+            }
+          }
+        );
+      }, 300); // 300ms delay
+      
+      setEditSearchTimeout(timeout);
+    } else {
+      setEditSuggestions([]);
+      setShowEditSuggestions(false);
+    }
+  };
+
+  // Handle edit suggestion selection
+  const handleEditSuggestionClick = (suggestion: google.maps.places.AutocompletePrediction) => {
+    setEditInputValue(suggestion.description);
+    setEditFormData(prev => ({ ...prev, center: suggestion.description }));
+    setShowEditSuggestions(false);
+  };
+
+  // Handle edit input focus
+  const handleEditInputFocus = () => {
+    if (editSuggestions.length > 0) {
+      setShowEditSuggestions(true);
+    }
+  };
+
+  // Handle edit input blur
+  const handleEditInputBlur = () => {
+    setTimeout(() => setShowEditSuggestions(false), 200);
+  };
+
+  // Reset edit form function
+  const resetEditForm = () => {
+    setEditFormData({ name: '', description: '', state: '', city: '', center: '', radius: '' });
+    setEditInputValue('');
+    setEditSuggestions([]);
+    setShowEditSuggestions(false);
+    setEditingRegion(null);
+  };
+
+  // Handle edit form submission
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRegion) return;
+    
+    try {
+      setUpdating(true);
+      setError('');
+      console.log('Updating region with data:', editFormData);
+      
+      await regionAPI.updateRegion(
+        editingRegion._id,
+        editFormData.name,
+        editFormData.description,
+        editFormData.state,
+        editFormData.city,
+        editFormData.center,
+        parseFloat(editFormData.radius) || 0
+      );
+      
+      console.log('Region updated successfully');
+      resetEditForm();
+      setShowEditForm(false);
+      fetchRegions(); // Refresh the regions list
+    } catch (err) {
+      console.error('Error updating region:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update region');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   // Calculate region statistics
@@ -747,6 +922,351 @@ export default function RegionsPage() {
           </div>
         </Popup>
 
+        {/* Delete Confirmation Popup */}
+        <Popup
+          open={showDeleteConfirm}
+          closeOnDocumentClick
+          onClose={() => {
+            setShowDeleteConfirm(false);
+            setRegionToDelete(null);
+          }}
+          modal
+          overlayStyle={{
+            background: 'rgba(0, 0, 0, 0.8)',
+            zIndex: 9999
+          }}
+          contentStyle={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '0',
+            border: 'none',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            margin: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'auto',
+            scrollbarWidth: 'none', /* Firefox */
+            msOverflowStyle: 'none' /* Internet Explorer 10+ */
+          } as React.CSSProperties}
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Delete Region</h3>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setRegionToDelete(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                disabled={deleting}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-lg font-medium text-gray-900">Are you sure?</h4>
+                  <p className="text-sm text-gray-500">This action cannot be undone.</p>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-700">
+                  You are about to delete the region <strong>"{regionToDelete?.name}"</strong> from <strong>{regionToDelete?.city}, {regionToDelete?.state}</strong>.
+                </p>
+                {regionToDelete?.brokerCount && regionToDelete.brokerCount > 0 && (
+                  <p className="text-sm text-red-600 mt-2 font-medium">
+                    ⚠️ This region has {regionToDelete.brokerCount} broker(s) associated with it. Deleting this region may affect broker assignments.
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={handleDeleteRegion}
+                disabled={deleting}
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center space-x-2"
+              >
+                {deleting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete Region</span>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setRegionToDelete(null);
+                }}
+                disabled={deleting}
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </Popup>
+
+        {/* Edit Region Popup */}
+        <Popup
+          open={showEditForm}
+          closeOnDocumentClick
+          onClose={() => {
+            resetEditForm();
+            setShowEditForm(false);
+          }}
+          modal
+          overlayStyle={{
+            background: 'rgba(0, 0, 0, 0.8)',
+            zIndex: 9999
+          }}
+          contentStyle={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '0',
+            border: 'none',
+            width: '90%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            margin: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'auto',
+            scrollbarWidth: 'none', /* Firefox */
+            msOverflowStyle: 'none' /* Internet Explorer 10+ */
+          } as React.CSSProperties}
+        >
+          <div className="popup-content p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Region</h3>
+              <button
+                onClick={() => {
+                  resetEditForm();
+                  setShowEditForm(false);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                disabled={updating}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditSubmit} className="space-y-6">
+
+              {/* State and City - Side by Side */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* State Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    State
+                  </label>
+                        <div className="relative">
+                          <select
+                            value={editFormData.state}
+                            onChange={(e) => setEditFormData({ ...editFormData, state: e.target.value })}
+                            className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                            required
+                          >
+                            <option value="">Select State</option>
+                            <option value="Uttar Pradesh">Uttar Pradesh</option>
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                </div>
+
+                {/* City Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    City
+                  </label>
+                        <div className="relative">
+                          <select
+                            value={editFormData.city}
+                            onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                            className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
+                            required
+                          >
+                            <option value="">Select City</option>
+                            <option value="Noida">Noida</option>
+                            <option value="Agra">Agra</option>
+                          </select>
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                </div>
+              </div>
+
+                  {/* Center Location */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Center Location
+                    </label>
+                    <div className="relative">
+                      {!isLoaded ? (
+                        <div className="text-sm text-gray-500">Loading Google Maps...</div>
+                      ) : (
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={editInputValue}
+                            onChange={handleEditInputChange}
+                            onFocus={handleEditInputFocus}
+                            onBlur={handleEditInputBlur}
+                              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Search center location"
+                            required
+                          />
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          
+                          {/* Custom Dropdown Suggestions */}
+                          {showEditSuggestions && editSuggestions.length > 0 && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                              {editSuggestions.map((suggestion, index) => (
+                                <div
+                                  key={index}
+                                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                  onClick={() => handleEditSuggestionClick(suggestion)}
+                                >
+                                  <div className="flex items-start">
+                                    <div className="flex-shrink-0 mr-2 mt-0.5">
+                                      <svg className="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      </svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium text-gray-900">
+                                        {suggestion.structured_formatting?.main_text || suggestion.description}
+                                      </div>
+                                      {suggestion.structured_formatting?.secondary_text && (
+                                        <div className="text-xs text-gray-500">
+                                          {suggestion.structured_formatting.secondary_text}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Radius Field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Radius 
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="number"
+                        value={editFormData.radius}
+                        onChange={(e) => setEditFormData({ ...editFormData, radius: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter radius"
+                        min="1"
+                        max="1000"
+                        required
+                      />
+                      <span className="text-sm text-gray-500 whitespace-nowrap">km</span>
+                    </div>
+                  </div>
+
+              {/* Region Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Region Name
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter region name"
+                  required
+                />
+                </div>
+               
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter region description"
+                  rows={3}
+                  required
+                />
+              </div>
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center space-x-2"
+                >
+                  {updating ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <span>Update Region</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetEditForm();
+                    setShowEditForm(false);
+                  }}
+                  disabled={updating}
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </Popup>
+
         {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -908,9 +1428,7 @@ export default function RegionsPage() {
                           {region.brokerCount === 0 && (
                             <>
                               <button
-                                onClick={() => {
-                                  console.log('Edit region:', region._id);
-                                }}
+                                onClick={() => handleEditClick(region)}
                                 className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
                                 title="Edit"
                               >
@@ -919,9 +1437,7 @@ export default function RegionsPage() {
                                 </svg>
                               </button>
                               <button
-                                onClick={() => {
-                                  console.log('Delete region:', region._id);
-                                }}
+                                onClick={() => handleDeleteClick(region)}
                                 className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                                 title="Delete"
                               >

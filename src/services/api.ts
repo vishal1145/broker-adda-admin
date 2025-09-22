@@ -260,5 +260,116 @@ export const regionAPI = {
 
     if (!response.ok) throw new Error('Failed to fetch brokers by region');
     return response.json();
+  },
+
+  // Delete a region
+  deleteRegion: async (regionId: string) => {
+    console.log('🔴 regionAPI.deleteRegion called with ID:', regionId);
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('🔴 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/regions/${regionId}`;
+    console.log('🔴 Making API call to:', url);
+    console.log('🔴 API_BASE_URL:', API_BASE_URL);
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('🔴 Response status:', response.status);
+    console.log('🔴 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to delete region');
+    }
+    
+    const result = await response.json();
+    console.log('🔴 API Response:', result);
+    return result;
+  },
+
+  // Get single region by ID
+  getRegionById: async (regionId: string) => {
+    console.log('🔵 regionAPI.getRegionById called with ID:', regionId);
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('🔵 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/regions/${regionId}`;
+    console.log('🔵 Making API call to:', url);
+    console.log('🔵 API_BASE_URL:', API_BASE_URL);
+
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('🔵 Response status:', response.status);
+    console.log('🔵 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to fetch region details');
+    }
+    
+    const result = await response.json();
+    console.log('🔵 API Response:', result);
+    return result;
+  },
+
+  // Update a region
+  updateRegion: async (regionId: string, name: string, description: string, state: string, city: string, centerLocation: string, radius: number) => {
+    console.log('🟡 regionAPI.updateRegion called with:', { regionId, name, description, state, city, centerLocation, radius });
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('🟡 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/regions/${regionId}`;
+    const requestBody = { name, description, state, city, centerLocation, radius };
+    
+    console.log('🟡 Making API call to:', url);
+    console.log('🟡 Request body:', requestBody);
+    console.log('🟡 Headers:', {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('🟡 Response status:', response.status);
+    console.log('🟡 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to update region');
+    }
+    
+    const result = await response.json();
+    console.log('🟡 API Response:', result);
+    return result;
   }
 };
