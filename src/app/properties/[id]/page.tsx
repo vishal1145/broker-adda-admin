@@ -230,7 +230,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                       onClick={() => setSelectedImage(idx)}
                       className={`relative rounded-xl overflow-hidden border ${selectedImage === idx ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'}`}
                     >
-                      <Image src={img || ''} alt={`${data.title} thumb ${idx + 1}`} width={400} height={224} className="w-full h-56 object-cover" />
+                      <Image src={img || ''} alt={`${data.title} thumb ${idx + 1}`} width={400} height={224} className="w-full h-[230px] object-cover" />
                       {idx === 3 && thumbnails.length > 4 && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <span className="text-white text-xs bg-white/10 px-3 py-1 rounded-full border border-white/40 inline-flex items-center gap-2">
