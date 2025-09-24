@@ -1,3 +1,0 @@
-module.exports=[1162,a=>{a.v({className:"poppins_7bca3204-module__bb2BKG__className",variable:"poppins_7bca3204-module__bb2BKG__variable"})},27572,a=>{"use strict";a.s(["default",()=>f,"metadata",()=>e],27572);var b=a.i(7997),c=a.i(1162);let d={className:c.default.className,style:{fontFamily:"'Poppins', 'Poppins Fallback'",fontStyle:"normal"}};null!=c.default.variable&&(d.variable=c.default.variable);let e={title:"Broker Adda Admin Panel",description:"Admin panel for Broker Adda - Real Estate Broker Management System"};function f({children:a}){return(0,b.jsx)("html",{lang:"en",suppressHydrationWarning:!0,children:(0,b.jsx)("body",{className:`${d.variable} font-poppins antialiased`,children:a})})}}];
-
-//# sourceMappingURL=%5Broot-of-the-server%5D__122ccbd3._.js.map

@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
+import { Toaster } from 'react-hot-toast';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -61,6 +62,16 @@ export default function Layout({ children }: LayoutProps) {
               }`}
             >
               Brokers
+            </Link>
+            <Link
+              href="/properties"
+              className={`text-sm font-medium transition-colors ${
+                pathname === '/properties'
+                  ? 'text-teal-600'
+                  : 'text-gray-700 hover:text-teal-600'
+              }`}
+            >
+            Properties
             </Link>
           </div>
           
@@ -120,6 +131,37 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
         </main>
+
+        {/* Global Toaster */}
+        <Toaster
+          position="top-right"
+          gutter={8}
+          toastOptions={{
+            duration: 3500,
+            style: {
+              background: '#2f2f2f',
+              color: '#ffffff',
+              border: '1px solid #3b3b3b',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: 500,
+              padding: '8px 12px',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.25)'
+            },
+            success: {
+              iconTheme: {
+                primary: '#22c55e',
+                secondary: '#ffffff'
+              }
+            },
+            error: {
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#ffffff'
+              }
+            }
+          }}
+        />
 
         {/* Footer */}
         <footer className="bg-white border-t border-gray-200 py-4">

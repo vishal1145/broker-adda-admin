@@ -161,6 +161,53 @@ export const brokerAPI = {
     console.log('🟢 API Response data:', result.data);
     console.log('🟢 Updated broker:', result.data);
     return result;
+  },
+
+  // Create a new broker by admin
+  createBroker: async (name: string, email: string, phone: string) => {
+    console.log('🔵 brokerAPI.createBroker called with:', { name, email, phone });
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('🔵 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/auth/admin/broker`;
+    const requestBody = {
+      adminCreate: true,
+      name,
+      email,
+      phone
+    };
+    
+    console.log('🔵 Making API call to:', url);
+    console.log('🔵 Request body:', requestBody);
+    console.log('🔵 Headers:', {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('🔵 Response status:', response.status);
+    console.log('🔵 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to create broker');
+    }
+    
+    const result = await response.json();
+    console.log('🔵 API Response:', result);
+    return result;
   }
 };
 

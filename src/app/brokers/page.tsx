@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { brokerAPI } from '@/services/api';
 import Select from 'react-select';
 import ReactPaginate from 'react-paginate';
+import { toast } from 'react-hot-toast';
 
 interface Broker {
   _id: string;
@@ -167,6 +168,8 @@ export default function BrokersPage() {
   const [selectedBrokerId, setSelectedBrokerId] = useState<string | null>(null);
   const [selectedBrokerName, setSelectedBrokerName] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newBroker, setNewBroker] = useState({ name: '', email: '', phone: '' });
 
   // Fetch brokers from API
   const fetchBrokers = useCallback(async () => {
@@ -398,9 +401,17 @@ export default function BrokersPage() {
         <div className="space-y-6">
         {/* Page Header */}
         <div className="mb-6">
-          <div className="flex items-center">
+          <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">Brokers</h1>
-            
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-white bg-teal-600 hover:bg-teal-700 text-sm shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Broker
+            </button>
           </div>
           <p className="text-gray-500 mt-1 text-sm">View and manage all registered brokers</p>
         </div>
@@ -564,6 +575,123 @@ export default function BrokersPage() {
                   <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM5 19L19 5" />
                   </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Broker Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowAddModal(false)} />
+            <div className="relative bg-white w-full max-w-lg mx-4 rounded-xl border border-gray-200 shadow-2xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Broker</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <input
+                    value={newBroker.name}
+                    onChange={(e) => setNewBroker({ ...newBroker, name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Enter name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={newBroker.email}
+                    onChange={(e) => setNewBroker({ ...newBroker, email: e.target.value })}
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Enter email"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700  mb-1">Phone</label>
+                  <input
+                    value={newBroker.phone}
+                    onChange={(e) => setNewBroker({ ...newBroker, phone: e.target.value })}
+                    className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    placeholder="Enter phone"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setShowAddModal(false)}
+                    className="px-5 py-2 rounded-md border bg-gray-200 border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        setError('');
+                        console.log('Creating broker:', newBroker);
+                        
+                        // Basic required validation
+                        if (!newBroker.name.trim() || !newBroker.email.trim() || !newBroker.phone.trim()) {
+                          setError('Please fill in all fields');
+                          toast.error('Please fill in all fields');
+                          return;
+                        }
+
+                        // Phone validation: exactly 10 digits
+                        const phoneOnlyDigits = newBroker.phone.replace(/\D/g, '');
+                        if (!/^\d{10}$/.test(phoneOnlyDigits)) {
+                          toast.error('Phone must be exactly 10 digits');
+                          return;
+                        }
+
+                        // Email validation (simple)
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailRegex.test(newBroker.email.trim())) {
+                          toast.error('Please enter a valid email');
+                          return;
+                        }
+
+                        // Duplicate checks against current list
+                        const normalizedPhone = phoneOnlyDigits;
+                        const phoneExists = brokers.some(b => (b.phone || '').replace(/\D/g, '') === normalizedPhone);
+                        if (phoneExists) {
+                          toast.error(`Phone already exists: ${newBroker.phone}`);
+                          return;
+                        }
+
+                        const emailExists = brokers.some(b => (b.email || '').toLowerCase() === newBroker.email.trim().toLowerCase());
+                        if (emailExists) {
+                          toast.error(`Email already exists: ${newBroker.email}`);
+                          return;
+                        }
+                        
+                        // Call API to create broker
+                        const response = await brokerAPI.createBroker(
+                          newBroker.name.trim(),
+                          newBroker.email.trim(),
+                          newBroker.phone.trim()
+                        );
+                        
+                        console.log('Broker created successfully:', response);
+                        toast.success('Broker created successfully');
+                        
+                        // Close modal and reset form
+                        setShowAddModal(false);
+                        setNewBroker({ name: '', email: '', phone: '' });
+                        
+                        // Refresh the brokers list
+                        await fetchBrokers();
+                        
+                      } catch (err) {
+                        console.error('Error creating broker:', err);
+                        const message = err instanceof Error ? err.message : 'Failed to create broker';
+                        setError(message);
+                        toast.error(message);
+                      }
+                    }}
+                    className="px-5 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    Create
+                  </button>
                 </div>
               </div>
             </div>

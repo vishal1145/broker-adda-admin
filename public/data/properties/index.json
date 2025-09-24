@@ -1,0 +1,157 @@
+{
+  "properties": [
+    {
+      "id": 1,
+      "title": "Modern Family Home",
+      "price": "₹2,85,00,000",
+      "location": "Noida, UP",
+      "thumbnail": "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=800&fit=crop&auto=format&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&h=1066&fit=crop&auto=format&q=80"
+      ],
+      "specs": { "bedrooms": 4, "bathrooms": 3, "areaSqft": 2750, "parking": 2 },
+      "amenities": ["Garden", "Modular Kitchen", "24x7 Security", "Power Backup"],
+      "description": "A sunlit modern home with open-plan living, large windows, and a spacious backyard perfect for families.",
+      "descriptionLong": "This modern family home offers expansive living spaces bathed in natural light, with an open-plan layout that flows from living to dining and kitchen. Large sliding doors connect to a private backyard, ideal for weekend gatherings. Premium finishes, ample storage, and a calm residential neighborhood make this the perfect family upgrade.",
+      "contact": { "mobile": "9876543210", "whatsapp": "9876543210", "email": "rajesh.kumar@email.com", "owner": "Rajesh Kumar", "company": "Prime Properties Ltd", "address": "123 Main Street, Downtown Mumbai, Maharashtra 400001" },
+      "documents": [ { "name": "Property Deed", "type": "PDF", "url": "/file.svg" } ]
+    },
+    {
+      "id": 2,
+      "title": "Luxury Penthouse",
+      "price": "₹4,20,00,000",
+      "location": "Downtown Mumbai, MH",
+      "thumbnail": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&h=800&fit=crop&auto=format&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1501183638710-841dd1904471?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1600&h=1066&fit=crop&auto=format&q=80"
+      ],
+      "specs": { "bedrooms": 3, "bathrooms": 4, "areaSqft": 3200, "parking": 3 },
+      "amenities": ["Private Terrace", "Infinity Pool", "City View", "Smart Home"],
+      "description": "High-floor penthouse with panoramic skyline views and premium finishes throughout.",
+      "descriptionLong": "Occupying a prized top-floor position, this penthouse captures dramatic skyline views from every room. The residence blends warm natural materials with contemporary detailing, featuring a chef’s kitchen, private terrace, and smart-home controls. A rare retreat in the heart of the city.",
+      "contact": { "mobile": "9876543211", "whatsapp": "9876543211", "email": "priya.sharma@email.com", "owner": "Priya Sharma", "company": "Elite Properties Ltd", "address": "456 High Street, Downtown Mumbai, Maharashtra 400001" },
+      "documents": [ { "name": "Ownership Certificate", "type": "PDF", "url": "/file.svg" } ]
+    },
+    {
+      "id": 3,
+      "title": "Prime Commercial Space",
+      "price": "₹1,25,000/month",
+      "location": "Bangalore, KA",
+      "thumbnail": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&h=1066&fit=crop&auto=format&q=80"
+      ],
+      "specs": { "areaSqft": 1800, "bathrooms": 2, "parking": 5 },
+      "amenities": ["Elevator", "Conference Room", "Cafeteria"],
+      "description": "High-visibility commercial unit suitable for retail or office with excellent footfall.",
+      "descriptionLong": "Strategically located on a bustling corridor of Bangalore, this commercial unit offers superb visibility and steady pedestrian traffic. Flexible open-floor layout supports retail, studio, or office uses, while wide glass frontage maximizes brand presence. Close proximity to public transport and parking ensures easy access for clients and staff.",
+      "contact": { "mobile": "9876543212", "whatsapp": "9876543212", "email": "amit.patel@email.com", "owner": "Amit Patel", "company": "Commercial Realty Ltd", "address": "789 Business Park, Bangalore, Karnataka 560001" },
+      "documents": [ { "name": "Property Deed", "type": "PDF", "url": "/file.svg" } ]
+    },
+    {
+      "id": 4,
+      "title": "Cozy Suburban House",
+      "price": "₹1,75,00,000",
+      "location": "Pune, MH",
+      "thumbnail": "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=1200&h=800&fit=crop&auto=format&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1600&h=1066&fit=crop&auto=format&q=80",
+         "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&h=1066&fit=crop&auto=format&q=80"
+      ],
+      "specs": { "bedrooms": 3, "bathrooms": 2, "areaSqft": 1650, "parking": 1 },
+      "amenities": ["Garden", "Security"],
+      "description": "Charming family house with bright interiors and a small garden.",
+      "descriptionLong": "Set in a quiet lane of Pune, this cozy home offers functional spaces with ample daylight, a compact backyard, and proximity to daily conveniences.",
+      "contact": { "owner": "Sneha Iyer", "mobile": "9898989898" },
+      "documents": [ { "name": "Sale Agreement", "type": "PDF", "url": "/file.svg" } ]
+    },
+    {
+      "id": 5,
+      "title": "Lakeview Villa",
+      "price": "₹3,60,00,000",
+      "location": "Udaipur, RJ",
+      "thumbnail": "https://images.unsplash.com/photo-1501183638710-841dd1904471?w=1200&h=800&fit=crop&auto=format&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1501183638710-841dd1904471?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1600&h=1066&fit=crop&auto=format&q=80",
+         "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&h=1066&fit=crop&auto=format&q=80"
+      ],
+      "specs": { "bedrooms": 4, "bathrooms": 4, "areaSqft": 3200, "parking": 2 },
+      "amenities": ["Lake View", "Pool", "Deck"],
+      "description": "Premium villa overlooking the lake with serene outdoor seating.",
+      "descriptionLong": "A luxurious retreat featuring expansive decks, a private pool, and panoramic views of the lake—crafted for tranquil living and entertaining.",
+      "contact": { "owner": "Arjun Singh", "mobile": "9876501234" },
+      "documents": [ { "name": "Ownership Papers", "type": "PDF", "url": "/file.svg" } ]
+    },
+    {
+      "id": 6,
+      "title": "Smart City Apartment",
+      "price": "₹95,00,000",
+      "location": "Hyderabad, TS",
+      "thumbnail": "https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=1200&h=800&fit=crop&auto=format&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1600&h=1066&fit=crop&auto=format&q=80",
+         "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&h=1066&fit=crop&auto=format&q=80"
+      ],
+      "specs": { "bedrooms": 2, "bathrooms": 2, "areaSqft": 1120, "parking": 1 },
+      "amenities": ["Gym", "Clubhouse", "Power Backup"],
+      "description": "Modern apartment with smart-home features and clubhouse access.",
+      "descriptionLong": "Situated in a connected neighborhood, the flat includes app-controlled lighting, efficient layout, and access to premium community amenities.",
+      "contact": { "owner": "Neha Verma", "mobile": "9000000001" },
+      "documents": [ { "name": "Brochure", "type": "PDF", "url": "/file.svg" } ]
+    },
+    {
+      "id": 7,
+      "title": "Heritage Bungalow",
+      "price": "₹2,10,00,000",
+      "location": "Kolkata, WB",
+      "thumbnail": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&h=800&fit=crop&auto=format&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1600&h=1066&fit=crop&auto=format&q=80",
+         "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1600&h=1066&fit=crop&auto=format&q=80"
+      ],
+      "specs": { "bedrooms": 3, "bathrooms": 3, "areaSqft": 2100, "parking": 1 },
+      "amenities": ["Courtyard", "High Ceilings"],
+      "description": "Vintage charm with restored interiors and central courtyard.",
+      "descriptionLong": "This heritage home blends period architecture with tasteful upgrades, offering airy rooms around a green courtyard.",
+      "contact": { "owner": "Ananya Das", "mobile": "9000000002" },
+      "documents": [ { "name": "Title Deed", "type": "PDF", "url": "/file.svg" } ]
+    },
+    {
+      "id": 8,
+      "title": "Business Park Office",
+      "price": "₹1,85,000/month",
+      "location": "Gurugram, HR",
+      "thumbnail": "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=1200&h=800&fit=crop&auto=format&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1600&h=1066&fit=crop&auto=format&q=80",
+        "https://images.unsplash.com/photo-1507209696998-3c532be9b2b1?w=1600&h=1066&fit=crop&auto=format&q=80"
+      ],
+      "specs": { "areaSqft": 2400, "bathrooms": 2, "parking": 4 },
+      "amenities": ["Basement Parking", "CCTV"],
+      "description": "Grade-A office with open-plan floor and meeting rooms.",
+      "descriptionLong": "Located in a prime business district with excellent metro connectivity, ideal for startups and mid-size teams.",
+      "contact": { "owner": "Rohit Mehra", "mobile": "9000000003" },
+      "documents": [ { "name": "Lease Terms", "type": "PDF", "url": "/file.svg" } ]
+    }
+  ]
+}
+
+

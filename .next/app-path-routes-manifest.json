@@ -7,5 +7,7 @@
   "/favicon.ico/route": "/favicon.ico",
   "/login/page": "/login",
   "/page": "/",
+  "/properties/[id]/page": "/properties/[id]",
+  "/properties/page": "/properties",
   "/regions/page": "/regions"
 }
