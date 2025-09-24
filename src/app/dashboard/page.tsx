@@ -192,7 +192,7 @@ export default function Dashboard() {
                 {/* Data points */}
                 {chartData.map((item, index) => (
                   <circle
-                    key={index}
+                    key={item.day}
                     cx={60 + index * 50}
                     cy={180 - (item.value - 30) * 1.5}
                     r="4"

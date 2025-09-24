@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
+import Image from 'next/image';
 
 // Skeleton Loader Components
 const Skeleton = ({ className = '', height = 'h-4', width = 'w-full', rounded = false }: { className?: string; height?: string; width?: string; rounded?: boolean }) => (
@@ -67,7 +68,7 @@ export default function PropertiesPage() {
         const res = await fetch('/data/properties/index.json', { cache: 'no-store' });
         const json = await res.json();
         setCards(json.properties || []);
-      } catch (e) {
+      } catch {
         setError('Failed to load properties');
       } finally {
         setLoading(false);
@@ -110,7 +111,7 @@ export default function PropertiesPage() {
                   type="text"
                   placeholder="Search by Property Name, Price, Region"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(event) => setSearchTerm(event.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -279,11 +280,15 @@ export default function PropertiesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {displayedCards.map((property, idx) => (
                   <Link key={`${property.id}-${idx}`} href={`/properties/${property.id}`} className="bg-white rounded-xl border border-gray-200 overflow-hidden ">
-                    <img
-                      src={property.thumbnail || property.image}
-                      alt={property.title}
-                      className="w-full h-48 object-cover"
-                    />
+                    <div className="relative w-full h-48">
+                      <Image
+                        src={property.thumbnail || property.image || ''}
+                        alt={property.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 1024px) 100vw, 25vw"
+                      />
+                    </div>
                     <div className="p-3">
                       <div className="text-gray-900 text-base font-bold mb-1">{property.price}</div>
                       <div className="flex items-start text-gray-600 text-xs mb-1">

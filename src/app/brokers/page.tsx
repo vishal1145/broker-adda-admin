@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { brokerAPI } from '@/services/api';
-import Select from 'react-select';
 import ReactPaginate from 'react-paginate';
 import { toast } from 'react-hot-toast';
 
@@ -735,13 +735,12 @@ export default function BrokersPage() {
                         {/* Name Column */}
                         <div className="flex items-center space-x-3">
                           <Link href={`/brokers/${broker.userId}`} className="cursor-pointer">
-                            <img
+                            <Image
                               className="h-10 w-10 rounded-full object-cover hover:opacity-80 transition-opacity"
                               src={getBrokerImageUrl(broker.brokerImage)}
                               alt={broker.name || 'Broker'}
-                              onError={(e) => {
-                                e.currentTarget.src = "https://www.w3schools.com/howto/img_avatar.png";
-                              }}
+                              width={40}
+                              height={40}
                             />
                           </Link>
                           <div>

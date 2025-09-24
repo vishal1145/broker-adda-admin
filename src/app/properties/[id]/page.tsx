@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
@@ -55,10 +56,6 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isDetailOpen, setIsDetailOpen] = useState(true);
-  const [isDestOpen, setIsDestOpen] = useState(true);
-  const [activeDestTab, setActiveDestTab] = useState<'transport' | 'school' | 'tourism' | 'shopping'>('transport');
-  const [isDescOpen, setIsDescOpen] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,7 +67,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
         const match = (json.properties || []).find((p: Property) => String(p.id) === String(id));
         if (!match) throw new Error('Not found');
         setData(match);
-      } catch (e) {
+      } catch {
         setError('Property not found');
       } finally {
         setLoading(false);
@@ -112,8 +109,8 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Row 1: Large hero (left) and 2x2 thumbnails (right) */}
               <div className="lg:col-span-7">
-                <div className="relative rounded-xl overflow-hidden border border-gray-200">
-                  <img src={mainImage} alt={data.title} className="w-full h-80 object-cover" />
+                <div className="relative rounded-xl overflow-hidden border border-gray-200 h-80">
+                  <Image src={mainImage} alt={data.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 58vw" />
                   {showCarouselControls && (
                     <>
                       <button
@@ -154,7 +151,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                       onClick={() => setSelectedImage(idx)}
                       className={`relative rounded-xl overflow-hidden border ${selectedImage === idx ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'}`}
                     >
-                      <img src={img || ''} alt={`${data.title} thumb ${idx + 1}`} className="w-full h-36 object-cover" />
+                      <Image src={img || ''} alt={`${data.title} thumb ${idx + 1}`} width={400} height={144} className="w-full h-36 object-cover" />
                       {idx === 3 && thumbnails.length > 4 && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <span className="text-white text-xs bg-white/10 px-3 py-1 rounded-full border border-white/40 inline-flex items-center gap-2">
@@ -256,7 +253,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                   <div className="mt-5 border-t pt-5">
                     <p className="text-xs text-gray-500 mb-3">Tim Marketing</p>
                     <div className="flex items-center gap-3">
-                      <img className="w-10 h-10 rounded-full object-cover" src="https://www.w3schools.com/howto/img_avatar.png" alt="avatar" />
+                      <Image className="w-10 h-10 rounded-full object-cover" src="https://www.w3schools.com/howto/img_avatar.png" alt="avatar" width={40} height={40} />
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{data.contact?.owner || 'Rangga Setiawan'}</p>
                         <p className="text-xs text-gray-500">Customer Service</p>
@@ -298,9 +295,11 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                       <div className="pointer-events-auto absolute left-44 -translate-x-1/2 top-32 sm:translate-x-0">
                         <div className="relative w-[320px] sm:w-[360px] rounded-2xl bg-white/95 backdrop-blur-sm shadow-xl ring-1 ring-black/5 overflow-hidden">
                           <div className="p-3 flex items-start gap-3">
-                            <img
+                            <Image
                               src={mainImage}
                               alt={data.title}
+                              width={112}
+                              height={96}
                               className="h-24 w-28 rounded-xl object-cover"
                             />
 
@@ -391,8 +390,8 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                   }
                 ].map((c, i) => (
                   <div key={i} className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                    <div className="relative">
-                      <img src={c.img} alt={c.title} className="w-full h-48 object-cover" />
+                    <div className="relative w-full h-48">
+                      <Image src={c.img} alt={c.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 33vw" />
                       <div className="absolute top-3 right-3 flex items-center gap-2">
                         <span className="px-2 py-1 text-[10px] rounded-full bg-white/90 border border-gray-200">Dijual</span>
                         <span className="px-2 py-1 text-[10px] rounded-full bg-white/90 border border-gray-200">Rumah Baru</span>

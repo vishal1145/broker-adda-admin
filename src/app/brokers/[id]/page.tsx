@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import Head from 'next/head';
 import Layout from '@/components/Layout';
@@ -124,20 +125,7 @@ export default function BrokerDetailsPage() {
     }
   }, [params.id, token]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'New':
-        return 'bg-gray-100 text-gray-800';
-      case 'Follow Up':
-        return 'bg-gray-100 text-gray-800';
-      case 'Qualified':
-        return 'bg-green-100 text-green-800';
-      case 'Active':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // Removed unused getStatusColor
 
   // Handle broker blocking confirmation
   const handleBlockClick = () => {
@@ -362,9 +350,11 @@ export default function BrokerDetailsPage() {
                 <div className="flex items-start space-x-6">
                   {/* Profile Image */}
                   <div className="flex-shrink-0">
-                    <img
+                    <Image
                       src={broker.brokerImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format&q=80"}
                       alt={broker.name || 'Broker'} 
+                      width={80}
+                      height={80}
                       className="w-20 h-20 rounded-full object-cover"
                     />
                   </div>
@@ -1003,11 +993,13 @@ export default function BrokerDetailsPage() {
                       }
                     ].map((property) => (
                       <div key={property.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                        <div className="relative">
-                          <img
+                        <div className="relative w-full h-48">
+                          <Image
                             src={property.image}
                             alt={property.title}
-                            className="w-full h-48 object-cover"
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 1024px) 100vw, 33vw"
                           />
                           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
                             <h4 className="text-sm font-semibold text-white mb-1">{property.title}</h4>

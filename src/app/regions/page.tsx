@@ -6,7 +6,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { regionAPI } from '@/services/api';
 import Popup from 'reactjs-popup';
 import ReactPaginate from 'react-paginate';
-import Select from 'react-select';
+// Removed unused Select import
 import { useJsApiLoader } from '@react-google-maps/api';
 
 interface Region {
@@ -170,14 +170,9 @@ export default function RegionsPage() {
   });
 
   // Dropdown options
-  const stateOptions = [
-    { value: 'Uttar Pradesh', label: 'Uttar Pradesh' },
-  ];
+  // Removed unused stateOptions
 
-  const cityOptions = [
-    { value: 'Noida', label: 'Noida' },
-    { value: 'Agra', label: 'Agra' },
-  ];
+  // Removed unused cityOptions
 
   // Handle input change and get suggestions
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
