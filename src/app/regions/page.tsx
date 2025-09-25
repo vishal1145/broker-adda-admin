@@ -1513,7 +1513,7 @@ export default function RegionsPage() {
                 breakLabel="..."
                 containerClassName="flex items-center space-x-1"
                 pageClassName="px-3 py-2 text-sm font-medium rounded-md cursor-pointer text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
-                activeClassName="!bg-blue-600 !text-white !border-blue-600"
+                activeClassName="!bg-teal-600 !text-white !border-teal-600"
                 previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
                 breakClassName="px-3 py-2 text-sm font-medium text-gray-500"
