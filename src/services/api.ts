@@ -202,6 +202,18 @@ export const brokerAPI = {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('🔴 API Error:', errorText);
+      
+      // Parse error response to provide more specific error messages
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.message) {
+          throw new Error(errorData.message);
+        }
+      } catch (parseError) {
+        // If JSON parsing fails, use the raw error text
+        throw new Error(errorText || 'Failed to create broker');
+      }
+      
       throw new Error('Failed to create broker');
     }
     

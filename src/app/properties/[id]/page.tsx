@@ -396,7 +396,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                   <div className="px-5 pb-5">
                     <div className="flex items-center gap-3">
                       <button className="inline-flex items-center gap-2 px-4 h-9 rounded-md bg-green-600 text-white text-sm font-medium hover:bg-green-700">
-                        <span className="inline-flex w-4 h-4 items-center justify-center rounded-sm bg-green-700/40 ">
+                        <span className="inline-flex w-4 h-4 items-center justify-center rounded-sm ">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M20 6L9 17l-5-5" />
                           </svg>
@@ -404,7 +404,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                         Approve
                       </button>
                       <button className="inline-flex items-center gap-2 px-4 h-9 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700">
-                        <span className="inline-flex w-4 h-4 items-center justify-center rounded-sm bg-red-700/40 ">
+                        <span className="inline-flex w-4 h-4 items-center justify-center rounded-sm  ">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M18 6L6 18M6 6l12 12" />
                           </svg>
@@ -509,7 +509,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             </div> */}
 
             {/* Perbandingan Harga Unit */}
-            <div className="  mt-6">
+            {/* <div className="  mt-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Perbandingan Harga Unit di Grand Ontama</h3>
             
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
@@ -599,7 +599,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </Layout>

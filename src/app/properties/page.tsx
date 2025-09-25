@@ -15,16 +15,16 @@ const Skeleton = ({ className = '', height = 'h-4', width = 'w-full', rounded = 
 
 const SummaryCardsSkeleton = () => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3  gap-4 mb-6">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div key={index} className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="space-y-2">
-              <Skeleton height="h-4" width="w-20" />
-              <Skeleton height="h-8" width="w-12" />
+              <Skeleton height="h-3" width="w-16" />
+              <Skeleton height="h-6" width="w-8" />
             </div>
-            <div className="bg-gray-100 rounded-lg p-3">
-              <Skeleton height="h-6" width="w-6" />
+            <div className="bg-gray-100 rounded-lg p-2">
+              <Skeleton height="h-5" width="w-5" />
             </div>
           </div>
         </div>
@@ -112,7 +112,7 @@ export default function PropertiesPage() {
                   placeholder="Search by Property Name, Price, Region"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                 />
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function PropertiesPage() {
                 <select
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none pr-8"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                 >
                   <option value="all">All Properties</option>
                   <option value="apartment">Apartment</option>
@@ -146,7 +146,7 @@ export default function PropertiesPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none pr-8"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                 >
                   <option value="all">All Status</option>
                   <option value="available">Available</option>
@@ -164,7 +164,7 @@ export default function PropertiesPage() {
                 <select
                   value={regionFilter}
                   onChange={(e) => setRegionFilter(e.target.value)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none pr-8"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                 >
                   <option value="all">All Regions</option>
                   <option value="mumbai">Mumbai</option>
@@ -209,16 +209,16 @@ export default function PropertiesPage() {
           {loading ? (
             <SummaryCardsSkeleton />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               {/* Total Properties Card */}
               <div className="bg-teal-50 rounded-lg p-6 border border-teal-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-teal-600 text-sm font-medium">Total Properties</p>
-                    <p className="text-2xl font-bold text-teal-700">{propertyStats.total}</p>
+                    <p className="text-teal-600 text-xs font-medium">Total Properties</p>
+                    <p className="text-xl font-bold text-teal-700">{propertyStats.total}</p>
                   </div>
-                  <div className="bg-teal-100 rounded-lg p-3">
-                    <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="bg-teal-100 rounded-lg p-2">
+                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                   </div>
@@ -229,11 +229,11 @@ export default function PropertiesPage() {
               <div className="bg-green-50 rounded-lg p-6 border border-green-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-600 text-sm font-medium">Available</p>
-                    <p className="text-2xl font-bold text-green-700">{propertyStats.available}</p>
+                    <p className="text-green-600 text-xs font-medium">Available</p>
+                    <p className="text-xl font-bold text-green-700">{propertyStats.available}</p>
                   </div>
-                  <div className="bg-green-100 rounded-lg p-3">
-                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="bg-green-100 rounded-lg p-2">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
@@ -244,11 +244,11 @@ export default function PropertiesPage() {
               <div className="bg-red-50 rounded-lg p-6 border border-red-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-red-600 text-sm font-medium">Sold</p>
-                    <p className="text-2xl font-bold text-red-600">{propertyStats.sold}</p>
+                    <p className="text-red-600 text-xs font-medium">Sold</p>
+                    <p className="text-xl font-bold text-red-600">{propertyStats.sold}</p>
                   </div>
-                  <div className="bg-red-100 rounded-lg p-3">
-                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="bg-red-100 rounded-lg p-2">
+                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM5 19L19 5" />
                     </svg>
                   </div>
@@ -320,7 +320,7 @@ export default function PropertiesPage() {
                       <button
                         key={`page-btn-${pageNum}`}
                         onClick={() => goToPage(pageNum)}
-                        className={`w-9 h-9 text-sm rounded-md border ${pageNum === safePage ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                        className={`w-9 h-9 text-sm rounded-md border ${pageNum === safePage ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
                       >
                         {pageNum}
                       </button>
@@ -332,7 +332,7 @@ export default function PropertiesPage() {
                   {totalPages > 7 && (
                     <button
                       onClick={() => goToPage(totalPages)}
-                      className={`w-12 h-9 text-sm rounded-md border ${safePage === totalPages ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                      className={`w-12 h-9 text-sm rounded-md border ${safePage === totalPages ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
                     >
                       {totalPages}
                     </button>
