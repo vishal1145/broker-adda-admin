@@ -209,7 +209,7 @@ export const brokerAPI = {
         if (errorData.message) {
           throw new Error(errorData.message);
         }
-      } catch (parseError) {
+      } catch {
         // If JSON parsing fails, use the raw error text
         throw new Error(errorText || 'Failed to create broker');
       }
@@ -467,6 +467,189 @@ export const regionAPI = {
       const errorText = await response.text();
       console.error('🔴 API Error:', errorText);
       throw new Error('Failed to fetch region statistics');
+    }
+    
+    const result = await response.json();
+    console.log('📊 API Response:', result);
+    return result;
+  }
+};
+
+// Properties API functions
+export const propertiesAPI = {
+  // Get all properties with pagination and filters
+  getProperties: async (page: number = 1, limit: number = 10, search: string = '', propertyType: string = '', status: string = '', region: string = '') => {
+    console.log('🏠 propertiesAPI.getProperties called with:', { page, limit, search, propertyType, status, region });
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('🏠 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(search && { search }),
+      ...(propertyType && propertyType !== 'all' && { propertyType }),
+      ...(status && status !== 'all' && { status }),
+      ...(region && region !== 'all' && { region })
+    });
+
+    const url = `${API_BASE_URL}/properties?${params}`;
+    console.log('🏠 Making API call to:', url);
+    console.log('🏠 Query parameters:', Object.fromEntries(params.entries()));
+    console.log('🏠 Filter values:', { search, propertyType, status, region });
+
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('🏠 Response status:', response.status);
+    console.log('🏠 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to fetch properties');
+    }
+    
+    const result = await response.json();
+    console.log('🏠 API Response:', result);
+    return result;
+  },
+
+  // Get single property by ID
+  getPropertyById: async (propertyId: string) => {
+    console.log('🏠 propertiesAPI.getPropertyById called with ID:', propertyId);
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('🏠 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/properties/${propertyId}`;
+    console.log('🏠 Making API call to:', url);
+
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('🏠 Response status:', response.status);
+    console.log('🏠 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to fetch property details');
+    }
+    
+    const result = await response.json();
+    console.log('🏠 API Response:', result);
+    return result;
+  },
+
+  // Approve a property
+  approveProperty: async (propertyId: string) => {
+    console.log('🟢 propertiesAPI.approveProperty called with ID:', propertyId);
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('🟢 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/properties/${propertyId}/approve`;
+    console.log('🟢 Making API call to:', url);
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({})
+    });
+
+    console.log('🟢 Response status:', response.status);
+    console.log('🟢 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to approve property');
+    }
+    
+    const result = await response.json();
+    console.log('🟢 API Response:', result);
+    return result;
+  },
+
+  // Reject a property
+  rejectProperty: async (propertyId: string) => {
+    console.log('🔴 propertiesAPI.rejectProperty called with ID:', propertyId);
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('🔴 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/properties/${propertyId}/reject`;
+    console.log('🔴 Making API call to:', url);
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({})
+    });
+
+    console.log('🔴 Response status:', response.status);
+    console.log('🔴 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to reject property');
+    }
+    
+    const result = await response.json();
+    console.log('🔴 API Response:', result);
+    return result;
+  },
+
+  // Get property metrics/statistics
+  getMetrics: async () => {
+    console.log('📊 propertiesAPI.getMetrics called');
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('📊 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/properties/metrics`;
+    console.log('📊 Making API call to:', url);
+
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('📊 Response status:', response.status);
+    console.log('📊 Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to fetch property metrics');
     }
     
     const result = await response.json();

@@ -166,7 +166,7 @@ export default function Dashboard() {
                 <rect width="100%" height="100%" fill="url(#grid)" />
                 
                 {/* Y-axis labels */}
-                {[30, 40, 50, 60, 70, 80, 90, 100].map((value, index) => (
+                {[30, 40, 50, 60, 70, 80, 90, 100].map((value) => (
                   <text key={value} x="10" y={180 - (value - 30) * 1.5} className="text-xs fill-gray-500">
                     {value}
                   </text>

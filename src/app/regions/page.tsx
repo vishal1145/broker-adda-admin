@@ -511,7 +511,7 @@ export default function RegionsPage() {
     }
     fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
     fetchRegionStats();
-  }, [fetchRegions, fetchRegionStats, itemsPerPage]);
+  }, [fetchRegions, fetchRegionStats, itemsPerPage, cityFilter, searchTerm, stateFilter]);
 
   // Handle search and filter changes with debouncing
   useEffect(() => {
@@ -538,14 +538,6 @@ export default function RegionsPage() {
 
 
 
-  // Format date to "9 July 2025" format
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const month = date.toLocaleString('default', { month: 'short' });
-    const year = date.getFullYear();
-    return `${day} ${month} ${year}`;
-  };
 
   // Pagination logic - using server-side pagination
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -1407,7 +1399,7 @@ export default function RegionsPage() {
 
                 {/* Table Body */}
                 <div className="divide-y divide-gray-200">
-                  {regions.map((region, index) => (
+                  {regions.map((region) => (
                     <div key={region._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                       <div className="grid grid-cols-5 gap-4 items-center">
                         {/* Region Column */}

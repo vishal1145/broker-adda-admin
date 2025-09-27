@@ -1,29 +1,50 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import Image from 'next/image';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
+import { propertiesAPI } from '@/services/api';
 
 type Property = {
-  id: number;
+  _id: string;
   title: string;
-  price: string;
+  price: number;
+  priceUnit: string;
+  address: string;
+  city: string;
+  region: string;
+  coordinates: { lat: number; lng: number };
+  bedrooms: number;
+  bathrooms: number;
+  furnishing: string;
+  amenities: string[];
+  images: string[];
+  videos: string[];
+  broker: string | {
+    _id: string;
+    name: string;
+    email: string;
+    phone: string;
+    firmName: string;
+    status: string;
+  };
+  isFeatured: boolean;
+  notes: string;
+  status: string;
+  propertyType: string;
+  subType: string;
+  description: string;
+  // Optional fields for backward compatibility
   location?: string;
-  status?: string;
-  type?: string;
-  region?: string;
   thumbnail?: string;
-  images?: string[];
   specs?: {
     bedrooms?: number;
     bathrooms?: number;
     areaSqft?: number;
     parking?: number;
   };
-  amenities?: string[];
-  description?: string;
   descriptionLong?: string;
   documents?: { name: string; type: string; url: string }[];
   contact?: {
@@ -36,40 +57,43 @@ type Property = {
     avatar?: string;
   };
   listedDate?: string;
-  // Extended optional fields that may appear in JSON
-  address?: string;
-  city?: string;
-  propertyType?: string;
-  subType?: string;
-  priceUnit?: string;
-  coordinates?: { lat?: number; lng?: number };
-  isFeatured?: boolean;
   viewsCount?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  furnishing?: string;
-  notes?: string;
 };
 
-export default function PropertyDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [data, setData] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
+    show: false,
+    message: '',
+    type: 'success'
+  });
+
+  // Function to show toast message
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Load all properties then pick the one by id
-        const res = await fetch(`/data/properties/index.json`, { cache: 'no-store' });
-        if (!res.ok) throw new Error('Not found');
-        const json = await res.json();
-        const match = (json.properties || []).find((p: Property) => String(p.id) === String(id));
-        if (!match) throw new Error('Not found');
-        setData(match);
-      } catch {
-        setError('Property not found');
+        setLoading(true);
+        setError(null);
+        
+        const response = await propertiesAPI.getPropertyById(id);
+        console.log('Property API Response:', response);
+        
+        setData(response.data || response);
+      } catch (err) {
+        console.error('Error loading property:', err);
+        setError(err instanceof Error ? err.message : 'Property not found');
       } finally {
         setLoading(false);
       }
@@ -77,8 +101,78 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
     fetchData();
   }, [id]);
 
+  // Handle approve property
+  const handleApprove = async () => {
+    if (!data) return;
+    
+    try {
+      setActionLoading(true);
+      await propertiesAPI.approveProperty(data._id);
+      // Update the property status locally
+      setData(prev => prev ? { ...prev, status: 'Approved' } : null);
+      showToast('Property approved successfully!', 'success');
+    } catch (err) {
+      console.error('Error approving property:', err);
+      showToast('Failed to approve property. Please try again.', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
+  // Handle reject property
+  const handleReject = async () => {
+    if (!data) return;
+    
+    try {
+      setActionLoading(true);
+      await propertiesAPI.rejectProperty(data._id);
+      // Update the property status locally
+      setData(prev => prev ? { ...prev, status: 'Rejected' } : null);
+      showToast('Property rejected successfully!', 'success');
+    } catch (err) {
+      console.error('Error rejecting property:', err);
+      showToast('Failed to reject property. Please try again.', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <Layout>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading property details...</p>
+            </div>
+          </div>
+        </Layout>
+      </ProtectedRoute>
+    );
+  }
+
+  if (error) {
+    return (
+      <ProtectedRoute>
+        <Layout>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="text-red-500 text-6xl mb-4">⚠️</div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Property</h2>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </Layout>
+      </ProtectedRoute>
+    );
+  }
 
   if (!data) return null;
 
@@ -259,7 +353,7 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                   {/* <p className="text-sm text-gray-600 mb-4">{data.location}</p> */}
                  
                   <p className="text-sm text-gray-500 leading-6">
-                    {(data.descriptionLong || data.description || 'Rumah Mezzanine Eksklusif! Rumah mezzanine eksklusif ini dirancang dengan gaya elegan, menampilkan tiga kamar tidur yang luas dan nyaman. Setiap kamar dilengkapi dengan material premium yang memastikan kenyamanan maksimal')}
+                    {data.description || data.notes || 'Property description not available.'}
                   </p>
                 </div>
 
@@ -273,20 +367,20 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     {[
                       { label: 'Title', value: data.title || '-' },
-                      { label: 'Property Type', value: data.propertyType || 'Residential' },
-                      { label: 'Sub Type', value: data.subType || 'Apartment' },
-                      { label: 'Price', value: `${data.price || '0'} ${data.priceUnit || 'INR'}` },
-                      { label: 'Address', value: data.address || data.location || '-' },
-                      { label: 'City', value: data.city || 'Agra' },
+                      { label: 'Property Type', value: data.propertyType || '-' },
+                      { label: 'Sub Type', value: data.subType || '-' },
+                      { label: 'Price', value: `₹${data.price?.toLocaleString() || '0'} ${data.priceUnit || 'INR'}` },
+                      { label: 'Address', value: data.address || '-' },
+                      { label: 'City', value: data.city || '-' },
                       { label: 'Region', value: data.region || '-' },
-                      { label: 'Coordinates', value: (() => { const c = data.coordinates || {}; return c.lat && c.lng ? `${c.lat}, ${c.lng}` : '-'; })() },
-                      { label: 'Bedrooms', value: (data.bedrooms ?? data.specs?.bedrooms) ?? '-' },
-                      { label: 'Bathrooms', value: (data.bathrooms ?? data.specs?.bathrooms) ?? '-' },
+                      { label: 'Coordinates', value: data.coordinates ? `${data.coordinates.lat}, ${data.coordinates.lng}` : '-' },
+                      { label: 'Bedrooms', value: data.bedrooms?.toString() || '-' },
+                      { label: 'Bathrooms', value: data.bathrooms?.toString() || '-' },
                       { label: 'Furnishing', value: data.furnishing || '-' },
-                      { label: 'Amenities', value: (data.amenities || []).join(', ') || '-' },
+                      { label: 'Amenities', value: data.amenities?.join(', ') || '-' },
                       { label: 'Status', value: data.status || 'Pending Approval' },
-                      { label: 'Featured', value: String(data.isFeatured ?? false) },
-                      { label: 'Views', value: String(data.viewsCount ?? 0) },
+                      { label: 'Featured', value: data.isFeatured ? 'Yes' : 'No' },
+                      { label: 'Views', value: data.viewsCount?.toString() || '0' },
                     ].map((row) => (
                       <div key={row.label} className="flex items-start gap-4 py-3 border-b border-gray-200">
                         <span className="inline-grid place-items-center w-10 h-10 rounded-full bg-teal-50 text-teal-600">
@@ -334,15 +428,15 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   <div className="h-8 bg-gradient-to-b from-gray-200/60 to-transparent"></div>
                   <div className="px-6 pt-2 pb-3">
-                    <div className="text-3xl font-bold text-gray-900">{data.price || '—'}</div>
-                    <div className="text-[11px] text-gray-400">{data.priceUnit ? `${data.priceUnit} / Month (Est.)` : '$15,000 / Month (Est.)'}</div>
+                    <div className="text-3xl font-bold text-gray-900">₹{data.price?.toLocaleString() || '—'}</div>
+                    <div className="text-[11px] text-gray-400">{data.priceUnit || 'INR'}</div>
                   </div>
                   <div className="">
                     {[
-                      { label: 'Property Type', value: data.propertyType || 'Residential' },
-                      { label: 'Area', value: data.specs?.areaSqft ? `${(data.specs.areaSqft).toLocaleString()} SqFt` : '0' },
-                      { label: 'Bedrooms', value: (data.bedrooms ?? data.specs?.bedrooms ?? 0).toString() },
-                      { label: 'Bathrooms', value: (data.bathrooms ?? data.specs?.bathrooms ?? 0).toString() },
+                      { label: 'Property Type', value: data.propertyType || '-' },
+                      { label: 'Sub Type', value: data.subType || '-' },
+                      { label: 'Bedrooms', value: data.bedrooms?.toString() || '0' },
+                      { label: 'Bathrooms', value: data.bathrooms?.toString() || '0' },
                     ].map((row, idx) => (
                       <div
                         key={row.label}
@@ -370,13 +464,21 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                         width={64}
                         height={64}
                       />
-                      <div className="mt-2 text-base font-semibold text-gray-900">{data.contact?.owner || 'Agent'}</div>
-                      <div className="text-xs text-gray-500">Senior Listing Agent</div>
+                      <div className="mt-2 text-base font-semibold text-gray-900">
+                        {typeof data.broker === 'object' && data.broker?.name ? data.broker.name : 'Property Broker'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {typeof data.broker === 'object' && data.broker?.firmName ? data.broker.firmName : `Broker ID: ${data.broker}`}
+                      </div>
+                      {typeof data.broker === 'object' && data.broker?.email && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          {data.broker.email}
+                        </div>
+                      )}
 
                       <a
-                        href={data.contact?.mobile ? `tel:${data.contact.mobile}` : (data.contact?.whatsapp ? `https://wa.me/${data.contact.whatsapp}` : '#')}
-                        className={`mt-4 w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md text-sm font-medium ${data.contact?.mobile || data.contact?.whatsapp ? 'bg-teal-600 text-white hover:bg-teal-700' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
-                        aria-disabled={!data.contact?.mobile && !data.contact?.whatsapp}
+                        href={typeof data.broker === 'object' && data.broker?.phone ? `tel:${data.broker.phone}` : '#'}
+                        className="mt-4 w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md text-sm font-medium bg-teal-600 text-white hover:bg-teal-700"
                       >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.95.69l1.5 4.49a1 1 0 01-.5 1.21l-2.26 1.13a11 11 0 005.52 5.52l1.13-2.26a1 1 0 011.21-.5l4.49 1.5a1 1 0 01.69.95V19a2 2 0 01-2 2h-1C9.72 21 3 14.28 3 6V5z" />
@@ -391,32 +493,50 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                   <div className="px-5 py-4 flex items-center justify-between">
                     <h4 className="text-sm font-semibold text-gray-900">Admin Tools</h4>
-                    <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-600 text-[10px] px-2 py-0.5 border border-gray-200">Draft</span>
+                    <span className={`inline-flex items-center rounded-full text-[10px] px-2 py-0.5 border ${
+                      data.status === 'Approved' 
+                        ? 'bg-green-100 text-green-600 border-green-200' 
+                        : data.status === 'Rejected'
+                        ? 'bg-red-100 text-red-600 border-red-200'
+                        : 'bg-gray-100 text-gray-600 border-gray-200'
+                    }`}>
+                      {data.status || 'Pending Approval'}
+                    </span>
                   </div>
                   <div className="px-5 pb-5">
                     <div className="flex items-center gap-3">
-                      <button className="inline-flex items-center gap-2 px-4 h-9 rounded-md bg-green-600 text-white text-sm font-medium hover:bg-green-700">
-                        <span className="inline-flex w-4 h-4 items-center justify-center rounded-sm ">
+                      <button 
+                        onClick={handleApprove}
+                        disabled={actionLoading || data.status === 'Approved'}
+                        className={`inline-flex items-center gap-2 px-4 h-9 rounded-md text-white text-sm font-medium ${
+                          data.status === 'Approved' 
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-green-600 hover:bg-green-700'
+                        }`}
+                      >
+                        <span className="inline-flex w-4 h-4 items-center justify-center rounded-sm">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M20 6L9 17l-5-5" />
                           </svg>
                         </span>
-                        Approve
+                        {actionLoading ? 'Processing...' : 'Approve'}
                       </button>
-                      <button className="inline-flex items-center gap-2 px-4 h-9 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700">
-                        <span className="inline-flex w-4 h-4 items-center justify-center rounded-sm  ">
+                      <button 
+                        onClick={handleReject}
+                        disabled={actionLoading || data.status === 'Rejected'}
+                        className={`inline-flex items-center gap-2 px-4 h-9 rounded-md text-white text-sm font-medium ${
+                          data.status === 'Rejected' 
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-red-600 hover:bg-red-700'
+                        }`}
+                      >
+                        <span className="inline-flex w-4 h-4 items-center justify-center rounded-sm">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M18 6L6 18M6 6l12 12" />
                           </svg>
                         </span>
-                        Reject
+                        {actionLoading ? 'Processing...' : 'Reject'}
                       </button>
-                      {/* <button className="inline-flex items-center gap-2 px-4 h-9 rounded-md border border-blue-300 text-blue-600 text-sm font-medium hover:bg-blue-50">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" />
-                        </svg>
-                        Feature
-                      </button> */}
                     </div>
                   </div>
                 </div>
@@ -448,10 +568,10 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                             />
 
                             <div className="flex-1 min-w-0">
-                              <div className="text-sky-600 font-semibold text-sm truncate">{data.price || '—'}</div>
+                              <div className="text-sky-600 font-semibold text-sm truncate">₹{data.price?.toLocaleString() || '—'}</div>
                               <div className="text-gray-900 font-bold leading-tight truncate">{data.title}</div>
                               <p className="text-gray-500 text-xs mt-1 line-clamp-2">
-                                {data.description || 'Hunian mezzanine modern yang ideal untuk keluarga.'}
+                                {data.description || data.notes || 'Property description not available.'}
                               </p>
                             </div>
 
@@ -471,21 +591,21 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
                               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 12v6M21 12v6M3 12h18M7 12V9a2 2 0 1 1 4 0v3" />
                               </svg>
-                              {(data.specs?.bedrooms ?? data.bedrooms ?? 3)} bedroom
+                              {data.bedrooms || 0} bedroom
                             </span>
 
                             <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
                               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 12h18M6 12V7a2 2 0 1 1 4 0v5M5 16h14l-1 3H6l-1-3z" />
                               </svg>
-                              {(data.specs?.bathrooms ?? data.bathrooms ?? 2)} bathroom
+                              {data.bathrooms || 0} bathroom
                             </span>
 
                             <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
                               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 7h14M3 11h10M3 15h6M3 19h2M19 7v12" />
                               </svg>
-                              {(data.specs?.areaSqft ? `${data.specs.areaSqft} sqft` : '—')}
+                              {data.furnishing || '—'}
                             </span>
                           </div>
                         </div>
@@ -602,6 +722,40 @@ export default function PropertyDetailPage({ params }: { params: { id: string } 
             </div> */}
           </div>
         </div>
+
+        {/* Toast Notification */}
+        {toast.show && (
+          <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right-5 duration-300">
+            <div className={`px-6 py-4 rounded-lg shadow-xl flex items-center gap-3 ${
+              toast.type === 'success' 
+                ? 'bg-gray-800 text-white' 
+                : 'bg-red-800 text-white'
+            }`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+              }`}>
+                {toast.type === 'success' ? (
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
+              <span className="font-medium text-white">{toast.message}</span>
+              <button
+                onClick={() => setToast(prev => ({ ...prev, show: false }))}
+                className="ml-2 text-gray-300 hover:text-white transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
       </Layout>
     </ProtectedRoute>
   );

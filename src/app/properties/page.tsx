@@ -5,6 +5,7 @@ import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
 import Image from 'next/image';
+import { propertiesAPI } from '@/services/api';
 
 // Skeleton Loader Components
 const Skeleton = ({ className = '', height = 'h-4', width = 'w-full', rounded = false }: { className?: string; height?: string; width?: string; rounded?: boolean }) => (
@@ -33,57 +34,241 @@ const SummaryCardsSkeleton = () => {
   );
 };
 
+// Helper function to validate and get safe image URL
+const getSafeImageUrl = (images: string[] | undefined): string => {
+  const defaultImage = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&auto=format&fit=crop';
+  
+  if (!images || !Array.isArray(images) || images.length === 0) {
+    return defaultImage;
+  }
+  
+  // Find first valid image URL
+  const validImage = images.find(img => 
+    img && 
+    typeof img === 'string' && 
+    !img.includes('example.com') && 
+    (img.startsWith('https://images.unsplash.com') || img.startsWith('/') || img.startsWith('http://localhost'))
+  );
+  
+  return validImage || defaultImage;
+};
+
 export default function PropertiesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
   type PropertyCard = {
-    id: number;
+    _id: string;
     title: string;
-    price: string;
-    location?: string;
-    thumbnail?: string;
-    image?: string;
+    price: number;
+    priceUnit: string;
+    address: string;
+    city: string;
+    region: string;
+    images: string[];
+    bedrooms: number;
+    bathrooms: number;
+    propertyType: string;
+    subType: string;
+    status: string;
+    isFeatured: boolean;
   };
   const [cards, setCards] = useState<PropertyCard[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProperties, setTotalProperties] = useState(0);
   const itemsPerPage = 10;
   
+  // State for property metrics
+  const [propertyStats, setPropertyStats] = useState({
+    total: 0,
+    available: 0,
+    sold: 0
+  });
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
-  // Mock data for summary cards
-  const propertyStats = {
-    total: 10,
-    available: 7,
-    sold: 3
-  };
-
-  // Load cards from index.json
+  // Load property metrics from API
   useEffect(() => {
-    const load = async () => {
+    const loadMetrics = async () => {
+      try {
+        setMetricsLoading(true);
+        const metricsResponse = await propertiesAPI.getMetrics();
+        
+        console.log('Metrics API Response:', metricsResponse);
+        
+        // Handle different possible response structures
+        const metrics = metricsResponse.data || metricsResponse;
+        
+        setPropertyStats({
+          total: metrics.total || 0,
+          available: metrics.available || 0,
+          sold: metrics.sold || 0
+        });
+        
+      } catch (err) {
+        console.error('Error loading metrics:', err);
+        // Keep default values (0) if API fails
+      } finally {
+        setMetricsLoading(false);
+      }
+    };
+    
+    loadMetrics();
+  }, []);
+
+  // Load properties from API
+  useEffect(() => {
+    const loadProperties = async () => {
       try {
         setLoading(true);
-        const res = await fetch('/data/properties/index.json', { cache: 'no-store' });
-        const json = await res.json();
-        setCards(json.properties || []);
-      } catch {
-        setError('Failed to load properties');
+        setError('');
+        
+        // Load properties with current filters
+        const propertiesResponse = await propertiesAPI.getProperties(
+          currentPage,
+          itemsPerPage,
+          debouncedSearchTerm,
+          typeFilter,
+          statusFilter,
+          regionFilter
+        );
+        
+        console.log('Properties API Response:', propertiesResponse);
+        console.log('Properties data:', propertiesResponse.data);
+        console.log('Properties array:', propertiesResponse.data?.properties);
+        console.log('Full response structure:', JSON.stringify(propertiesResponse, null, 2));
+        console.log('Current filters:', { debouncedSearchTerm, typeFilter, statusFilter, regionFilter });
+        console.log('API URL called:', `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api'}/properties?page=${currentPage}&limit=${itemsPerPage}&search=${debouncedSearchTerm}&propertyType=${typeFilter}&status=${statusFilter}&region=${regionFilter}`);
+        
+        // Handle different possible response structures
+        const properties = propertiesResponse.data?.properties || propertiesResponse.properties || propertiesResponse.data || [];
+        const totalPages = propertiesResponse.data?.totalPages || propertiesResponse.totalPages || 1;
+        const total = propertiesResponse.data?.total || propertiesResponse.total || 0;
+        
+        console.log('Processed properties:', properties);
+        console.log('Processed totalPages:', totalPages);
+        console.log('Processed total:', total);
+        console.log('Raw response structure:', {
+          hasData: !!propertiesResponse.data,
+          dataKeys: propertiesResponse.data ? Object.keys(propertiesResponse.data) : 'no data',
+          responseKeys: Object.keys(propertiesResponse),
+          totalPagesFromData: propertiesResponse.data?.totalPages,
+          totalFromData: propertiesResponse.data?.total,
+          totalPagesFromRoot: propertiesResponse.totalPages,
+          totalFromRoot: propertiesResponse.total
+        });
+        
+        // Filter out invalid image URLs and ensure only valid images are used
+        let processedProperties = Array.isArray(properties) ? properties.map(property => ({
+          ...property,
+          images: property.images ? property.images.filter((img: string) => 
+            img && 
+            typeof img === 'string' && 
+            !img.includes('example.com') && 
+            (img.startsWith('https://images.unsplash.com') || img.startsWith('/'))
+          ) : []
+        })) : [];
+
+        // Client-side filtering as fallback (in case API doesn't filter properly)
+        if (Array.isArray(processedProperties)) {
+          processedProperties = processedProperties.filter(property => {
+            // Search filter
+            if (debouncedSearchTerm && debouncedSearchTerm !== '') {
+              const searchLower = debouncedSearchTerm.toLowerCase();
+              const matchesSearch = 
+                property.title?.toLowerCase().includes(searchLower) ||
+                property.address?.toLowerCase().includes(searchLower) ||
+                property.city?.toLowerCase().includes(searchLower) ||
+                property.region?.toLowerCase().includes(searchLower) ||
+                property.price?.toString().includes(searchLower);
+              
+              if (!matchesSearch) return false;
+            }
+
+            // Type filter
+            if (typeFilter !== 'all' && property.propertyType !== typeFilter) {
+              return false;
+            }
+
+            // Status filter
+            if (statusFilter !== 'all' && property.status !== statusFilter) {
+              return false;
+            }
+
+            // Region filter
+            if (regionFilter !== 'all' && 
+                property.region !== regionFilter && 
+                property.city !== regionFilter) {
+              return false;
+            }
+
+            return true;
+          });
+        }
+        
+        console.log('Processed properties after image filtering:', processedProperties);
+        console.log('Filtered properties count:', processedProperties.length);
+        
+        setCards(processedProperties);
+        
+        // Calculate fallback values if API doesn't provide them
+        const calculatedTotal = total > 0 ? total : processedProperties.length;
+        const calculatedTotalPages = totalPages > 1 ? totalPages : Math.ceil(calculatedTotal / itemsPerPage);
+        
+        console.log('Final values:', {
+          calculatedTotal,
+          calculatedTotalPages,
+          originalTotal: total,
+          originalTotalPages: totalPages,
+          processedPropertiesLength: processedProperties.length
+        });
+        
+        setTotalPages(calculatedTotalPages);
+        setTotalProperties(calculatedTotal);
+        
+      
+        
+      } catch (err) {
+        console.error('Error loading properties:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load properties');
       } finally {
         setLoading(false);
       }
     };
-    load();
-  }, []);
+    
+    loadProperties();
+  }, [currentPage, debouncedSearchTerm, typeFilter, statusFilter, regionFilter]);
 
-  // Pagination helpers (10 items per page)
-  const totalPages = Math.max(1, Math.ceil((cards?.length || 0) / itemsPerPage));
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Pagination helpers
   const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  const startIdx = (safePage - 1) * itemsPerPage;
-  const endIdx = startIdx + itemsPerPage;
-  const displayedCards: PropertyCard[] = (cards || []).slice(startIdx, endIdx);
   const goToPage = (p: number) => setCurrentPage(Math.min(Math.max(1, p), totalPages));
+
+  // Debug cards state
+  useEffect(() => {
+    console.log('Cards state updated:', cards, 'Length:', cards.length);
+    console.log('Pagination debug:', { 
+      currentPage, 
+      totalPages, 
+      totalProperties, 
+      safePage,
+      itemsPerPage,
+      showPagination: totalPages > 1,
+      showResultsCount: totalProperties > 0
+    });
+  }, [cards, currentPage, totalPages, totalProperties, safePage]);
 
   return (
     <ProtectedRoute>
@@ -127,12 +312,10 @@ export default function PropertiesPage() {
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                 >
                   <option value="all">All Properties</option>
-                  <option value="apartment">Apartment</option>
-                  <option value="villa">Villa</option>
-                  <option value="house">House</option>
-                  <option value="commercial">Commercial</option>
-                  <option value="penthouse">Penthouse</option>
-                  <option value="townhouse">Townhouse</option>
+                  <option value="Residential">Residential</option>
+                  <option value="Commercial">Commercial</option>
+                  <option value="Industrial">Industrial</option>
+                  <option value="Land">Land</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,8 +332,11 @@ export default function PropertiesPage() {
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                 >
                   <option value="all">All Status</option>
-                  <option value="available">Available</option>
-                  <option value="sold">Sold</option>
+                  <option value="Available">Available</option>
+                  <option value="Sold">Sold</option>
+                  <option value="Pending Approval">Pending Approval</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Rejected">Rejected</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,13 +353,16 @@ export default function PropertiesPage() {
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                 >
                   <option value="all">All Regions</option>
-                  <option value="mumbai">Mumbai</option>
-                  <option value="delhi">Delhi</option>
-                  <option value="bangalore">Bangalore</option>
-                  <option value="hyderabad">Hyderabad</option>
-                  <option value="pune">Pune</option>
-                  <option value="chennai">Chennai</option>
-                  <option value="noida">Noida</option>
+                  <option value="Mumbai">Mumbai</option>
+                  <option value="Delhi">Delhi</option>
+                  <option value="Bangalore">Bangalore</option>
+                  <option value="Hyderabad">Hyderabad</option>
+                  <option value="Pune">Pune</option>
+                  <option value="Chennai">Chennai</option>
+                  <option value="Noida">Noida</option>
+                  <option value="Maharashtra">Maharashtra</option>
+                  <option value="Karnataka">Karnataka</option>
+                  <option value="Delhi">Delhi</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,12 +390,44 @@ export default function PropertiesPage() {
           {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
+              <div className="font-semibold">Error loading properties:</div>
+              <div className="text-sm mt-1">{error}</div>
             </div>
           )}
 
+          {/* Active Filters Indicator */}
+          {(searchTerm || typeFilter !== 'all' || statusFilter !== 'all' || regionFilter !== 'all') && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+              <div className="font-semibold">Active Filters:</div>
+              <div className="text-sm mt-1 flex flex-wrap gap-2">
+                {searchTerm && (
+                  <span className="bg-blue-100 px-2 py-1 rounded-full text-xs">
+                    Search: &quot;{searchTerm}&quot;
+                  </span>
+                )}
+                {typeFilter !== 'all' && (
+                  <span className="bg-blue-100 px-2 py-1 rounded-full text-xs">
+                    Type: {typeFilter}
+                  </span>
+                )}
+                {statusFilter !== 'all' && (
+                  <span className="bg-blue-100 px-2 py-1 rounded-full text-xs">
+                    Status: {statusFilter}
+                  </span>
+                )}
+                {regionFilter !== 'all' && (
+                  <span className="bg-blue-100 px-2 py-1 rounded-full text-xs">
+                    Region: {regionFilter}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+
+       
           {/* Summary Cards */}
-          {loading ? (
+          {metricsLoading ? (
             <SummaryCardsSkeleton />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -278,11 +499,17 @@ export default function PropertiesPage() {
             <div>
               {/* <h3 className="text-lg font-semibold text-gray-900 mb-4">Featured Properties</h3> */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {displayedCards.map((property, idx) => (
-                  <Link key={`${property.id}-${idx}`} href={`/properties/${property.id}`} className="bg-white rounded-xl border border-gray-200 overflow-hidden ">
+                {cards.length === 0 ? (
+                  <div className="col-span-full text-center py-12">
+                    <div className="text-gray-500 text-lg">No properties found</div>
+                    <div className="text-gray-400 text-sm mt-2">Try adjusting your search or filters</div>
+                  </div>
+                ) : (
+                  cards.map((property, idx) => (
+                  <Link key={`${property._id}-${idx}`} href={`/properties/${property._id}`} className="bg-white rounded-xl border border-gray-200 overflow-hidden ">
                     <div className="relative w-full h-48">
                       <Image
-                        src={property.thumbnail || property.image || ''}
+                        src={getSafeImageUrl(property.images)}
                         alt={property.title}
                         fill
                         className="object-cover"
@@ -290,23 +517,37 @@ export default function PropertiesPage() {
                       />
                     </div>
                     <div className="p-3">
-                      <div className="text-gray-900 text-base font-bold mb-1">{property.price}</div>
+                      <div className="text-gray-900 text-base font-bold mb-1">
+                        ₹{property.price.toLocaleString()}
+                        {property.priceUnit && ` ${property.priceUnit}`}
+                      </div>
                       <div className="flex items-start text-gray-600 text-xs mb-1">
                         <svg className="w-4 h-4 mr-1 mt-[2px] text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 10.5c0 7.5-7.5 10.5-7.5 10.5S4.5 18 4.5 10.5a7.5 7.5 0 1115 0z" />
                         </svg>
-                        <span className="truncate">{property.location || '98A Mount Shasta Dr, San Pedro'}</span>
+                        <span className="truncate">{property.address}, {property.city}</span>
                       </div>
-                      <div className="text-[11px] text-gray-500">3 beds / 2 baths / 1520sqft</div>
+                      <div className="text-[11px] text-gray-500">
+                        {property.bedrooms} beds / {property.bathrooms} baths / {property.subType}
+                      </div>
                     </div>
                   </Link>
-                ))}
+                  ))
+                )}
               </div>
 
-              {/* Pagination */}
-              {cards.length > itemsPerPage && (
-                <div className="mt-6 flex items-center justify-center gap-2">
+              {/* Results Count and Pagination */}
+              {totalProperties > 0 && (
+                <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  {/* Results Count */}
+                  <div className="text-sm text-gray-700">
+                    Showing {((safePage - 1) * itemsPerPage) + 1} to {Math.min(safePage * itemsPerPage, totalProperties)} of {totalProperties} results
+                  </div>
+                  
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-2">
                   <button
                     onClick={() => goToPage(safePage - 1)}
                     disabled={safePage === 1}
@@ -344,6 +585,8 @@ export default function PropertiesPage() {
                   >
                     Next
                   </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
