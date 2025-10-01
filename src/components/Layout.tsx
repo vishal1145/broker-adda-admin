@@ -63,7 +63,17 @@ export default function Layout({ children }: LayoutProps) {
             >
               Brokers
             </Link>
-            <Link
+              <Link
+              href="/leads"
+              className={`text-sm font-medium transition-colors ${
+                pathname === '/leads'
+                  ? 'text-teal-600'
+                  : 'text-gray-700 hover:text-teal-600'
+              }`}
+            >
+           Leads
+            </Link>
+            {/* <Link
               href="/properties"
               className={`text-sm font-medium transition-colors ${
                 pathname === '/properties'
@@ -72,7 +82,7 @@ export default function Layout({ children }: LayoutProps) {
               }`}
             >
             Properties
-            </Link>
+            </Link> */}
           </div>
           
           {/* User Profile - Right side */}

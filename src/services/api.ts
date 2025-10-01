@@ -1,6 +1,77 @@
 // API Base Configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
 
+// Leads API functions
+export const leadsAPI = {
+  // Get leads metrics
+  getMetrics: async () => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const response = await fetch(`${API_BASE_URL}/leads/metrics`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to fetch leads metrics';
+      if (response.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (response.status === 404) {
+        errorMessage = 'Leads metrics API endpoint not found.';
+      } else if (response.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+      throw new Error(`${errorMessage} (Status: ${response.status})`);
+    }
+    
+    return response.json();
+  },
+
+  // Get all leads with pagination and filters
+  getLeads: async (page: number = 1, limit: number = 10, search: string = '', status: string = '') => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(search && { search }),
+      ...(status && status !== 'all' && { status })
+    });
+
+    const url = `${API_BASE_URL}/leads?${params}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to fetch leads';
+      if (response.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (response.status === 404) {
+        errorMessage = 'Leads API endpoint not found. Please check the API configuration.';
+      } else if (response.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (response.status === 403) {
+        errorMessage = 'Access denied. You do not have permission to view leads.';
+      }
+      
+      throw new Error(`${errorMessage} (Status: ${response.status})`);
+    }
+    
+    return response.json();
+  }
+};
+
 // Broker API functions
 export const brokerAPI = {
   // Get brokers with pagination and filters
