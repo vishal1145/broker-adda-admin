@@ -23,15 +23,51 @@ type Lead = {
   propertyType: string;
   budget: string;
   region: string;
+  secondaryRegion?: string;
   brokerName: string;
-  sharedWith: string;
+  sharedWith: string; // comma-joined for quick display/fallback
+  sharedWithList?: string[]; // normalized list of names
   status: string;
   source: string;
   createdAt: string;
 };
 
+// API types to avoid 'any' usage
+type BrokerRef = {
+  _id?: string;
+  firmName?: string;
+  brokerImage?: string | null;
+  email?: string;
+  name?: string;
+  phone?: string;
+};
+
+type TransferRecord = {
+  fromBroker?: BrokerRef | string;
+  toBroker?: BrokerRef | string;
+  _id?: string;
+};
+
+type ApiLead = {
+  _id?: string; id?: string; customerName?: string; name?: string; customerEmail?: string; email?: string; contact?: string;
+  customerPhone?: string; phone?: string; contactNumber?: string; requirement?: string; propertyType?: string; budget?: number; price?: number;
+  primaryRegion?: string | { name?: string }; region?: { name?: string }; city?: string; location?: { city?: string };
+  secondaryRegion?: string | { name?: string }; optionalRegion?: string | { name?: string };
+  region2?: string | { name?: string };
+  secondaryCity?: string;
+  createdBy?: { name?: string } | BrokerRef; brokerName?: string; broker?: { name?: string } | BrokerRef;
+  sharedWith?: string | Array<string | { name?: string }>;
+  assignedTo?: string;
+  collaborators?: Array<string | { name?: string }>;
+  transfers?: TransferRecord[];
+  status?: string;
+  source?: string; createdAt?: string;
+};
+
 export default function LeadsPage() {
+  const pageSize = 10;
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -69,9 +105,8 @@ export default function LeadsPage() {
   // Dynamic options from leads data
   const [uniqueRequirements, setUniqueRequirements] = useState<string[]>([]);
   const [uniquePropertyTypes, setUniquePropertyTypes] = useState<string[]>([]);
-  const [uniqueStatuses, setUniqueStatuses] = useState<string[]>([]);
-  const [isLoadingStatuses, setIsLoadingStatuses] = useState(true);
-  // Removed unused statusesError to satisfy linter
+  // Static status options - matching API requirements
+  const uniqueStatuses = ['New', 'Assigned', 'In Progress', 'Closed', 'Rejected'];
 
   // Advanced Filters state
   const [filterRegion, setFilterRegion] = useState('');
@@ -89,6 +124,17 @@ export default function LeadsPage() {
       setViewSlideIn(false);
     }
   }, [isViewOpen]);
+
+  // Debounce search term to limit API calls while typing
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 600);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // When the debounced search term changes, reset to first page
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
 
   // Fetch leads metrics on component mount
   useEffect(() => {
@@ -167,19 +213,6 @@ export default function LeadsPage() {
     fetchRegions();
   }, []);
 
-  // Extract unique statuses from leads data
-  useEffect(() => {
-    if (leads.length > 0) {
-      // Extract unique statuses from leads data
-      const statuses = [...new Set(leads.map(lead => lead.status).filter(Boolean))];
-      setUniqueStatuses(statuses);
-      setIsLoadingStatuses(false);
-    } else {
-      // If no leads data, use fallback statuses
-      setUniqueStatuses(['New', 'Contacted', 'Qualified', 'Converted', 'Closed', 'Lost']);
-      setIsLoadingStatuses(false);
-    }
-  }, [leads]);
 
   // Extract unique requirements and property types from leads data
   useEffect(() => {
@@ -210,18 +243,12 @@ export default function LeadsPage() {
         throw new Error('No authentication token found. Please login again.');
       }
       
-      const response = await leadsAPI.getLeads(currentPage, 12, searchTerm, statusFilter);
+      const response = await leadsAPI.getLeads(currentPage, pageSize, debouncedSearchTerm, statusFilter);
       
       // Map API response to our leads format
       const leadsData = response.data?.items || response.data?.leads || response.leads || response.data || [];
       
-      const mappedLeads: Lead[] = leadsData.map((lead: {
-        _id?: string; id?: string; customerName?: string; name?: string; customerEmail?: string; email?: string; contact?: string;
-        customerPhone?: string; phone?: string; contactNumber?: string; requirement?: string; propertyType?: string; budget?: number; price?: number;
-        primaryRegion?: string | { name?: string }; region?: { name?: string }; city?: string; location?: { city?: string };
-        createdBy?: { name?: string }; brokerName?: string; broker?: { name?: string }; sharedWith?: string; assignedTo?: string; status?: string;
-        source?: string; createdAt?: string;
-      }, index: number) => ({
+      const mappedLeads: Lead[] = (leadsData as ApiLead[]).map((lead: ApiLead, index: number) => ({
         id: lead._id || lead.id || index + 1,
         name: lead.customerName || lead.name || 'Unknown',
         contact: lead.customerEmail || lead.email || lead.contact || 'No email',
@@ -229,96 +256,139 @@ export default function LeadsPage() {
         requirement: lead.requirement || 'Not specified',
         propertyType: lead.propertyType || '',
         budget: lead.budget ? `₹${lead.budget.toLocaleString('en-IN')}` : lead.price ? `₹${lead.price.toLocaleString('en-IN')}` : 'Not specified',
-        region: typeof lead.primaryRegion === 'string' ? lead.primaryRegion : lead.primaryRegion?.name || lead.region?.name || lead.city || lead.location?.city || 'Not specified',
+        region:
+          typeof lead.primaryRegion === 'string'
+            ? lead.primaryRegion
+            : (lead.primaryRegion as { name?: string } | undefined)?.name
+              || (typeof lead.region === 'string' ? lead.region : (lead.region as { name?: string } | undefined)?.name)
+              || lead.city
+              || lead.location?.city
+              || 'Not specified',
+        secondaryRegion:
+          (typeof lead.secondaryRegion === 'string' ? lead.secondaryRegion : (lead.secondaryRegion as { name?: string } | undefined)?.name)
+          || (typeof lead.optionalRegion === 'string' ? lead.optionalRegion : (lead.optionalRegion as { name?: string } | undefined)?.name)
+          || (typeof lead.region2 === 'string' ? lead.region2 : (lead.region2 as { name?: string } | undefined)?.name)
+          || lead.secondaryCity
+          || undefined,
         brokerName: lead.createdBy?.name || lead.brokerName || lead.broker?.name || 'Unknown Broker',
-        sharedWith: lead.createdBy?.name || lead.sharedWith || lead.assignedTo || 'Me',
+        // Only show shared-with if transfers/collaborators/sharedWith exist; otherwise blank
+        sharedWith: (Array.isArray(lead.transfers) && lead.transfers.length > 0)
+          ? (lead.transfers).map(t => (typeof t?.toBroker === 'string' ? t.toBroker : t?.toBroker?.name || '')).filter(Boolean).join(', ')
+          : Array.isArray(lead.sharedWith)
+            ? (lead.sharedWith).map((u) => (typeof u === 'string' ? u : u?.name || '')).filter(Boolean).join(', ')
+            : typeof lead.sharedWith === 'string'
+              ? (lead.sharedWith as string)
+            : Array.isArray(lead.collaborators)
+                ? (lead.collaborators).map((u) => (typeof u === 'string' ? u : u?.name || '')).filter(Boolean).join(', ')
+                : '',
+        sharedWithList: (Array.isArray(lead.transfers) && lead.transfers.length > 0)
+          ? (lead.transfers).map(t => (typeof t?.toBroker === 'string' ? t.toBroker : t?.toBroker?.name || '')).filter(Boolean)
+          : Array.isArray(lead.sharedWith)
+            ? (lead.sharedWith).map((u) => (typeof u === 'string' ? u : u?.name || '')).filter(Boolean)
+            : typeof lead.sharedWith === 'string'
+              ? (lead.sharedWith as string).split(',').map(s => s.trim()).filter(Boolean)
+              : Array.isArray(lead.collaborators)
+                ? (lead.collaborators).map((u) => (typeof u === 'string' ? u : u?.name || '')).filter(Boolean)
+                : [],
         status: lead.status || '',
         source: lead.source || 'Website',
         createdAt: lead.createdAt ? new Date(lead.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
       }));
       
       setLeads(mappedLeads);
-      setTotalPages(response.data?.totalPages || response.totalPages || 1);
-      setTotalLeads(response.data?.total || response.data?.totalLeads || response.totalLeads || mappedLeads.length);
+      const apiTotal = response.data?.total || response.data?.totalLeads || response.totalLeads;
+      const apiTotalPages = response.data?.totalPages || response.totalPages;
+      const computedTotal = typeof apiTotal === 'number' ? apiTotal : mappedLeads.length;
+      const computedPages = typeof apiTotalPages === 'number' ? apiTotalPages : Math.max(1, Math.ceil(computedTotal / pageSize));
+      setTotalLeads(computedTotal);
+      setTotalPages(computedPages);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch leads';
-      setLeadsError(errorMessage);
       
-      // Fallback to static data if API fails
-      const fallbackLeads = [
-        {
-          id: 1,
-          name: "Rajesh Kumar",
-          contact: "rajesh.kumar@email.com",
-          phone: "+91 98765 43210",
-          requirement: "3 BHK Apartment",
-          propertyType: "Residential",
-          budget: "₹50-60 Lakhs",
-          region: "Mumbai",
-          brokerName: "Amit Singh",
-          sharedWith: "Amit Singh",
-          status: "new",
-          source: "Website",
-          createdAt: "2024-01-15"
-        },
-        {
-          id: 2,
-          name: "Priya Sharma",
-          contact: "priya.sharma@email.com",
-          phone: "+91 87654 32109",
-          requirement: "2 BHK Villa",
-          propertyType: "Residential",
-          budget: "₹80-90 Lakhs",
-          region: "Delhi",
-          brokerName: "Suresh Patel",
-          sharedWith: "Suresh Patel",
-          status: "contacted",
-          source: "Referral",
-          createdAt: "2024-01-14"
-        },
-        {
-          id: 3,
-          name: "Vikram Singh",
-          contact: "vikram.singh@email.com",
-          phone: "+91 76543 21098",
-          requirement: "Commercial Office",
-          propertyType: "Commercial",
-          budget: "₹2-3 Crores",
-          region: "Bangalore",
-          brokerName: "Me",
-          sharedWith: "Me",
-          status: "qualified",
-          source: "Advertisement",
-          createdAt: "2024-01-13"
-        },
-        {
-          id: 4,
-          name: "Anita Patel",
-          contact: "anita.patel@email.com",
-          phone: "+91 98765 12345",
-          requirement: "Buy",
-          propertyType: "Residential",
-          budget: "₹1.5 Crores",
-          region: "Pune",
-          brokerName: "Ravi Kumar",
-          sharedWith: "Ravi Kumar",
-          status: "closed",
-          source: "Website",
-          createdAt: "2024-01-12"
-        }
-      ];
-      setLeads(fallbackLeads);
-      setTotalPages(1);
-      setTotalLeads(fallbackLeads.length);
+      // Check if it's a "no data" scenario
+      if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+        setLeadsError('Data not found');
+        setLeads([]);
+        setTotalPages(1);
+        setTotalLeads(0);
+      } else {
+        setLeadsError(errorMessage);
+        // Fallback to static data if API fails for other reasons
+        const fallbackLeads = [
+          {
+            id: 1,
+            name: "Rajesh Kumar",
+            contact: "rajesh.kumar@email.com",
+            phone: "+91 98765 43210",
+            requirement: "3 BHK Apartment",
+            propertyType: "Residential",
+            budget: "₹50-60 Lakhs",
+            region: "Mumbai",
+            brokerName: "Amit Singh",
+            sharedWith: "Amit Singh",
+            status: "New",
+            source: "Website",
+            createdAt: "2024-01-15"
+          },
+          {
+            id: 2,
+            name: "Priya Sharma",
+            contact: "priya.sharma@email.com",
+            phone: "+91 87654 32109",
+            requirement: "2 BHK Villa",
+            propertyType: "Residential",
+            budget: "₹80-90 Lakhs",
+            region: "Delhi",
+            brokerName: "Suresh Patel",
+            sharedWith: "Suresh Patel",
+            status: "Assigned",
+            source: "Referral",
+            createdAt: "2024-01-14"
+          },
+          {
+            id: 3,
+            name: "Vikram Singh",
+            contact: "vikram.singh@email.com",
+            phone: "+91 76543 21098",
+            requirement: "Commercial Office",
+            propertyType: "Commercial",
+            budget: "₹2-3 Crores",
+            region: "Bangalore",
+            brokerName: "Me",
+            sharedWith: "Me",
+            status: "In Progress",
+            source: "Advertisement",
+            createdAt: "2024-01-13"
+          },
+          {
+            id: 4,
+            name: "Anita Patel",
+            contact: "anita.patel@email.com",
+            phone: "+91 98765 12345",
+            requirement: "Buy",
+            propertyType: "Residential",
+            budget: "₹1.5 Crores",
+            region: "Pune",
+            brokerName: "Ravi Kumar",
+            sharedWith: "Ravi Kumar",
+            status: "Closed",
+            source: "Website",
+            createdAt: "2024-01-12"
+          }
+        ];
+        setLeads(fallbackLeads);
+        setTotalPages(1);
+        setTotalLeads(fallbackLeads.length);
+      }
     } finally {
       setIsLoadingLeads(false);
     }
-  }, [currentPage, searchTerm, statusFilter]);
+  }, [currentPage, debouncedSearchTerm, statusFilter]);
 
-  // Fetch leads when component mounts or filters change
+  // Fetch leads when key inputs change (debounced)
   useEffect(() => {
     fetchLeads();
-  }, [fetchLeads]);
+  }, [currentPage, statusFilter, debouncedSearchTerm, fetchLeads]);
 
 
   const closeView = () => {
@@ -436,47 +506,40 @@ export default function LeadsPage() {
 
   // Visual styles per status for the new card design
   const statusStyles: Record<string, { header: string; pill: string; pillText: string; glow: string; triangle: string }> = {
-    new: {
+    'New': {
       header: 'from-slate-900 to-slate-800',
       pill: 'bg-teal-100',
       pillText: 'text-teal-700',
       glow: 'shadow-[0_10px_30px_-10px_rgba(13,148,136,0.6)]',
       triangle: 'border-b-teal-400'
     },
-    contacted: {
+    'Assigned': {
       header: 'from-slate-900 to-slate-800',
       pill: 'bg-emerald-100',
       pillText: 'text-emerald-700',
       glow: 'shadow-[0_10px_30px_-10px_rgba(16,185,129,0.55)]',
       triangle: 'border-b-emerald-400'
     },
-    qualified: {
+    'In Progress': {
+      header: 'from-slate-900 to-slate-800',
+      pill: 'bg-blue-100',
+      pillText: 'text-blue-700',
+      glow: 'shadow-[0_10px_30px_-10px_rgba(59,130,246,0.55)]',
+      triangle: 'border-b-blue-400'
+    },
+    'Closed': {
       header: 'from-slate-900 to-slate-800',
       pill: 'bg-green-100',
       pillText: 'text-green-700',
       glow: 'shadow-[0_10px_30px_-10px_rgba(34,197,94,0.55)]',
       triangle: 'border-b-green-400'
     },
-    converted: {
-      header: 'from-slate-900 to-slate-800',
-      pill: 'bg-amber-100',
-      pillText: 'text-amber-700',
-      glow: 'shadow-[0_10px_30px_-10px_rgba(245,158,11,0.55)]',
-      triangle: 'border-b-amber-400'
-    },
-    lost: {
+    'Rejected': {
       header: 'from-slate-900 to-slate-800',
       pill: 'bg-rose-100',
       pillText: 'text-rose-700',
       glow: 'shadow-[0_10px_30px_-10px_rgba(244,63,94,0.4)]',
       triangle: 'border-b-rose-400'
-    },
-    closed: {
-      header: 'from-slate-900 to-slate-800',
-      pill: 'bg-gray-100',
-      pillText: 'text-gray-700',
-      glow: 'shadow-[0_10px_30px_-10px_rgba(107,114,128,0.4)]',
-      triangle: 'border-b-gray-400'
     }
   };
 
@@ -527,24 +590,11 @@ export default function LeadsPage() {
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                   >
                     <option value="all">All Status</option>
-                    {isLoadingStatuses ? (
-                      <option disabled>Loading statuses...</option>
-                    ) : uniqueStatuses.length > 0 ? (
-                      uniqueStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))
-                    ) : (
-                      <>
-                    <option value="New">New</option>
-                    <option value="Contacted">Contacted</option>
-                    <option value="Qualified">Qualified</option>
-                    <option value="Converted">Converted</option>
-                    <option value="Closed">Closed</option>
-                    <option value="Lost">Lost</option>
-                      </>
-                    )}
+                    {uniqueStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -565,75 +615,92 @@ export default function LeadsPage() {
               </div>
 
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                {/* Total Leads Card */}
-                <div className="bg-white rounded-lg p-6 border border-gray-200 border-l-4 border-l-blue-500">
-                  <div className="text-left">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+                {/* Total Leads */}
+                <div className="relative rounded-xl border border-teal-200 bg-teal-50/40 p-4">
+                  <div>
                     {isLoadingStats ? (
                       <div className="animate-pulse">
-                        <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
-                        <div className="h-4 bg-gray-200 rounded w-24"></div>
+                        <div className="h-7 bg-teal-100 rounded w-16 mb-2"></div>
+                        <div className="h-3 bg-teal-100 rounded w-28"></div>
                       </div>
                     ) : statsError ? (
-                      <div>
-                        <p className="text-3xl font-bold text-red-500">--</p>
-                        <p className="text-gray-600 text-sm font-medium mb-2">Total Leads</p>
-                        <p className="text-xs text-red-500">Error loading data</p>
-                      </div>
+                      <>
+                        <div className="text-2xl font-bold text-gray-900">--</div>
+                        <div className="text-[12px] font-medium text-gray-500 mt-1">Total Leads</div>
+                        <div className="text-[11px] text-red-500 mt-1">Error loading data</div>
+                      </>
                     ) : (
                       <>
-                        <p className="text-3xl font-bold text-gray-900">{leadsStats.totalLeads}</p>
-                        <p className="text-gray-600 text-sm font-medium mb-2">Total Leads</p>
+                        <div className="text-[12px] font-semibold text-teal-700">Total Leads</div>
+                        <div className="mt-1 flex justify-between gap-2">
+                          <div className="text-2xl font-extrabold text-teal-700">{leadsStats.totalLeads}</div>
+                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-600  ">
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m8-4a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                          </div>
+                        </div>
                       </>
                     )}
                   </div>
                 </div>
 
-                {/* New Leads Today Card */}
-                <div className="bg-white rounded-lg p-6 border border-gray-200 border-l-4 border-l-orange-500">
-                  <div className="text-left">
+                {/* New Leads Today */}
+                <div className="relative rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+                  <div>
                     {isLoadingStats ? (
                       <div className="animate-pulse">
-                        <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
-                        <div className="h-4 bg-gray-200 rounded w-24"></div>
+                        <div className="h-7 bg-emerald-100 rounded w-16 mb-2"></div>
+                        <div className="h-3 bg-emerald-100 rounded w-28"></div>
                       </div>
                     ) : statsError ? (
-                      <div>
-                        <p className="text-3xl font-bold text-red-500">--</p>
-                        <p className="text-gray-600 text-sm font-medium mb-2">New Leads Today</p>
-                        <p className="text-xs text-red-500">Error loading data</p>
-                      </div>
+                      <>
+                        <div className="text-2xl font-bold text-gray-900">--</div>
+                        <div className="text-[12px] font-medium text-gray-500 mt-1">New Leads Today</div>
+                        <div className="text-[11px] text-red-500 mt-1">Error loading data</div>
+                      </>
                     ) : (
                       <>
-                        <p className="text-3xl font-bold text-gray-900">{leadsStats.newLeadsToday}</p>
-                        <p className="text-gray-600 text-sm font-medium mb-2">New Leads Today</p>
+                        <div className="text-[12px] font-semibold text-emerald-700">New Leads Today</div>
+                        <div className="mt-1 flex justify-between gap-2">
+                          <div className="text-2xl font-extrabold text-emerald-700">{leadsStats.newLeadsToday}</div>
+                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 ">
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
+                          </div>
+                        </div>
                       </>
                     )}
                   </div>
                 </div>
 
-                {/* Converted Leads Card */}
-                <div className="bg-white rounded-lg p-6 border border-gray-200 border-l-4 border-l-green-500">
-                  <div className="text-left">
-                    {isLoadingStats ? (
-                      <div className="animate-pulse">
-                        <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
-                        <div className="h-4 bg-gray-200 rounded w-24"></div>
+                {/* Converted Leads */}
+                {/* <div className="relative rounded-xl border border-rose-200 bg-rose-50/40 p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      {isLoadingStats ? (
+                        <div className="animate-pulse">
+                          <div className="h-7 bg-rose-100 rounded w-16 mb-2"></div>
+                          <div className="h-3 bg-rose-100 rounded w-28"></div>
+                        </div>
+                      ) : statsError ? (
+                        <>
+                          <div className="text-2xl font-bold text-gray-900">--</div>
+                          <div className="text-[12px] font-medium text-gray-500 mt-1">Converted Leads</div>
+                          <div className="text-[11px] text-red-500 mt-1">Error loading data</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-2xl font-extrabold text-gray-900">{leadsStats.convertedLeads}</div>
+                          <div className="text-[12px] font-semibold text-rose-700 mt-1">Converted Leads</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="shrink-0">
+                      <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white text-rose-600 border border-rose-200">
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728"/></svg>
                       </div>
-                    ) : statsError ? (
-                      <div>
-                        <p className="text-3xl font-bold text-red-500">--</p>
-                        <p className="text-gray-600 text-sm font-medium mb-2">Converted Leads</p>
-                        <p className="text-xs text-red-500">Error loading data</p>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-3xl font-bold text-gray-900">{leadsStats.convertedLeads}</p>
-                        <p className="text-gray-600 text-sm font-medium mb-2">Converted Leads</p>
-                      </>
-                    )}
+                    </div>
                   </div>
-                </div>
+                </div> */}
               </div>
 
               
@@ -688,17 +755,29 @@ export default function LeadsPage() {
                   </div>
                 ) : leadsError ? (
                   <div className="text-center py-12">
-                    <svg className="w-16 h-16 text-red-300 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                    <p className="text-lg font-medium text-red-500">Error loading leads</p>
-                    <p className="text-sm text-red-400">{leadsError}</p>
-                    <button 
-                      onClick={fetchLeads}
-                      className="mt-4 px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700"
-                    >
-                      Try Again
-                    </button>
+                    {leadsError === 'Data not found' ? (
+                      <>
+                        <svg className="w-16 h-16 text-gray-300 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="text-lg font-medium text-gray-500">Data not found</p>
+                        <p className="text-sm text-gray-400">No leads available for the selected criteria</p>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-16 h-16 text-red-300 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <p className="text-lg font-medium text-red-500">Error loading leads</p>
+                        <p className="text-sm text-red-400">{leadsError}</p>
+                        <button 
+                          onClick={fetchLeads}
+                          className="mt-4 px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-md hover:bg-teal-700"
+                        >
+                          Try Again
+                        </button>
+                      </>
+                    )}
                   </div>
                 ) : filteredLeads.length === 0 ? (
                   <div className="text-center py-12">
@@ -736,15 +815,15 @@ export default function LeadsPage() {
                             className="text-white text-[10px] font-bold px-3.5 py-1.5 relative"
                             style={{
                               background:
-                                lead.status?.toLowerCase() === 'new'
+                                lead.status === 'New'
                                   ? 'linear-gradient(90deg, #f59e0b 0%, #dc2626 100%)'
-                                  : lead.status?.toLowerCase() === 'contacted'
+                                  : lead.status === 'Assigned'
                                   ? 'linear-gradient(90deg, #3b82f6 0%, #1e40af 100%)'
-                                  : lead.status?.toLowerCase() === 'qualified'
-                                  ? 'linear-gradient(90deg, #f59e0b 0%, #dc2626 100%)'
-                                  : lead.status?.toLowerCase() === 'converted'
+                                  : lead.status === 'In Progress'
+                                  ? 'linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%)'
+                                  : lead.status === 'Closed'
                                   ? 'linear-gradient(90deg, #10b981 0%, #047857 100%)'
-                                  : lead.status?.toLowerCase() === 'lost'
+                                  : lead.status === 'Rejected'
                                   ? 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)'
                                   : 'linear-gradient(90deg, #f59e0b 0%, #dc2626 100%)',
                               minWidth: '60px',
@@ -756,7 +835,7 @@ export default function LeadsPage() {
                               borderBottomLeftRadius: '6px'
                             }}
                           >
-                            {(lead.status || 'new').toUpperCase()}
+                            {(lead.status || 'New').toUpperCase()}
                           </div>
                         </div>
 
@@ -808,17 +887,17 @@ export default function LeadsPage() {
                               <div className="text-[10px] tracking-wide text-gray-500 uppercase">Shared With</div>
                               <div className="mt-2 flex items-center justify-between">
                                 <div className="flex -space-x-2">
-                                  <img
-                                    className="w-7 h-7 rounded-full ring-2 ring-white bg-gray-200 object-cover"
-                                    src="https://www.w3schools.com/howto/img_avatar.png"
-                                    alt={lead.sharedWith}
-                                    title={lead.sharedWith}
-                                    referrerPolicy="no-referrer"
-                                  />
-                                  <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={'+1 more'}>
-                                    +1
-                          </div>
-                        </div>
+                                  {(lead.sharedWithList || []).slice(0, 2).map((name, idx) => (
+                                    <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-gray-100 border border-gray-200 flex items-center justify-center text-[11px] font-semibold text-gray-800" title={name}>
+                                      {name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                                    </div>
+                                  ))}
+                                  {(lead.sharedWithList && lead.sharedWithList.length > 2) && (
+                                    <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={`+${(lead.sharedWithList.length - 2)} more`}>
+                                      +{lead.sharedWithList.length - 2}
+                                    </div>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-6">
                                   <button onClick={() => { setSelectedLead(lead); setIsViewOpen(true); }} className="group flex flex-col items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -839,26 +918,63 @@ export default function LeadsPage() {
                 )}
               </div>
 
-              {/* Pagination - Below Table */}
+              {/* Pagination - Below Grid */}
                 <div className="flex items-center justify-between mt-4">
+                  {/* Range text */}
                   <div className="text-sm text-gray-700">
-                  Showing {filteredLeads.length} of {totalLeads} leads • Page {currentPage} of {totalPages}
+                    {(() => {
+                      const start = (currentPage - 1) * pageSize + 1;
+                      const end = Math.min(currentPage * pageSize, totalLeads);
+                      return `Showing ${totalLeads === 0 ? 0 : start} to ${end} of ${totalLeads} results`;
+                    })()}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1 || isLoadingLeads}
-                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+
+                  {/* Numbered pagination */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1 || isLoadingLeads}
+                      className="px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
-                    <button className="px-3 py-2 text-sm font-medium text-white bg-teal-600 border border-teal-600 rounded-md hover:bg-teal-700">
-                      {currentPage}
-                    </button>
-                    <button 
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages || isLoadingLeads}
-                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+
+                    {(() => {
+                      const pages: number[] = [];
+                      const addPage = (p: number) => { if (p >= 1 && p <= totalPages && !pages.includes(p)) pages.push(p); };
+                      addPage(1);
+                      addPage(2);
+                      for (let p = currentPage - 1; p <= currentPage + 1; p++) addPage(p);
+                      addPage(totalPages - 1);
+                      addPage(totalPages);
+                      const sorted = Array.from(new Set(pages)).sort((a,b)=>a-b);
+
+                      const nodes: React.ReactNode[] = [];
+                      let prev = 0;
+                      sorted.forEach(p => {
+                        if (prev && p - prev > 1) {
+                          nodes.push(
+                            <span key={`ellipsis-${prev}`} className="px-2 text-gray-400">…</span>
+                          );
+                        }
+                        nodes.push(
+                          <button
+                            key={p}
+                            onClick={() => setCurrentPage(p)}
+                            className={`px-3 py-2 text-sm font-medium rounded-md border ${p === currentPage ? 'text-white bg-teal-600 border-teal-600' : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'}`}
+                          >
+                            {p}
+                          </button>
+                        );
+                        prev = p;
+                      });
+                      return nodes;
+                    })()}
+
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages || isLoadingLeads}
+                      className="px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>
@@ -1252,18 +1368,7 @@ export default function LeadsPage() {
 
                       <div className="divide-y divide-gray-100">
                           <>
-                            <div className="flex items-center justify-between px-4 py-2">
-                              <div className="text-xs text-gray-600">Status:</div>
-                              <div className="text-xs"><span className="inline-flex items-center rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold px-2 py-0.5">{selectedLead.status.charAt(0).toUpperCase() + selectedLead.status.slice(1)}</span></div>
-                            </div>
-                            <div className="flex items-center justify-between px-4 py-2">
-                              <div className="text-xs text-gray-600">Name:</div>
-                              <div className="text-sm text-gray-900">{selectedLead.name}</div>
-                            </div>
-                            <div className="flex items-center justify-between px-4 py-2">
-                              <div className="text-xs text-gray-600">Phone:</div>
-                              <div className="text-sm text-gray-900">{selectedLead.phone}</div>
-                            </div>
+                            {/* Removed Status, Name, and Phone rows as requested */}
                             <div className="flex items-center justify-between px-4 py-2">
                               <div className="text-xs text-gray-600">Email:</div>
                               <div className="text-sm text-gray-900">{selectedLead.contact}</div>
@@ -1280,10 +1385,12 @@ export default function LeadsPage() {
                               <div className="text-xs text-gray-600">Primary Region:</div>
                               <div className="text-sm text-gray-900">{selectedLead.region}</div>
                             </div>
-                            <div className="px-4 py-2">
-                              <div className="text-xs text-gray-600">Secondary Region:</div>
-                              <div className="text-sm text-gray-900">{selectedLead.region}</div>
-                            </div>
+                            {selectedLead.secondaryRegion && selectedLead.secondaryRegion.toLowerCase() !== (selectedLead.region || '').toLowerCase() && (
+                              <div className="px-4 py-2">
+                                <div className="text-xs text-gray-600">Secondary Region:</div>
+                                <div className="text-sm text-gray-900">{selectedLead.secondaryRegion}</div>
+                              </div>
+                            )}
                             <div className="flex items-center justify-between px-4 py-2">
                               <div className="text-xs text-gray-600">Budget:</div>
                               <div className="text-sm text-gray-900">{selectedLead.budget}</div>
