@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
@@ -27,6 +28,7 @@ type Lead = {
   brokerName: string;
   sharedWith: string; // comma-joined for quick display/fallback
   sharedWithList?: string[]; // normalized list of names
+  sharedWithImages?: string[]; // profile images for shared with users
   status: string;
   source: string;
   createdAt: string;
@@ -65,7 +67,7 @@ type ApiLead = {
 };
 
 export default function LeadsPage() {
-  const pageSize = 10;
+  const pageSize = 9;
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -73,6 +75,7 @@ export default function LeadsPage() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  
   
   const [viewSlideIn, setViewSlideIn] = useState(false);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
@@ -114,6 +117,13 @@ export default function LeadsPage() {
   const [filterPropertyType, setFilterPropertyType] = useState('');
   const [filterMaxBudget, setFilterMaxBudget] = useState(500000);
   const [isFilterApplied, setIsFilterApplied] = useState(false);
+  // Snapshot of filters actually applied to API (prevents calls on every keystroke)
+  const [appliedFilters, setAppliedFilters] = useState<{
+    region?: string;
+    requirement?: string;
+    propertyType?: string;
+    maxBudget?: number;
+  } | undefined>(undefined);
 
 
   useEffect(() => {
@@ -127,7 +137,7 @@ export default function LeadsPage() {
 
   // Debounce search term to limit API calls while typing
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 600);
+    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 800);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
@@ -231,7 +241,7 @@ export default function LeadsPage() {
     }
   }, [leads]);
 
-  // Fetch leads data
+  // Fetch leads data (uses snapshot in appliedFilters)
   const fetchLeads = useCallback(async () => {
     try {
       setIsLoadingLeads(true);
@@ -243,10 +253,40 @@ export default function LeadsPage() {
         throw new Error('No authentication token found. Please login again.');
       }
       
-      const response = await leadsAPI.getLeads(currentPage, pageSize, debouncedSearchTerm, statusFilter);
+      // Use only applied filters snapshot for API calls
+      const apiFilters = isFilterApplied ? appliedFilters : undefined;
+
+      console.log('📡 Making API call with:', {
+        currentPage,
+        pageSize,
+        debouncedSearchTerm,
+        statusFilter,
+        apiFilters,
+        isFilterApplied
+      });
+
+      const response = await leadsAPI.getLeads(currentPage, pageSize, debouncedSearchTerm, statusFilter, apiFilters);
       
       // Map API response to our leads format
       const leadsData = response.data?.items || response.data?.leads || response.leads || response.data || [];
+      
+      console.log('📊 API Response Summary:', {
+        success: response.success,
+        message: response.message,
+        itemsCount: response.data?.items?.length || 0,
+        total: response.data?.total || 0,
+        page: response.data?.page || 1,
+        totalPages: response.data?.totalPages || 0
+      });
+      
+      // If no leads data from API, set empty array instead of fallback
+      if (!leadsData || !Array.isArray(leadsData) || leadsData.length === 0) {
+        console.log('No leads data found, setting empty array');
+        setLeads([]);
+        setTotalLeads(0);
+        setTotalPages(1);
+        return;
+      }
       
       const mappedLeads: Lead[] = (leadsData as ApiLead[]).map((lead: ApiLead, index: number) => ({
         id: lead._id || lead.id || index + 1,
@@ -290,6 +330,13 @@ export default function LeadsPage() {
               : Array.isArray(lead.collaborators)
                 ? (lead.collaborators).map((u) => (typeof u === 'string' ? u : u?.name || '')).filter(Boolean)
                 : [],
+        sharedWithImages: (Array.isArray(lead.transfers) && lead.transfers.length > 0)
+          ? (lead.transfers).map(t => (typeof t?.toBroker === 'object' && t?.toBroker && 'brokerImage' in t.toBroker ? (t.toBroker as BrokerRef).brokerImage : null)).filter((img): img is string => Boolean(img))
+          : Array.isArray(lead.sharedWith)
+            ? (lead.sharedWith).map((u) => (typeof u === 'object' && u && 'brokerImage' in u ? (u as BrokerRef).brokerImage : null)).filter((img): img is string => Boolean(img))
+            : Array.isArray(lead.collaborators)
+              ? (lead.collaborators).map((u) => (typeof u === 'object' && u && 'brokerImage' in u ? (u as BrokerRef).brokerImage : null)).filter((img): img is string => Boolean(img))
+              : [],
         status: lead.status || '',
         source: lead.source || 'Website',
         createdAt: lead.createdAt ? new Date(lead.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
@@ -313,82 +360,19 @@ export default function LeadsPage() {
         setTotalLeads(0);
       } else {
         setLeadsError(errorMessage);
-        // Fallback to static data if API fails for other reasons
-        const fallbackLeads = [
-          {
-            id: 1,
-            name: "Rajesh Kumar",
-            contact: "rajesh.kumar@email.com",
-            phone: "+91 98765 43210",
-            requirement: "3 BHK Apartment",
-            propertyType: "Residential",
-            budget: "₹50-60 Lakhs",
-            region: "Mumbai",
-            brokerName: "Amit Singh",
-            sharedWith: "Amit Singh",
-            status: "New",
-            source: "Website",
-            createdAt: "2024-01-15"
-          },
-          {
-            id: 2,
-            name: "Priya Sharma",
-            contact: "priya.sharma@email.com",
-            phone: "+91 87654 32109",
-            requirement: "2 BHK Villa",
-            propertyType: "Residential",
-            budget: "₹80-90 Lakhs",
-            region: "Delhi",
-            brokerName: "Suresh Patel",
-            sharedWith: "Suresh Patel",
-            status: "Assigned",
-            source: "Referral",
-            createdAt: "2024-01-14"
-          },
-          {
-            id: 3,
-            name: "Vikram Singh",
-            contact: "vikram.singh@email.com",
-            phone: "+91 76543 21098",
-            requirement: "Commercial Office",
-            propertyType: "Commercial",
-            budget: "₹2-3 Crores",
-            region: "Bangalore",
-            brokerName: "Me",
-            sharedWith: "Me",
-            status: "In Progress",
-            source: "Advertisement",
-            createdAt: "2024-01-13"
-          },
-          {
-            id: 4,
-            name: "Anita Patel",
-            contact: "anita.patel@email.com",
-            phone: "+91 98765 12345",
-            requirement: "Buy",
-            propertyType: "Residential",
-            budget: "₹1.5 Crores",
-            region: "Pune",
-            brokerName: "Ravi Kumar",
-            sharedWith: "Ravi Kumar",
-            status: "Closed",
-            source: "Website",
-            createdAt: "2024-01-12"
-          }
-        ];
-        setLeads(fallbackLeads);
+        setLeads([]);
         setTotalPages(1);
-        setTotalLeads(fallbackLeads.length);
+        setTotalLeads(0);
       }
     } finally {
       setIsLoadingLeads(false);
     }
-  }, [currentPage, debouncedSearchTerm, statusFilter]);
+  }, [currentPage, debouncedSearchTerm, statusFilter, isFilterApplied, appliedFilters, pageSize]);
 
   // Fetch leads when key inputs change (debounced)
   useEffect(() => {
     fetchLeads();
-  }, [currentPage, statusFilter, debouncedSearchTerm, fetchLeads]);
+  }, [fetchLeads]);
 
 
   const closeView = () => {
@@ -427,80 +411,138 @@ export default function LeadsPage() {
   };
 
   // Apply Advanced Filters
-  const applyFilters = () => {
+  const applyFilters = async () => {
+    console.log('🔍 Applying filters:', {
+      filterRegion,
+      filterRequirement,
+      filterPropertyType,
+      filterMaxBudget
+    });
+    
+    // Check if any filter is selected
+    const hasFilters = filterRegion || filterRequirement || filterPropertyType || filterMaxBudget !== 500000;
+    
+    if (!hasFilters) {
+      console.log('⚠️ No filters selected, clearing filters instead');
+      await clearFilters();
+      return;
+    }
+    
+    console.log('✅ Filters selected, applying filters...');
+    // snapshot currently selected filters
+    const snapshot = {
+      region: filterRegion || undefined,
+      requirement: filterRequirement || undefined,
+      propertyType: filterPropertyType || undefined,
+      maxBudget: filterMaxBudget !== 500000 ? filterMaxBudget : undefined,
+    };
+    setAppliedFilters(snapshot);
     setIsFilterApplied(true);
     setIsFiltersOpen(false);
+    
+    // Trigger API call with filters
+    console.log('🚀 Triggering API call with filters...');
+    await fetchLeads();
   };
 
   // Clear Advanced Filters
-  const clearFilters = () => {
+  const clearFilters = async () => {
+    console.log('🧹 Clearing all filters...');
     setFilterRegion('');
     setFilterRequirement('');
     setFilterPropertyType('');
     setFilterMaxBudget(500000);
     setIsFilterApplied(false);
+    setAppliedFilters(undefined);
     setIsFiltersOpen(false);
+    
+    // Trigger API call without filters
+    console.log('🚀 Triggering API call without filters...');
+    await fetchLeads();
   };
 
-  // Filter leads based on active tab, status filter, and advanced filters
-  const filteredLeads = leads.filter(lead => {
-    // Status filtering (client-side fallback if API doesn't handle it properly)
-    if (statusFilter !== 'all' && statusFilter !== '') {
-      const leadStatus = lead.status || '';
-      const filterStatus = statusFilter;
+  // Apply client-side filtering as fallback when server-side filtering doesn't work properly
+  const filteredLeads = leads.filter((lead) => {
+    // If no filters are applied, show all leads
+    if (!isFilterApplied) {
+      return true;
+    }
+
+    console.log('🔍 Filtering lead:', {
+      leadName: lead.name,
+      leadRegion: lead.region,
+      leadRequirement: lead.requirement,
+      leadPropertyType: lead.propertyType,
+      leadBudget: lead.budget,
+      filters: {
+        filterRegion,
+        filterRequirement,
+        filterPropertyType,
+        filterMaxBudget
+      }
+    });
+
+    // Check if any filters are selected
+    const hasRegionFilter = filterRegion && filterRegion.trim() !== '';
+    const hasRequirementFilter = filterRequirement && filterRequirement.trim() !== '';
+    const hasPropertyTypeFilter = filterPropertyType && filterPropertyType.trim() !== '';
+    const hasBudgetFilter = filterMaxBudget !== 500000;
+
+    console.log('🎯 Filter Status:', {
+      hasRegionFilter,
+      hasRequirementFilter,
+      hasPropertyTypeFilter,
+      hasBudgetFilter
+    });
+
+    // Apply region filter - MUST match if selected
+    if (hasRegionFilter) {
+      const selectedRegion = regions.find(r => r.id === filterRegion);
+      const regionName = selectedRegion?.name;
       
-      // Exact match (case sensitive)
-      if (leadStatus !== filterStatus) {
+      if (regionName && lead.region !== regionName) {
+        console.log('❌ Region filter failed:', { leadRegion: lead.region, expectedRegion: regionName });
         return false;
       }
     }
-    
-    // Advanced Filters (only apply if filters are applied)
-    if (isFilterApplied) {
-      // Region filter
-      if (filterRegion && filterRegion !== 'All Regions') {
-        const leadRegion = lead.region?.toLowerCase() || '';
-        const selectedRegion = regions.find(r => r.id === filterRegion);
-        if (selectedRegion && !leadRegion.includes(selectedRegion.name.toLowerCase())) {
-          return false;
-        }
-      }
-      
-      // Requirement filter
-      if (filterRequirement && filterRequirement !== 'All Requirements') {
-        const leadRequirement = lead.requirement?.toLowerCase() || '';
-        if (leadRequirement !== filterRequirement.toLowerCase()) {
-          return false;
-        }
-      }
-      
-      // Property Type filter
-      if (filterPropertyType && filterPropertyType !== 'All Property Types') {
-        const leadPropertyType = lead.propertyType?.toLowerCase() || '';
-        if (leadPropertyType !== filterPropertyType.toLowerCase()) {
-          return false;
-        }
-      }
-      
-      // Budget filter
-      if (filterMaxBudget < 20000000) { // Only apply if not max value
-        const leadBudget = lead.budget || 'Not specified';
-        if (leadBudget !== 'Not specified') {
-          // Extract numeric value from budget string (e.g., "₹50,000" -> 50000)
-          const budgetMatch = leadBudget.match(/₹?([\d,]+)/);
-          if (budgetMatch) {
-            const budgetValue = parseInt(budgetMatch[1].replace(/,/g, ''));
-            if (budgetValue > filterMaxBudget) {
-              return false;
-            }
-          }
-        }
+
+    // Apply requirement filter - MUST match if selected
+    if (hasRequirementFilter && lead.requirement !== filterRequirement) {
+      console.log('❌ Requirement filter failed:', { leadRequirement: lead.requirement, expectedRequirement: filterRequirement });
+      return false;
+    }
+
+    // Apply property type filter - MUST match if selected
+    if (hasPropertyTypeFilter && lead.propertyType !== filterPropertyType) {
+      console.log('❌ Property type filter failed:', { leadPropertyType: lead.propertyType, expectedPropertyType: filterPropertyType });
+      return false;
+    }
+
+    // Apply budget filter - MUST be within budget if selected
+    if (hasBudgetFilter) {
+      // Extract numeric value from budget string (e.g., "₹50,000" -> 50000)
+      const budgetValue = lead.budget.replace(/[₹,]/g, '');
+      const numericBudget = parseInt(budgetValue) || 0;
+      if (numericBudget > filterMaxBudget) {
+        console.log('❌ Budget filter failed:', { leadBudget: numericBudget, maxBudget: filterMaxBudget });
+        return false;
       }
     }
-    
-    // For now, show all leads regardless of tab since we don't have proper sharedWith logic
-    // TODO: Implement proper lead ownership/sharing logic based on your business requirements
+
+    console.log('✅ Lead passed all filters');
     return true;
+  });
+
+  console.log('📊 Filter Results:', {
+    totalLeads: leads.length,
+    filteredLeads: filteredLeads.length,
+    isFilterApplied,
+    filters: {
+      filterRegion,
+      filterRequirement,
+      filterPropertyType,
+      filterMaxBudget
+    }
   });
 
 
@@ -617,12 +659,12 @@ export default function LeadsPage() {
               {/* Stats Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
                 {/* Total Leads */}
-                <div className="relative rounded-xl border border-teal-200 bg-teal-50/40 p-4">
+                <div className="relative rounded-xl border border-blue-200 bg-blue-50/40 p-4">
                   <div>
                     {isLoadingStats ? (
                       <div className="animate-pulse">
-                        <div className="h-7 bg-teal-100 rounded w-16 mb-2"></div>
-                        <div className="h-3 bg-teal-100 rounded w-28"></div>
+                        <div className="h-7 bg-blue-100 rounded w-16 mb-2"></div>
+                        <div className="h-3 bg-blue-100 rounded w-28"></div>
                       </div>
                     ) : statsError ? (
                       <>
@@ -632,10 +674,10 @@ export default function LeadsPage() {
                       </>
                     ) : (
                       <>
-                        <div className="text-[12px] font-semibold text-teal-700">Total Leads</div>
+                        <div className="text-[12px] font-semibold text-blue-700">Total Leads</div>
                         <div className="mt-1 flex justify-between gap-2">
-                          <div className="text-2xl font-extrabold text-teal-700">{leadsStats.totalLeads}</div>
-                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 text-teal-600  ">
+                          <div className="text-2xl font-extrabold text-blue-700">{leadsStats.totalLeads}</div>
+                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600  ">
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m8-4a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                           </div>
                         </div>
@@ -645,12 +687,12 @@ export default function LeadsPage() {
                 </div>
 
                 {/* New Leads Today */}
-                <div className="relative rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+                <div className="relative rounded-xl border border-green-200 bg-green-50/40 p-4">
                   <div>
                     {isLoadingStats ? (
                       <div className="animate-pulse">
-                        <div className="h-7 bg-emerald-100 rounded w-16 mb-2"></div>
-                        <div className="h-3 bg-emerald-100 rounded w-28"></div>
+                        <div className="h-7 bg-green-100 rounded w-16 mb-2"></div>
+                        <div className="h-3 bg-green-100 rounded w-28"></div>
                       </div>
                     ) : statsError ? (
                       <>
@@ -660,10 +702,10 @@ export default function LeadsPage() {
                       </>
                     ) : (
                       <>
-                        <div className="text-[12px] font-semibold text-emerald-700">New Leads Today</div>
+                        <div className="text-[12px] font-semibold text-green-700">New Leads Today</div>
                         <div className="mt-1 flex justify-between gap-2">
-                          <div className="text-2xl font-extrabold text-emerald-700">{leadsStats.newLeadsToday}</div>
-                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 ">
+                          <div className="text-2xl font-extrabold text-green-700">{leadsStats.newLeadsToday}</div>
+                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 text-green-600 ">
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg>
                           </div>
                         </div>
@@ -710,6 +752,7 @@ export default function LeadsPage() {
             
 
           
+
               {/* Leads Cards */}
               <div className="bg-transparent">
                 {isLoadingLeads ? (
@@ -878,7 +921,12 @@ export default function LeadsPage() {
                           </div>
                             <div>
                               <div className="text-[10px] tracking-wide text-gray-500 uppercase">Region(s)</div>
-                              <div className="mt-0.5 text-gray-900 text-sm">{lead.region}</div>
+                              <div className="mt-0.5 text-gray-900 text-sm">
+                                {lead.region}
+                                {lead.secondaryRegion && lead.secondaryRegion.toLowerCase() !== (lead.region || '').toLowerCase() && (
+                                  <div className="text-xs text-gray-600 mt-1">{lead.secondaryRegion}</div>
+                                )}
+                              </div>
                           </div>
 
                             <div className="col-span-2 h-px bg-gray-100" />
@@ -886,16 +934,46 @@ export default function LeadsPage() {
                             <div className="col-span-2">
                               <div className="text-[10px] tracking-wide text-gray-500 uppercase">Shared With</div>
                               <div className="mt-2 flex items-center justify-between">
-                                <div className="flex -space-x-2">
-                                  {(lead.sharedWithList || []).slice(0, 2).map((name, idx) => (
-                                    <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-gray-100 border border-gray-200 flex items-center justify-center text-[11px] font-semibold text-gray-800" title={name}>
-                                      {name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                                <div className="flex items-center gap-2">
+                                  {lead.sharedWith && lead.sharedWith.trim() ? (
+                                    <div className="flex -space-x-2">
+                                      {lead.sharedWith.split(',').slice(0, 2).map((name, idx) => {
+                                        const trimmedName = name.trim();
+                                        const hasImage = lead.sharedWithImages && lead.sharedWithImages[idx];
+                                        return (
+                                          <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center overflow-hidden" title={trimmedName}>
+                                            {hasImage ? (
+                                              <img 
+                                                src={lead.sharedWithImages![idx]} 
+                                                alt={trimmedName}
+                                                className="w-full h-full object-cover rounded-full"
+                                                onError={(e) => {
+                                                  // Fallback to initials if image fails to load
+                                                  const target = e.target as HTMLImageElement;
+                                                  target.style.display = 'none';
+                                                  const parent = target.parentElement;
+                                                  if (parent) {
+                                                    parent.innerHTML = trimmedName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+                                                    parent.className = 'w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center text-[11px] font-semibold text-blue-800';
+                                                  }
+                                                }}
+                                              />
+                                            ) : (
+                                              <span className="text-[11px] font-semibold text-blue-800">
+                                                {trimmedName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                      {lead.sharedWith.split(',').length > 2 && (
+                                        <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={`+${lead.sharedWith.split(',').length - 2} more`}>
+                                          +{lead.sharedWith.split(',').length - 2}
+                                        </div>
+                                      )}
                                     </div>
-                                  ))}
-                                  {(lead.sharedWithList && lead.sharedWithList.length > 2) && (
-                                    <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={`+${(lead.sharedWithList.length - 2)} more`}>
-                                      +{lead.sharedWithList.length - 2}
-                                    </div>
+                                  ) : (
+                                    <div className="text-xs text-gray-400 italic">Not shared</div>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-6">
@@ -1107,7 +1185,7 @@ export default function LeadsPage() {
                             ) : (
                               regions.map((region) => (
                                 <option key={region.id} value={region.id}>
-                                  {region.name} - {region.city}, {region.state}
+                                  {region.name}
                                 </option>
                               ))
                             )}
@@ -1129,7 +1207,7 @@ export default function LeadsPage() {
                             ) : (
                               regions.map((region) => (
                                 <option key={region.id} value={region.id}>
-                                  {region.name} - {region.city}, {region.state}
+                                  {region.name}
                                 </option>
                               ))
                             )}
@@ -1200,7 +1278,7 @@ export default function LeadsPage() {
                           ) : (
                             regions.map((region) => (
                               <option key={region.id} value={region.id}>
-                                {region.name} - {region.city}, {region.state}
+                                {region.name}
                               </option>
                             ))
                           )}
@@ -1291,7 +1369,7 @@ export default function LeadsPage() {
                   </div>
 
                   {/* Footer */}
-                  <div className="px-5 py-4 border-t border-gray-200 flex items-center justify-between">
+                  <div className="px-5 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
                     <button 
                       type="button" 
                       onClick={clearFilters}
@@ -1332,86 +1410,200 @@ export default function LeadsPage() {
               </div>
               
               {/* Scrollable Content */}
-              <div className="h-[calc(100%-57px)] overflow-y-auto">
-                  {/* Summary Card */}
-                  <div className="px-5 pt-4">
-                    <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
+              <div className="h-[calc(100%-57px)] overflow-y-auto bg-gray-50 p-4">
+                {/* Customer Summary Card */}
+                <div className="mb-4">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center mr-3">
-                          <span className="text-sm font-semibold text-teal-700">
+                        <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                          <span className="text-lg font-bold text-blue-700">
                             {selectedLead.name.split(' ').map((n: string) => n[0]).join('')}
                           </span>
                         </div>
                         <div>
-                          <div className="text-sm font-semibold text-gray-900">{selectedLead.name}</div>
-                          <div className="text-xs text-gray-500">{selectedLead.phone}</div>
+                          <div className="text-lg font-bold text-gray-900">{selectedLead.name}</div>
+                          <div className="text-sm text-gray-600">{selectedLead.phone}</div>
                         </div>
                       </div>
-                      <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold px-2 py-0.5">
+                      <span className="inline-flex items-center rounded-full bg-teal-100 text-teal-700 text-sm  px-3 py-1">
                         {selectedLead.status.charAt(0).toUpperCase() + selectedLead.status.slice(1)}
                       </span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Customer Information */}
-                  <div className="px-5 py-4">
-                    <div className="rounded-lg border border-gray-200 bg-white">
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                          <h3 className="text-sm font-semibold text-gray-900">Customer Information</h3>
-                        </div>
-                        
+                {/* Customer Information Card */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <h3 className="text-lg font-bold text-gray-900">Customer Information</h3>
+                    </div>
+                    {/* Edit button removed as requested */}
+                  </div>
+
+                  <div className="divide-y divide-gray-100">
+                    <div className="flex items-center px-4 py-3">
+                      <div className="w-4 h-4 mr-3 text-gray-400">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
                       </div>
+                      <div className="text-sm text-gray-500">Status:</div>
+                      <div className="ml-auto">
+                        <span className="inline-flex items-center rounded-full bg-teal-100 text-teal-700 text-sm font-semibold px-2 py-1">
+                          {selectedLead.status.charAt(0).toUpperCase() + selectedLead.status.slice(1)}
+                        </span>
+                      </div>
+                    </div>
 
+                    <div className="flex items-center px-4 py-3">
+                      <div className="w-4 h-4 mr-3 text-gray-400">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-gray-500">Name:</div>
+                      <div className="ml-auto text-sm text-gray-900">{selectedLead.name}</div>
+                    </div>
+
+                    <div className="flex items-center px-4 py-3">
+                      <div className="w-4 h-4 mr-3 text-gray-400">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-gray-500">Phone:</div>
+                      <div className="ml-auto text-sm text-gray-900">{selectedLead.phone}</div>
+                    </div>
+
+                    <div className="flex items-center px-4 py-3">
+                      <div className="w-4 h-4 mr-3 text-gray-400">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-gray-500">Email:</div>
+                      <div className="ml-auto text-sm text-gray-900">{selectedLead.contact}</div>
+                    </div>
+
+                    <div className="flex items-center px-4 py-3">
+                      <div className="w-4 h-4 mr-3 text-gray-400">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-gray-500">Requirement:</div>
+                      <div className="ml-auto text-sm text-gray-900">{selectedLead.requirement}</div>
+                    </div>
+
+                    <div className="flex items-center px-4 py-3">
+                      <div className="w-4 h-4 mr-3 text-gray-400">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-gray-500">Property Type:</div>
+                      <div className="ml-auto text-sm text-gray-900">{selectedLead.propertyType || 'Residential'}</div>
+                    </div>
+
+                    <div className="flex items-center px-4 py-3">
+                      <div className="w-4 h-4 mr-3 text-gray-400">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-gray-500">Primary Region:</div>
+                      <div className="ml-auto text-sm text-gray-900">{selectedLead.region}</div>
+                    </div>
+
+                    {selectedLead.secondaryRegion && selectedLead.secondaryRegion.toLowerCase() !== (selectedLead.region || '').toLowerCase() && (
+                      <div className="flex items-center px-4 py-3">
+                        <div className="w-4 h-4 mr-3 text-gray-400">
+                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </div>
+                        <div className="text-sm text-gray-500">Secondary Region:</div>
+                        <div className="ml-auto text-sm text-gray-900">{selectedLead.secondaryRegion}</div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center px-4 py-3">
+                      <div className="w-4 h-4 mr-3 text-gray-400">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                      </div>
+                      <div className="text-sm text-gray-500">Budget:</div>
+                      <div className="ml-auto text-sm text-gray-900">{selectedLead.budget}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Share History - Only show if there's actual shared with data */}
+                {selectedLead.sharedWith && selectedLead.sharedWith.trim() && (
+                  <div className="mt-4">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                        </svg>
+                        <h3 className="text-lg font-bold text-gray-900">Share History</h3>
+                      </div>
+                      
                       <div className="divide-y divide-gray-100">
-                          <>
-                            {/* Removed Status, Name, and Phone rows as requested */}
-                            <div className="flex items-center justify-between px-4 py-2">
-                              <div className="text-xs text-gray-600">Email:</div>
-                              <div className="text-sm text-gray-900">{selectedLead.contact}</div>
-                            </div>
-                            <div className="flex items-center justify-between px-4 py-2">
-                              <div className="text-xs text-gray-600">Requirement:</div>
-                              <div className="text-sm text-gray-900">{selectedLead.requirement}</div>
-                            </div>
-                            <div className="flex items-center justify-between px-4 py-2">
-                              <div className="text-xs text-gray-600">Property Type:</div>
-                              <div className="text-sm text-gray-900">{selectedLead.propertyType || 'Residential'}</div>
-                            </div>
-                            <div className="px-4 py-2">
-                              <div className="text-xs text-gray-600">Primary Region:</div>
-                              <div className="text-sm text-gray-900">{selectedLead.region}</div>
-                            </div>
-                            {selectedLead.secondaryRegion && selectedLead.secondaryRegion.toLowerCase() !== (selectedLead.region || '').toLowerCase() && (
-                              <div className="px-4 py-2">
-                                <div className="text-xs text-gray-600">Secondary Region:</div>
-                                <div className="text-sm text-gray-900">{selectedLead.secondaryRegion}</div>
+                        {selectedLead.sharedWith.split(',').map((name, idx) => {
+                          const trimmedName = name.trim();
+                          const hasImage = selectedLead.sharedWithImages && selectedLead.sharedWithImages[idx];
+                          const avatarColors = ['bg-blue-100', 'bg-green-100', 'bg-purple-100', 'bg-yellow-100', 'bg-pink-100'];
+                          const textColors = ['text-blue-600', 'text-green-600', 'text-purple-600', 'text-yellow-600', 'text-pink-600'];
+                          const colorIndex = idx % avatarColors.length;
+                          
+                          return (
+                            <div key={idx} className="flex items-center justify-between px-4 py-3">
+                              <div className="flex items-center">
+                                <div className={`w-8 h-8 rounded-full ${avatarColors[colorIndex]} flex items-center justify-center mr-3`}>
+                                  {hasImage ? (
+                                    <img 
+                                      src={selectedLead.sharedWithImages![idx]} 
+                                      alt={trimmedName}
+                                      className="w-full h-full object-cover rounded-full"
+                                      onError={(e) => {
+                                        // Fallback to initials if image fails to load
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                        const parent = target.parentElement;
+                                        if (parent) {
+                                          parent.innerHTML = trimmedName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+                                          parent.className = `w-8 h-8 rounded-full ${avatarColors[colorIndex]} flex items-center justify-center mr-3 text-sm font-semibold ${textColors[colorIndex]}`;
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    <span className={`text-sm font-semibold ${textColors[colorIndex]}`}>
+                                      {trimmedName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                                    </span>
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">{trimmedName}</div>
+                                  <div className="text-xs text-gray-500">Shared with {selectedLead.brokerName}</div>
+                                </div>
                               </div>
-                            )}
-                            <div className="flex items-center justify-between px-4 py-2">
-                              <div className="text-xs text-gray-600">Budget:</div>
-                              <div className="text-sm text-gray-900">{selectedLead.budget}</div>
+                              {/* Delete button removed as requested */}
                             </div>
-                          </>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
-
-                  {/* Share History */}
-                  <div className="px-5 pb-5">
-                    <div className="rounded-lg border border-gray-200 bg-white">
-                      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
-                        <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v5" />
-                    </svg>
-                        <h3 className="text-sm font-semibold text-gray-900">Share History</h3>
-                      </div>
-                      <div className="px-4 py-3 text-sm text-gray-600">Not shared yet.</div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
