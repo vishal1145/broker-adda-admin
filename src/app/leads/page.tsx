@@ -67,6 +67,7 @@ type ApiLead = {
 };
 
 export default function LeadsPage() {
+  const DEFAULT_AVATAR = 'https://www.w3schools.com/howto/img_avatar.png';
   const pageSize = 9;
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -948,30 +949,22 @@ export default function LeadsPage() {
                                     <div className="flex -space-x-2">
                                       {lead.sharedWith.split(',').slice(0, 2).map((name, idx) => {
                                         const trimmedName = name.trim();
-                                        const hasImage = lead.sharedWithImages && lead.sharedWithImages[idx];
+                                        const candidate = lead.sharedWithImages && lead.sharedWithImages[idx];
+                                        const imgSrc = candidate && candidate.trim() ? candidate : DEFAULT_AVATAR;
                                         return (
                                           <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center overflow-hidden" title={trimmedName}>
-                                            {hasImage ? (
-                                              <img 
-                                                src={lead.sharedWithImages![idx]} 
-                                                alt={trimmedName}
-                                                className="w-full h-full object-cover rounded-full"
-                                                onError={(e) => {
-                                                  // Fallback to initials if image fails to load
-                                                  const target = e.target as HTMLImageElement;
-                                                  target.style.display = 'none';
-                                                  const parent = target.parentElement;
-                                                  if (parent) {
-                                                    parent.innerHTML = trimmedName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-                                                    parent.className = 'w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center text-[11px] font-semibold text-blue-800';
-                                                  }
-                                                }}
-                                              />
-                                            ) : (
-                                              <span className="text-[11px] font-semibold text-blue-800">
-                                                {trimmedName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
-                                              </span>
-                                            )}
+                                            <img 
+                                              src={imgSrc}
+                                              alt={trimmedName}
+                                              className="w-full h-full object-cover rounded-full"
+                                              onError={(e) => {
+                                                // Final fallback to default avatar
+                                                const target = e.target as HTMLImageElement;
+                                                if (target.src !== DEFAULT_AVATAR) {
+                                                  target.src = DEFAULT_AVATAR;
+                                                }
+                                              }}
+                                            />
                                           </div>
                                         );
                                       })}
@@ -1503,7 +1496,8 @@ export default function LeadsPage() {
                       <div className="divide-y divide-gray-100">
                         {selectedLead.sharedWith.split(',').map((name, idx) => {
                           const trimmedName = name.trim();
-                          const hasImage = selectedLead.sharedWithImages && selectedLead.sharedWithImages[idx];
+                          const candidate = selectedLead.sharedWithImages && selectedLead.sharedWithImages[idx];
+                          const imgSrc = candidate && candidate.trim() ? candidate : DEFAULT_AVATAR;
                           const avatarColors = ['bg-blue-100', 'bg-green-100', 'bg-purple-100', 'bg-yellow-100', 'bg-pink-100'];
                           const textColors = ['text-blue-600', 'text-green-600', 'text-purple-600', 'text-yellow-600', 'text-pink-600'];
                           const colorIndex = idx % avatarColors.length;
@@ -1512,27 +1506,17 @@ export default function LeadsPage() {
                             <div key={idx} className="flex items-center justify-between px-4 py-3">
                               <div className="flex items-center">
                                 <div className={`w-8 h-8 rounded-full ${avatarColors[colorIndex]} flex items-center justify-center mr-3`}>
-                                  {hasImage ? (
-                                    <img 
-                                      src={selectedLead.sharedWithImages![idx]} 
-                                      alt={trimmedName}
-                                      className="w-full h-full object-cover rounded-full"
-                                      onError={(e) => {
-                                        // Fallback to initials if image fails to load
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                        const parent = target.parentElement;
-                                        if (parent) {
-                                          parent.innerHTML = trimmedName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-                                          parent.className = `w-8 h-8 rounded-full ${avatarColors[colorIndex]} flex items-center justify-center mr-3 text-sm font-semibold ${textColors[colorIndex]}`;
-                                        }
-                                      }}
-                                    />
-                                  ) : (
-                                    <span className={`text-sm font-semibold ${textColors[colorIndex]}`}>
-                                      {trimmedName.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase()}
-                                    </span>
-                                  )}
+                                  <img 
+                                    src={imgSrc}
+                                    alt={trimmedName}
+                                    className="w-full h-full object-cover rounded-full"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      if (target.src !== DEFAULT_AVATAR) {
+                                        target.src = DEFAULT_AVATAR;
+                                      }
+                                    }}
+                                  />
                                 </div>
                                 <div>
                                   <div className="text-sm font-medium text-gray-900">{trimmedName}</div>
