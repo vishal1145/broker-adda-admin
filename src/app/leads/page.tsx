@@ -235,9 +235,9 @@ export default function LeadsPage() {
       const propertyTypes = [...new Set(leads.map(lead => lead.propertyType || '').filter(Boolean))];
       setUniquePropertyTypes(propertyTypes);
     } else {
-      // If no leads data, use fallback data for dropdowns
-      setUniqueRequirements(['Buy', 'Rent', 'All Requirements']);
-      setUniquePropertyTypes(['Residential', 'Commercial']);
+      // If no leads data, use fallback data for dropdowns (match design)
+      setUniqueRequirements(['Buy', 'Rent', 'Sell']);
+      setUniquePropertyTypes(['Residential', 'Commercial', 'Plot', 'Other']);
     }
   }, [leads]);
 
@@ -253,13 +253,8 @@ export default function LeadsPage() {
         throw new Error('No authentication token found. Please login again.');
       }
       
-      // Prepare filters object for API call
-      const apiFilters = isFilterApplied ? {
-        region: filterRegion,
-        requirement: filterRequirement,
-        propertyType: filterPropertyType,
-        maxBudget: filterMaxBudget
-      } : undefined;
+      // Use only applied filters snapshot for API calls
+      const apiFilters = isFilterApplied ? appliedFilters : undefined;
 
       console.log('📡 Making API call with:', {
         currentPage,
@@ -372,7 +367,7 @@ export default function LeadsPage() {
     } finally {
       setIsLoadingLeads(false);
     }
-  }, [currentPage, debouncedSearchTerm, statusFilter, isFilterApplied]);
+  }, [currentPage, debouncedSearchTerm, statusFilter, isFilterApplied, appliedFilters, pageSize]);
 
   // Fetch leads when key inputs change (debounced)
   useEffect(() => {
@@ -434,6 +429,14 @@ export default function LeadsPage() {
     }
     
     console.log('✅ Filters selected, applying filters...');
+    // snapshot currently selected filters
+    const snapshot = {
+      region: filterRegion || undefined,
+      requirement: filterRequirement || undefined,
+      propertyType: filterPropertyType || undefined,
+      maxBudget: filterMaxBudget !== 500000 ? filterMaxBudget : undefined,
+    };
+    setAppliedFilters(snapshot);
     setIsFilterApplied(true);
     setIsFiltersOpen(false);
     
@@ -465,25 +468,23 @@ export default function LeadsPage() {
       return true;
     }
 
+    // Use the applied snapshot to ensure strict matching
+    const active = appliedFilters || {};
+
     console.log('🔍 Filtering lead:', {
       leadName: lead.name,
       leadRegion: lead.region,
       leadRequirement: lead.requirement,
       leadPropertyType: lead.propertyType,
       leadBudget: lead.budget,
-      filters: {
-        filterRegion,
-        filterRequirement,
-        filterPropertyType,
-        filterMaxBudget
-      }
+      filters: active
     });
 
     // Check if any filters are selected
-    const hasRegionFilter = filterRegion && filterRegion.trim() !== '';
-    const hasRequirementFilter = filterRequirement && filterRequirement.trim() !== '';
-    const hasPropertyTypeFilter = filterPropertyType && filterPropertyType.trim() !== '';
-    const hasBudgetFilter = filterMaxBudget !== 500000;
+    const hasRegionFilter = Boolean(active.region && String(active.region).trim() !== '');
+    const hasRequirementFilter = Boolean(active.requirement && String(active.requirement).trim() !== '');
+    const hasPropertyTypeFilter = Boolean(active.propertyType && String(active.propertyType).trim() !== '');
+    const hasBudgetFilter = typeof active.maxBudget === 'number';
 
     console.log('🎯 Filter Status:', {
       hasRegionFilter,
@@ -494,33 +495,32 @@ export default function LeadsPage() {
 
     // Apply region filter - MUST match if selected
     if (hasRegionFilter) {
-      const selectedRegion = regions.find(r => r.id === filterRegion);
+      const selectedRegion = regions.find(r => r.id === active.region);
       const regionName = selectedRegion?.name;
-      
-      if (regionName && lead.region !== regionName) {
-        console.log('❌ Region filter failed:', { leadRegion: lead.region, expectedRegion: regionName });
+      if (regionName && (lead.region || '').toLowerCase() !== regionName.toLowerCase()) {
+        console.log('❌ Region filter failed (primary only):', { leadRegion: lead.region, expectedRegion: regionName });
         return false;
       }
     }
 
     // Apply requirement filter - MUST match if selected
-    if (hasRequirementFilter && lead.requirement !== filterRequirement) {
+    if (hasRequirementFilter && lead.requirement !== active.requirement) {
       console.log('❌ Requirement filter failed:', { leadRequirement: lead.requirement, expectedRequirement: filterRequirement });
       return false;
     }
 
     // Apply property type filter - MUST match if selected
-    if (hasPropertyTypeFilter && lead.propertyType !== filterPropertyType) {
+    if (hasPropertyTypeFilter && lead.propertyType !== active.propertyType) {
       console.log('❌ Property type filter failed:', { leadPropertyType: lead.propertyType, expectedPropertyType: filterPropertyType });
       return false;
     }
 
     // Apply budget filter - MUST be within budget if selected
-    if (hasBudgetFilter) {
+    if (hasBudgetFilter && typeof active.maxBudget === 'number') {
       // Extract numeric value from budget string (e.g., "₹50,000" -> 50000)
       const budgetValue = lead.budget.replace(/[₹,]/g, '');
       const numericBudget = parseInt(budgetValue) || 0;
-      if (numericBudget > filterMaxBudget) {
+      if (numericBudget > active.maxBudget) {
         console.log('❌ Budget filter failed:', { leadBudget: numericBudget, maxBudget: filterMaxBudget });
         return false;
       }
@@ -544,6 +544,18 @@ export default function LeadsPage() {
 
 
   // Visual styles per status for the new card design
+  // Sanitize dropdown option lists to remove placeholder values coming from API
+  const sanitizedRequirements = Array.from(new Set(
+    (uniqueRequirements || [])
+      .map((r) => (r || '').trim())
+      .filter((r) => r && !/^(select requirement|all requirements?)$/i.test(r))
+  ));
+  const sanitizedPropertyTypes = Array.from(new Set(
+    (uniquePropertyTypes || [])
+      .map((p) => (p || '').trim())
+      .filter((p) => p && !/^(all property types?)$/i.test(p))
+  ));
+
   const statusStyles: Record<string, { header: string; pill: string; pillText: string; glow: string; triangle: string }> = {
     'New': {
       header: 'from-slate-900 to-slate-800',
@@ -1116,19 +1128,11 @@ export default function LeadsPage() {
                         <div className="relative">
                           <select className="w-full appearance-none px-3 py-2 text-sm rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pr-8">
                             <option>All Requirements</option>
-                            {uniqueRequirements.length > 0 ? (
-                              uniqueRequirements.map((requirement) => (
+                          {(sanitizedRequirements.length > 0 ? sanitizedRequirements : uniqueRequirements).map((requirement) => (
                                 <option key={requirement} value={requirement}>
                                   {requirement}
                                 </option>
-                              ))
-                            ) : (
-                              <>
-                                <option>Buy</option>
-                                <option>Rent</option>
-                                <option>All Requirements</option>
-                              </>
-                            )}
+                              ))}
                           </select>
                           <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1140,20 +1144,11 @@ export default function LeadsPage() {
                         <div className="relative">
                           <select className="w-full appearance-none px-3 py-2 text-sm rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pr-8">
                             <option>All Property Types</option>
-                            {uniquePropertyTypes.length > 0 ? (
-                              uniquePropertyTypes.map((propertyType) => (
+                          {(sanitizedPropertyTypes.length > 0 ? sanitizedPropertyTypes : uniquePropertyTypes).map((propertyType) => (
                                 <option key={propertyType} value={propertyType}>
                                   {propertyType}
                                 </option>
-                              ))
-                            ) : (
-                              <>
-                            <option>Apartment</option>
-                            <option>Villa</option>
-                            <option>Plot</option>
-                            <option>Office</option>
-                              </>
-                            )}
+                              ))}
                           </select>
                           <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1296,19 +1291,11 @@ export default function LeadsPage() {
                           className="w-full appearance-none px-3 py-2 text-sm rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pr-8"
                         >
                           <option value="">All Requirements</option>
-                          {uniqueRequirements.length > 0 ? (
-                            uniqueRequirements.map((requirement) => (
+                          {(sanitizedRequirements.length > 0 ? sanitizedRequirements : uniqueRequirements).map((requirement) => (
                               <option key={requirement} value={requirement}>
                                 {requirement}
                               </option>
-                            ))
-                          ) : (
-                            <>
-                              <option>Buy</option>
-                              <option>Rent</option>
-                          <option>All Requirements</option>
-                            </>
-                          )}
+                            ))}
                         </select>
                         <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1326,20 +1313,11 @@ export default function LeadsPage() {
                           className="w-full appearance-none px-3 py-2 text-sm rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pr-8"
                         >
                           <option value="">All Property Types</option>
-                          {uniquePropertyTypes.length > 0 ? (
-                            uniquePropertyTypes.map((propertyType) => (
+                          {(sanitizedPropertyTypes.length > 0 ? sanitizedPropertyTypes : uniquePropertyTypes).map((propertyType) => (
                               <option key={propertyType} value={propertyType}>
                                 {propertyType}
                               </option>
-                            ))
-                          ) : (
-                            <>
-                          <option>Apartment</option>
-                          <option>Villa</option>
-                          <option>Plot</option>
-                          <option>Office</option>
-                            </>
-                          )}
+                            ))}
                         </select>
                         <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
