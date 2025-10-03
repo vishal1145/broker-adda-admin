@@ -253,8 +253,13 @@ export default function LeadsPage() {
         throw new Error('No authentication token found. Please login again.');
       }
       
-      // Use only applied filters snapshot for API calls
-      const apiFilters = isFilterApplied ? appliedFilters : undefined;
+      // Prepare filters object for API call
+      const apiFilters = isFilterApplied ? {
+        region: filterRegion,
+        requirement: filterRequirement,
+        propertyType: filterPropertyType,
+        maxBudget: filterMaxBudget
+      } : undefined;
 
       console.log('📡 Making API call with:', {
         currentPage,
@@ -367,7 +372,7 @@ export default function LeadsPage() {
     } finally {
       setIsLoadingLeads(false);
     }
-  }, [currentPage, debouncedSearchTerm, statusFilter, isFilterApplied, appliedFilters, pageSize]);
+  }, [currentPage, debouncedSearchTerm, statusFilter, isFilterApplied]);
 
   // Fetch leads when key inputs change (debounced)
   useEffect(() => {
@@ -429,14 +434,6 @@ export default function LeadsPage() {
     }
     
     console.log('✅ Filters selected, applying filters...');
-    // snapshot currently selected filters
-    const snapshot = {
-      region: filterRegion || undefined,
-      requirement: filterRequirement || undefined,
-      propertyType: filterPropertyType || undefined,
-      maxBudget: filterMaxBudget !== 500000 ? filterMaxBudget : undefined,
-    };
-    setAppliedFilters(snapshot);
     setIsFilterApplied(true);
     setIsFiltersOpen(false);
     
