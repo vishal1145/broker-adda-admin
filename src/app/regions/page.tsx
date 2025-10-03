@@ -522,7 +522,7 @@ export default function RegionsPage() {
       setCurrentPage(1);
       fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
       setIsSearching(false);
-    }, 500); // 500ms debounce
+    }, 800); // 800ms debounce to avoid calling API on every keystroke
 
     return () => {
       clearTimeout(timeoutId);

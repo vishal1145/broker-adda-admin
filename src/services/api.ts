@@ -32,7 +32,12 @@ export const leadsAPI = {
   },
 
   // Get all leads with pagination and filters
-  getLeads: async (page: number = 1, limit: number = 10, search: string = '', status: string = '') => {
+  getLeads: async (page: number = 1, limit: number = 10, search: string = '', status: string = '', filters?: {
+    region?: string;
+    requirement?: string;
+    propertyType?: string;
+    maxBudget?: number;
+  }) => {
     const token = localStorage.getItem('adminToken');
     if (!token) throw new Error('No authentication token found');
 
@@ -40,10 +45,18 @@ export const leadsAPI = {
       page: page.toString(),
       limit: limit.toString(),
       ...(search && { search }),
-      ...(status && status !== 'all' && { status })
+      ...(status && status !== 'all' && { status }),
+      ...(filters?.region && { regionId: filters.region }),
+      ...(filters?.requirement && { requirement: filters.requirement }),
+      ...(filters?.propertyType && { propertyType: filters.propertyType }),
+      ...(filters?.maxBudget && { budgetMax: filters.maxBudget.toString() })
     });
 
     const url = `${API_BASE_URL}/leads?${params}`;
+    
+    console.log('🌐 API Request URL:', url);
+    console.log('🔧 API Request Filters:', filters);
+    console.log('📋 API Request Params:', Object.fromEntries(params));
 
     const response = await fetch(url, {
       method: 'GET',
@@ -65,10 +78,13 @@ export const leadsAPI = {
         errorMessage = 'Access denied. You do not have permission to view leads.';
       }
       
+      console.error('❌ API Error:', response.status, errorMessage);
       throw new Error(`${errorMessage} (Status: ${response.status})`);
     }
     
-    return response.json();
+    const data = await response.json();
+    console.log('✅ API Response received:', data);
+    return data;
   }
 };
 
