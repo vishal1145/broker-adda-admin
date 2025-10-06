@@ -289,14 +289,24 @@ export default function LeadsPage() {
         return;
       }
       
-      const mappedLeads: Lead[] = (leadsData as ApiLead[]).map((lead: ApiLead, index: number) => ({
+      const mappedLeads: Lead[] = (leadsData as ApiLead[]).map((lead: ApiLead, index: number) => {
+        // Debug logging for region mapping
+        console.log('🔍 Mapping lead region:', {
+          leadId: lead._id || lead.id,
+          primaryRegion: lead.primaryRegion,
+          region: lead.region,
+          city: lead.city,
+          location: lead.location
+        });
+
+        return {
         id: lead._id || lead.id || index + 1,
         name: lead.customerName || lead.name || 'Unknown',
         contact: lead.customerEmail || lead.email || lead.contact || 'No email',
         phone: lead.customerPhone || lead.phone || lead.contactNumber || '+91 00000 00000',
         requirement: lead.requirement || 'Not specified',
         propertyType: lead.propertyType || '',
-        budget: lead.budget ? `₹${lead.budget.toLocaleString('en-IN')}` : lead.price ? `₹${lead.price.toLocaleString('en-IN')}` : 'Not specified',
+        budget: (lead.budget !== undefined && lead.budget !== null) ? `$${lead.budget.toLocaleString('en-US')}` : (lead.price !== undefined && lead.price !== null) ? `$${lead.price.toLocaleString('en-US')}` : 'Not specified',
         region:
           typeof lead.primaryRegion === 'string'
             ? lead.primaryRegion
@@ -341,7 +351,8 @@ export default function LeadsPage() {
         status: lead.status || '',
         source: lead.source || 'Website',
         createdAt: lead.createdAt ? new Date(lead.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-      }));
+        };
+      });
       
       setLeads(mappedLeads);
       const apiTotal = response.data?.total || response.data?.totalLeads || response.totalLeads;
@@ -437,6 +448,8 @@ export default function LeadsPage() {
       propertyType: filterPropertyType || undefined,
       maxBudget: filterMaxBudget !== 500000 ? filterMaxBudget : undefined,
     };
+    
+    console.log('📸 Filter snapshot:', snapshot);
     setAppliedFilters(snapshot);
     setIsFilterApplied(true);
     setIsFiltersOpen(false);
@@ -498,9 +511,19 @@ export default function LeadsPage() {
     if (hasRegionFilter) {
       const selectedRegion = regions.find(r => r.id === active.region);
       const regionName = selectedRegion?.name;
-      if (regionName && (lead.region || '').toLowerCase() !== regionName.toLowerCase()) {
-        console.log('❌ Region filter failed (primary only):', { leadRegion: lead.region, expectedRegion: regionName });
-        return false;
+      if (regionName) {
+        // Check both primary and secondary regions
+        const primaryMatches = (lead.region || '').toLowerCase() === regionName.toLowerCase();
+        const secondaryMatches = lead.secondaryRegion && (lead.secondaryRegion || '').toLowerCase() === regionName.toLowerCase();
+        
+        if (!primaryMatches && !secondaryMatches) {
+          console.log('❌ Region filter failed:', { 
+            leadRegion: lead.region, 
+            leadSecondaryRegion: lead.secondaryRegion,
+            expectedRegion: regionName 
+          });
+          return false;
+        }
       }
     }
 
@@ -518,11 +541,11 @@ export default function LeadsPage() {
 
     // Apply budget filter - MUST be within budget if selected
     if (hasBudgetFilter && typeof active.maxBudget === 'number') {
-      // Extract numeric value from budget string (e.g., "₹50,000" -> 50000)
-      const budgetValue = lead.budget.replace(/[₹,]/g, '');
+      // Extract numeric value from budget string (e.g., "$50,000" -> 50000)
+      const budgetValue = lead.budget.replace(/[$₹,]/g, '');
       const numericBudget = parseInt(budgetValue) || 0;
       if (numericBudget > active.maxBudget) {
-        console.log('❌ Budget filter failed:', { leadBudget: numericBudget, maxBudget: filterMaxBudget });
+        console.log('❌ Budget filter failed:', { leadBudget: numericBudget, maxBudget: active.maxBudget });
         return false;
       }
     }
@@ -535,6 +558,7 @@ export default function LeadsPage() {
     totalLeads: leads.length,
     filteredLeads: filteredLeads.length,
     isFilterApplied,
+    appliedFilters,
     filters: {
       filterRegion,
       filterRequirement,
@@ -1322,7 +1346,7 @@ export default function LeadsPage() {
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="block text-xs font-medium text-gray-700">Max Budget</label>
-                        <div className="text-xs font-semibold text-teal-600">₹{filterMaxBudget.toLocaleString('en-IN')}</div>
+                        <div className="text-xs font-semibold text-teal-600">${filterMaxBudget.toLocaleString('en-US')}</div>
                       </div>
                       <input
                         type="range"
