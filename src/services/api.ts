@@ -91,7 +91,7 @@ export const leadsAPI = {
 // Broker API functions
 export const brokerAPI = {
   // Get brokers with pagination and filters
-  getBrokers: async (page: number, limit: number, approvedByAdmin?: string, search?: string) => {
+  getBrokers: async (page: number, limit: number, approvedByAdmin?: string, search?: string, regionId?: string) => {
     const token = localStorage.getItem('adminToken');
     if (!token) throw new Error('No authentication token found');
 
@@ -99,7 +99,8 @@ export const brokerAPI = {
       page: page.toString(),
       limit: limit.toString(),
       ...(approvedByAdmin && { approvedByAdmin: approvedByAdmin }),
-      ...(search && { search: search })
+      ...(search && { search: search }),
+      ...(regionId && { regionId })
     });
 
     const response = await fetch(`${API_BASE_URL}/brokers?${params}`, {

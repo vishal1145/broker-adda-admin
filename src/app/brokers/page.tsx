@@ -195,16 +195,25 @@ export default function BrokersPage() {
   const showPhoneError = (newBroker.phone || '').length > 0 && (!isPhoneValid || isPhoneDuplicate);
   const isFormValid = isNameValid && isEmailValid && isPhoneValid && !isPhoneDuplicate && !isEmailDuplicate;
 
-  // Fetch brokers from API
+  // Fetch brokers from API (backend pagination; backend region and search when provided)
   const fetchBrokers = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      const effectivePage = debouncedSearchTerm ? 1 : currentPage;
-      const effectiveLimit = debouncedSearchTerm ? 1000 : 10;
+      const effectivePage = currentPage;
+      const effectiveLimit = 10;
       const approvedByAdmin = debouncedStatusFilter === 'unblocked' ? 'unblocked' : debouncedStatusFilter === 'blocked' ? 'blocked' : undefined;
-      const response = await brokerAPI.getBrokers(effectivePage, effectiveLimit, approvedByAdmin, debouncedSearchTerm ? undefined : debouncedSearchTerm);
+
+      // Choose endpoint based on region filter
+      const regionIdForQuery = (regionFilter && regionFilter !== 'all') ? regionFilter : undefined;
+      const response = await brokerAPI.getBrokers(
+        effectivePage,
+        effectiveLimit,
+        approvedByAdmin,
+        debouncedSearchTerm || '',
+        regionIdForQuery
+      );
       
       console.log('📊 API Response:', response); // Debug log
       console.log('📊 Brokers data:', response.data.brokers);
@@ -221,32 +230,18 @@ export default function BrokersPage() {
         });
       }
       
-      // Preserve membership if provided, otherwise default a label for UI
-      const brokersWithMembership = (response.data.brokers || []).map((broker: Broker, index: number) => ({
+      // Extract list from either API shape and preserve membership if provided
+      const list = response?.data?.brokers || response?.brokers || response?.data || [];
+      const brokersWithMembership = (list as Broker[]).map((broker: Broker, index: number) => ({
         ...broker,
         membership: broker.membership || (['basic', 'standard', 'premium'][index % 3] as 'basic' | 'standard' | 'premium')
       }));
       
       setBrokers(brokersWithMembership);
 
-      if (debouncedSearchTerm) {
-        const term = (debouncedSearchTerm || '').trim().toLowerCase();
-        const normalizedTerm = term.replace(/[^a-z0-9]/g, '');
-        const filtered = brokersWithMembership.filter((broker: Broker) => {
-          const nameVal = (broker.name || '').toLowerCase();
-          const firmVal = (broker.firmName || '').toLowerCase();
-          const inName = nameVal.includes(term) || nameVal.replace(/[^a-z0-9]/g, '').includes(normalizedTerm);
-          const inFirm = firmVal.includes(term) || firmVal.replace(/[^a-z0-9]/g, '').includes(normalizedTerm);
-          const matchesMembership = membershipFilter === 'all' || (broker.membership && broker.membership.toLowerCase() === membershipFilter.toLowerCase());
-          const matchesRegion = regionFilter === 'all' || (broker.region && broker.region.length > 0 && broker.region[0].name.toLowerCase().includes(regionFilter.toLowerCase()));
-          return (inName || inFirm) && matchesMembership && matchesRegion;
-        });
-        setTotalBrokers(filtered.length);
-        setTotalPages(Math.max(1, Math.ceil(filtered.length / 10)));
-      } else {
-        setTotalPages(response.data.pagination.totalPages || 1);
-        setTotalBrokers(response.data.pagination.totalBrokers || 0);
-      }
+      const pagination = response?.data?.pagination || response?.pagination || {};
+      setTotalPages(pagination.totalPages || 1);
+      setTotalBrokers(pagination.totalBrokers || (Array.isArray(list) ? list.length : 0));
       
       // Update broker statistics from API response
       if (response.data.stats) {
@@ -261,7 +256,7 @@ export default function BrokersPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedStatusFilter, debouncedSearchTerm, membershipFilter, regionFilter]);
+  }, [currentPage, debouncedStatusFilter, debouncedSearchTerm, regionFilter]);
 
   // Fetch regions for filter dropdown
   const fetchRegions = useCallback(async () => {
@@ -366,36 +361,13 @@ export default function BrokersPage() {
     }
   };
 
-  // Filter brokers based on search (client-side: name/firm only), membership and region filters
+  // Client-side filter only for membership (region and search handled by backend)
   const filteredBrokers = brokers.filter(broker => {
-    const term = (debouncedSearchTerm || '').trim().toLowerCase();
-    const normalizedTerm = term.replace(/[^a-z0-9]/g, '');
-
-    // Search filter (name and firm name only)
-    const matchesSearch = term === '' || (() => {
-      const nameVal = (broker.name || '').toLowerCase();
-      const firmVal = (broker.firmName || '').toLowerCase();
-      const inName = nameVal.includes(term) || nameVal.replace(/[^a-z0-9]/g, '').includes(normalizedTerm);
-      const inFirm = firmVal.includes(term) || firmVal.replace(/[^a-z0-9]/g, '').includes(normalizedTerm);
-      return inName || inFirm;
-    })();
-
-    // Membership filter - check actual broker membership data
-    const matchesMembership = membershipFilter === 'all' || 
-      (broker.membership && broker.membership.toLowerCase() === membershipFilter.toLowerCase());
-
-    // Region filter
-    const matchesRegion = regionFilter === 'all' || 
-      (broker.region && broker.region.length > 0 && 
-       broker.region[0].name.toLowerCase().includes(regionFilter.toLowerCase()));
-
-    return matchesSearch && matchesMembership && matchesRegion;
+    return (
+      membershipFilter === 'all' ||
+      (broker.membership && broker.membership.toLowerCase() === membershipFilter.toLowerCase())
+    );
   });
-
-  // Apply client-side pagination when searching
-  const pagedBrokers = debouncedSearchTerm
-    ? filteredBrokers.slice((currentPage - 1) * 10, currentPage * 10)
-    : filteredBrokers;
 
 
   // Fetch brokers when component mounts
@@ -580,12 +552,15 @@ export default function BrokersPage() {
             <div className="relative">
               <select
                 value={regionFilter}
-                onChange={(e) => setRegionFilter(e.target.value)}
+                onChange={(e) => {
+                  setRegionFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="w-40 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
               >
                 <option value="all">All Regions</option>
                 {regions.map((r) => (
-                  <option key={r._id} value={r.name.toLowerCase()}>
+                  <option key={r._id} value={r._id}>
                     {r.name}
                   </option>
                 ))}
@@ -828,7 +803,7 @@ export default function BrokersPage() {
 
               {/* Table Body */}
               <div className="divide-y divide-gray-200">
-                {(debouncedSearchTerm ? pagedBrokers : filteredBrokers).map((broker) => {
+                {filteredBrokers.map((broker: Broker) => {
                   return (
                     <div key={broker._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                       <div className="grid grid-cols-6 gap-4 items-center">
