@@ -76,6 +76,21 @@ interface Broker {
     nextBillingDate: string;
     amountDue: string;
   };
+  // Optional nested leads info coming from API like { leadsCreated: { count, items } }
+  leadsCreated?: {
+    count?: number;
+    items?: Array<{
+      _id?: string;
+      customerName?: string;
+      name?: string; // fallback if API uses name
+      inquiry?: string;
+      requirement?: string; // e.g., Buy/Sell/Rent
+      propertyType?: string; // e.g., Apartment/Villa/Plot
+      property?: string;
+      status?: string;
+      createdAt?: string;
+    }>;
+  };
 }
 
 export default function BrokerDetailsPage() {
@@ -265,6 +280,19 @@ export default function BrokerDetailsPage() {
     </div>
   );
 
+  // Use image URL with proxy for external URLs to avoid Next.js image domain issues
+  const getBrokerImageUrl = (brokerImage: string | undefined) => {
+    if (!brokerImage) {
+      return "https://www.w3schools.com/howto/img_avatar.png";
+    }
+    if (brokerImage.includes('broker-adda-be.algofolks.com') || 
+        brokerImage.includes('https://') || 
+        (brokerImage.includes('http://') && !brokerImage.includes('localhost'))) {
+      return `/api/image-proxy?url=${encodeURIComponent(brokerImage)}`;
+    }
+    return brokerImage;
+  };
+
   return (
     <ProtectedRoute>
       <Head>
@@ -351,7 +379,7 @@ export default function BrokerDetailsPage() {
                   {/* Profile Image */}
                   <div className="flex-shrink-0">
                     <Image
-                      src={broker.brokerImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&auto=format&q=80"}
+                      src={getBrokerImageUrl(broker.brokerImage) || "https://www.w3schools.com/howto/img_avatar.png"}
                       alt={broker.name || 'Broker'} 
                       width={80}
                       height={80}
@@ -428,7 +456,7 @@ export default function BrokerDetailsPage() {
                             </svg>
                             <p className="text-sm font-medium text-gray-500">License</p>
                           </div>
-                          <p className="text-sm font-semibold text-gray-900">{broker.licenseNumber || 'BRE #01234567'}</p>
+                          <p className="text-sm font-semibold text-gray-900">{broker.licenseNumber || 'N/A'}</p>
                         </div>
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
@@ -828,33 +856,48 @@ export default function BrokerDetailsPage() {
 
               {/* Reviews & Ratings and Performance Snapshot Section */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Active Leads */}
+                {/* Active Leads */
+                }
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                   <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Active Leads</h2>
                   
                   <div className="space-y-3">
-                    {[
-                      { id: 1, name: 'Alice Smith', inquiry: 'Buying Inquiry', property: '456 Hilltop Rd', status: 'New' },
-                      { id: 2, name: 'Bob Johnson', inquiry: 'Selling Inquiry', property: '789 Oak Ave', status: 'Follow Up' },
-                      { id: 3, name: 'Carol White', inquiry: 'Rental Inquiry', property: '101 Pine St', status: 'Qualified' },
-                      { id: 4, name: 'David Green', inquiry: 'Commercial Inquiry', property: '202 Business Park', status: 'New' }
-                    ].map((lead) => (
-                      <div key={lead.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h3 className="text-sm font-semibold text-gray-900 mb-1">{lead.name}</h3>
-                            <p className="text-sm text-gray-600">{lead.inquiry} • Property: {lead.property}</p>
+                    {(broker.leadsCreated?.items && broker.leadsCreated.items.length > 0) ? (
+                      broker.leadsCreated.items.map((lead) => {
+                        const title = lead.customerName || lead.name || 'Lead';
+                        const inquiry = lead.inquiry || 'Inquiry';
+                        const requirement = lead.requirement || '';
+                        const propertyType = lead.propertyType || '';
+                        const property = lead.property || '';
+                        const status = (lead.status || '').trim() || 'New';
+                        return (
+                          <div key={lead._id || `${title}-${inquiry}`} className="bg-white border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <h3 className="text-sm font-semibold text-gray-900 mb-1">{title}</h3>
+                                <div className="space-y-0.5">
+                                  <p className="text-sm text-gray-600">
+                                    {inquiry}
+                                    {requirement ? ` • Requirement: ${requirement}` : ''}
+                                    {propertyType ? ` • Property Type: ${propertyType}` : ''}
+                                    {property ? ` • Property: ${property}` : ''}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                                status.toLowerCase() === 'qualified' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {status}
+                              </span>
+                            </div>
                           </div>
-                          <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                            lead.status === 'Qualified' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {lead.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })
+                    ) : (
+                      <div className="text-sm text-gray-500">No active leads available.</div>
+                    )}
                   </div>
                 </div>
 

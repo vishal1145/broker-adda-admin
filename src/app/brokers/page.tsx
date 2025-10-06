@@ -45,6 +45,14 @@ interface Broker {
   state?: string;
   brokerImage?: string;
   membership?: "basic" | "standard" | "premium";
+  // Optional aggregate counts from API
+  leadCount?: number;
+  leadsCount?: number;
+  totalLeads?: number;
+  leads?: Array<unknown>;
+  propertiesCount?: number;
+  // Some APIs return nested counts like { leadsCreated: { count, items } }
+  leadsCreated?: { count?: number; items?: Array<unknown> };
 }
 
 // Skeleton Loader Components
@@ -213,7 +221,7 @@ export default function BrokersPage() {
         });
       }
       
-      // Add sample membership data for testing if not present
+      // Preserve membership if provided, otherwise default a label for UI
       const brokersWithMembership = (response.data.brokers || []).map((broker: Broker, index: number) => ({
         ...broker,
         membership: broker.membership || (['basic', 'standard', 'premium'][index % 3] as 'basic' | 'standard' | 'premium')
@@ -253,7 +261,7 @@ export default function BrokersPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedStatusFilter, debouncedSearchTerm]);
+  }, [currentPage, debouncedStatusFilter, debouncedSearchTerm, membershipFilter, regionFilter]);
 
   // Fetch regions for filter dropdown
   const fetchRegions = useCallback(async () => {
@@ -445,19 +453,42 @@ export default function BrokersPage() {
     return brokerImage;
   };
 
-  // Generate consistent sample data for demonstration
-  const getSampleData = (broker: Broker, index: number) => {
-    const sampleData = [
-      { leads: 4, properties: 2, membership: 'Premium' },
-      { leads: 8, properties: 5, membership: 'Premium' },
-      { leads: 3, properties: 7, membership: 'Standard' },
-      { leads: 9, properties: 1, membership: 'Premium' },
-      { leads: 6, properties: 4, membership: 'Standard' },
-      { leads: 2, properties: 8, membership: 'Premium' },
-      { leads: 7, properties: 3, membership: 'Standard' }
+  // Helper to derive counts from API response flexibly
+  const getLeadCount = (broker: Broker) => {
+    // Common variants the backend might use
+    const candidateValues: Array<unknown> = [
+      broker.leadCount,
+      broker.leadsCount,
+      broker.totalLeads,
+      broker.leadsCreated?.count,
+      // snake_case and other likely variants present in some APIs
+      (broker as unknown as Record<string, unknown>)?.['lead_count'],
+      (broker as unknown as Record<string, unknown>)?.['leads_count'],
+      (broker as unknown as Record<string, unknown>)?.['total_leads'],
+      (broker as unknown as { leads_created?: { count?: unknown } })?.leads_created?.count,
+      (broker as unknown as Record<string, unknown>)?.['totalLead'],
+      (broker as unknown as Record<string, unknown>)?.['totalLeadCount'],
+      (broker as unknown as Record<string, unknown>)?.['totalLeadsCount'],
+      (broker as unknown as Record<string, unknown>)?.['numberOfLeads'],
+      (broker as unknown as Record<string, unknown>)?.['leadsTotal'],
+      // nested objects if API groups stats/meta
+      (broker as unknown as { stats?: { leadCount?: unknown } })?.stats?.leadCount,
+      (broker as unknown as { meta?: { leadCount?: unknown } })?.meta?.leadCount,
+      Array.isArray((broker as unknown as { leads?: unknown[] })?.leads) ? ((broker as unknown as { leads?: unknown[] }).leads as unknown[]).length : undefined,
     ];
-    
-    return sampleData[index % sampleData.length];
+
+    for (const val of candidateValues) {
+      if (typeof val === 'number' && Number.isFinite(val)) return val;
+      if (typeof val === 'string') {
+        const parsed = parseInt(val, 10);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+    }
+    return 0;
+  };
+  const getPropertiesCount = (broker: Broker) => {
+    const count = broker.propertiesCount as number | undefined;
+    return typeof count === 'number' && !Number.isNaN(count) ? count : 0;
   };
 
 
@@ -797,8 +828,7 @@ export default function BrokersPage() {
 
               {/* Table Body */}
               <div className="divide-y divide-gray-200">
-                {(debouncedSearchTerm ? pagedBrokers : filteredBrokers).map((broker, index) => {
-                  const sampleData = getSampleData(broker, index);
+                {(debouncedSearchTerm ? pagedBrokers : filteredBrokers).map((broker) => {
                   return (
                     <div key={broker._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                       <div className="grid grid-cols-6 gap-4 items-center">
@@ -879,8 +909,8 @@ export default function BrokersPage() {
 
                         {/* Numbers Column */}
                         <div className="text-sm">
-                          <div className="capitalize text-gray-500">{sampleData.leads} leads</div>
-                          <div className="text-gray-500 text-xs capitalize">{sampleData.properties} properties</div>
+                          <div className="capitalize text-gray-500">{getLeadCount(broker)} leads</div>
+                          <div className="text-gray-500 text-xs capitalize">{getPropertiesCount(broker)} properties</div>
                         </div>
 
                         {/* Action Column */}
