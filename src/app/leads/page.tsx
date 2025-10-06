@@ -109,6 +109,9 @@ export default function LeadsPage() {
   // Dynamic options from leads data
   const [uniqueRequirements, setUniqueRequirements] = useState<string[]>([]);
   const [uniquePropertyTypes, setUniquePropertyTypes] = useState<string[]>([]);
+  // Global option caches to avoid dropdowns shrinking when API returns filtered data
+  const [allRequirements, setAllRequirements] = useState<string[]>([]);
+  const [allPropertyTypes, setAllPropertyTypes] = useState<string[]>([]);
   // Static status options - matching API requirements
   const uniqueStatuses = ['New', 'Assigned', 'In Progress', 'Closed', 'Rejected'];
 
@@ -235,10 +238,15 @@ export default function LeadsPage() {
       // Extract unique property types
       const propertyTypes = [...new Set(leads.map(lead => lead.propertyType || '').filter(Boolean))];
       setUniquePropertyTypes(propertyTypes);
+      // Update global caches (accumulate to preserve full option set across filtered fetches)
+      setAllRequirements(prev => Array.from(new Set([...(prev || []), ...requirements])));
+      setAllPropertyTypes(prev => Array.from(new Set([...(prev || []), ...propertyTypes])));
     } else {
       // If no leads data, use fallback data for dropdowns (match design)
       setUniqueRequirements(['Buy', 'Rent', 'Sell']);
       setUniquePropertyTypes(['Residential', 'Commercial', 'Plot', 'Other']);
+      setAllRequirements(prev => (prev && prev.length > 0) ? prev : ['Buy', 'Rent', 'Sell']);
+      setAllPropertyTypes(prev => (prev && prev.length > 0) ? prev : ['Residential', 'Commercial', 'Plot', 'Other']);
     }
   }, [leads]);
 
@@ -355,6 +363,13 @@ export default function LeadsPage() {
       });
       
       setLeads(mappedLeads);
+      // After setting leads, refresh global caches from the latest batch as well
+      try {
+        const batchRequirements = Array.from(new Set(mappedLeads.map(l => l.requirement).filter(Boolean)));
+        const batchPropertyTypes = Array.from(new Set(mappedLeads.map(l => l.propertyType || '').filter(Boolean)));
+        setAllRequirements(prev => Array.from(new Set([...(prev || []), ...batchRequirements])));
+        setAllPropertyTypes(prev => Array.from(new Set([...(prev || []), ...batchPropertyTypes])));
+      } catch {}
       const apiTotal = response.data?.total || response.data?.totalLeads || response.totalLeads;
       const apiTotalPages = response.data?.totalPages || response.totalPages;
       const computedTotal = typeof apiTotal === 'number' ? apiTotal : mappedLeads.length;
@@ -571,12 +586,12 @@ export default function LeadsPage() {
   // Visual styles per status for the new card design
   // Sanitize dropdown option lists to remove placeholder values coming from API
   const sanitizedRequirements = Array.from(new Set(
-    (uniqueRequirements || [])
+    ((allRequirements && allRequirements.length > 0) ? allRequirements : uniqueRequirements)
       .map((r) => (r || '').trim())
       .filter((r) => r && !/^(select requirement|all requirements?)$/i.test(r))
   ));
   const sanitizedPropertyTypes = Array.from(new Set(
-    (uniquePropertyTypes || [])
+    ((allPropertyTypes && allPropertyTypes.length > 0) ? allPropertyTypes : uniquePropertyTypes)
       .map((p) => (p || '').trim())
       .filter((p) => p && !/^(all property types?)$/i.test(p))
   ));
@@ -687,6 +702,16 @@ export default function LeadsPage() {
                   }`}>
                     Advanced Filters {isFilterApplied && '✓'}
                   </button>
+
+                  {/* Clear Filters button - only show when filters are applied */}
+                  {isFilterApplied && (
+                    <button 
+                      onClick={clearFilters}
+                      className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 transition-colors"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
                 </div>
               </div>
 
