@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { brokerAPI } from '@/services/api';
+import { brokerAPI, regionAPI } from '@/services/api';
 import ReactPaginate from 'react-paginate';
 import { toast } from 'react-hot-toast';
 
@@ -149,12 +149,15 @@ const SummaryCardsSkeleton = () => {
 
 export default function BrokersPage() {
   const [brokers, setBrokers] = useState<Broker[]>([]);
+  const [regions, setRegions] = useState<Array<{ _id: string; name: string; city?: string; state?: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [membershipFilter, setMembershipFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [debouncedStatusFilter, setDebouncedStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBrokers, setTotalBrokers] = useState(0);
@@ -171,15 +174,29 @@ export default function BrokersPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newBroker, setNewBroker] = useState({ name: '', email: '', phone: '' });
 
+  // Derived validation for Add Broker modal
+  const phoneOnlyDigits = (newBroker.phone || '').replace(/\D/g, '');
+  const isNameValid = (newBroker.name || '').trim().length >= 2;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isEmailValid = emailRegex.test((newBroker.email || '').trim());
+  const isPhoneValid = /^\d{10}$/.test(phoneOnlyDigits);
+  const isPhoneDuplicate = phoneOnlyDigits.length === 10 && brokers.some(b => (b.phone || '').replace(/\D/g, '') === phoneOnlyDigits);
+  const isEmailDuplicate = isEmailValid && brokers.some(b => (b.email || '').toLowerCase() === (newBroker.email || '').trim().toLowerCase());
+  const showNameError = (newBroker.name || '').trim().length > 0 && !isNameValid;
+  const showEmailError = (newBroker.email || '').trim().length > 0 && (!isEmailValid || isEmailDuplicate);
+  const showPhoneError = (newBroker.phone || '').length > 0 && (!isPhoneValid || isPhoneDuplicate);
+  const isFormValid = isNameValid && isEmailValid && isPhoneValid && !isPhoneDuplicate && !isEmailDuplicate;
+
   // Fetch brokers from API
   const fetchBrokers = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      console.log('🔄 Fetching brokers with statusFilter:', statusFilter, 'searchTerm:', searchTerm);
-      const approvedByAdmin = statusFilter === 'unblocked' ? 'unblocked' : statusFilter === 'blocked' ? 'blocked' : undefined;
-      const response = await brokerAPI.getBrokers(currentPage, 10, approvedByAdmin, searchTerm);
+      const effectivePage = debouncedSearchTerm ? 1 : currentPage;
+      const effectiveLimit = debouncedSearchTerm ? 1000 : 10;
+      const approvedByAdmin = debouncedStatusFilter === 'unblocked' ? 'unblocked' : debouncedStatusFilter === 'blocked' ? 'blocked' : undefined;
+      const response = await brokerAPI.getBrokers(effectivePage, effectiveLimit, approvedByAdmin, debouncedSearchTerm ? undefined : debouncedSearchTerm);
       
       console.log('📊 API Response:', response); // Debug log
       console.log('📊 Brokers data:', response.data.brokers);
@@ -203,8 +220,25 @@ export default function BrokersPage() {
       }));
       
       setBrokers(brokersWithMembership);
-      setTotalPages(response.data.pagination.totalPages || 1);
-      setTotalBrokers(response.data.pagination.totalBrokers || 0);
+
+      if (debouncedSearchTerm) {
+        const term = (debouncedSearchTerm || '').trim().toLowerCase();
+        const normalizedTerm = term.replace(/[^a-z0-9]/g, '');
+        const filtered = brokersWithMembership.filter((broker: Broker) => {
+          const nameVal = (broker.name || '').toLowerCase();
+          const firmVal = (broker.firmName || '').toLowerCase();
+          const inName = nameVal.includes(term) || nameVal.replace(/[^a-z0-9]/g, '').includes(normalizedTerm);
+          const inFirm = firmVal.includes(term) || firmVal.replace(/[^a-z0-9]/g, '').includes(normalizedTerm);
+          const matchesMembership = membershipFilter === 'all' || (broker.membership && broker.membership.toLowerCase() === membershipFilter.toLowerCase());
+          const matchesRegion = regionFilter === 'all' || (broker.region && broker.region.length > 0 && broker.region[0].name.toLowerCase().includes(regionFilter.toLowerCase()));
+          return (inName || inFirm) && matchesMembership && matchesRegion;
+        });
+        setTotalBrokers(filtered.length);
+        setTotalPages(Math.max(1, Math.ceil(filtered.length / 10)));
+      } else {
+        setTotalPages(response.data.pagination.totalPages || 1);
+        setTotalBrokers(response.data.pagination.totalBrokers || 0);
+      }
       
       // Update broker statistics from API response
       if (response.data.stats) {
@@ -219,7 +253,18 @@ export default function BrokersPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter, searchTerm]);
+  }, [currentPage, debouncedStatusFilter, debouncedSearchTerm]);
+
+  // Fetch regions for filter dropdown
+  const fetchRegions = useCallback(async () => {
+    try {
+      const res = await regionAPI.getRegions(1, 1000, '', '', '');
+      const items = res?.data?.regions || res?.regions || [];
+      setRegions(items);
+    } catch (err) {
+      console.error('Failed to load regions:', err);
+    }
+  }, []);
 
   // Handle broker blocking confirmation
   const handleBlockClick = (brokerId: string, brokerName: string) => {
@@ -313,8 +358,20 @@ export default function BrokersPage() {
     }
   };
 
-  // Filter brokers based on membership and region filters (search is now server-side)
+  // Filter brokers based on search (client-side: name/firm only), membership and region filters
   const filteredBrokers = brokers.filter(broker => {
+    const term = (debouncedSearchTerm || '').trim().toLowerCase();
+    const normalizedTerm = term.replace(/[^a-z0-9]/g, '');
+
+    // Search filter (name and firm name only)
+    const matchesSearch = term === '' || (() => {
+      const nameVal = (broker.name || '').toLowerCase();
+      const firmVal = (broker.firmName || '').toLowerCase();
+      const inName = nameVal.includes(term) || nameVal.replace(/[^a-z0-9]/g, '').includes(normalizedTerm);
+      const inFirm = firmVal.includes(term) || firmVal.replace(/[^a-z0-9]/g, '').includes(normalizedTerm);
+      return inName || inFirm;
+    })();
+
     // Membership filter - check actual broker membership data
     const matchesMembership = membershipFilter === 'all' || 
       (broker.membership && broker.membership.toLowerCase() === membershipFilter.toLowerCase());
@@ -324,31 +381,40 @@ export default function BrokersPage() {
       (broker.region && broker.region.length > 0 && 
        broker.region[0].name.toLowerCase().includes(regionFilter.toLowerCase()));
 
-    return matchesMembership && matchesRegion;
+    return matchesSearch && matchesMembership && matchesRegion;
   });
+
+  // Apply client-side pagination when searching
+  const pagedBrokers = debouncedSearchTerm
+    ? filteredBrokers.slice((currentPage - 1) * 10, currentPage * 10)
+    : filteredBrokers;
 
 
   // Fetch brokers when component mounts
   useEffect(() => {
     fetchBrokers();
-  }, [fetchBrokers]);
+    fetchRegions();
+  }, [fetchBrokers, fetchRegions]);
 
-  // Handle search and filter changes with debouncing
+  // Handle search and status filter changes with debouncing for API-backed filters
   useEffect(() => {
-    // Set searching state when filters change
     setIsSearching(true);
-    
     const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setDebouncedStatusFilter(statusFilter);
+      // Reset page after filters settle; fetching runs via fetchBrokers deps
       setCurrentPage(1);
-      fetchBrokers();
       setIsSearching(false);
-    }, 500); // 500ms debounce
-
+    }, 500);
     return () => {
       clearTimeout(timeoutId);
-      setIsSearching(false);
     };
-  }, [searchTerm, statusFilter, membershipFilter, regionFilter, fetchBrokers]);
+  }, [searchTerm, statusFilter]);
+
+  // Refetch when page changes or debounced API filters change
+  useEffect(() => {
+    fetchBrokers();
+  }, [currentPage, debouncedSearchTerm, debouncedStatusFilter, fetchBrokers]);
 
   // Helper functions
 
@@ -434,7 +500,7 @@ export default function BrokersPage() {
               </div>
               <input
                 type="text"
-                placeholder="Search by Firm Name, Contact, Region"
+                placeholder="Search by Name or Firm Name"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
@@ -484,18 +550,14 @@ export default function BrokersPage() {
               <select
                 value={regionFilter}
                 onChange={(e) => setRegionFilter(e.target.value)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                className="w-40 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
               >
                 <option value="all">All Regions</option>
-                <option value="mumbai">Mumbai</option>
-                <option value="delhi">Delhi</option>
-                <option value="bangalore">Bangalore</option>
-                <option value="hyderabad">Hyderabad</option>
-                <option value="pune">Pune</option>
-                <option value="agra">Agra</option>
-                <option value="noida">Noida</option>
-                <option value="lucknow">Lucknow</option>
-                <option value="chennai">Chennai</option>
+                {regions.map((r) => (
+                  <option key={r._id} value={r.name.toLowerCase()}>
+                    {r.name}
+                  </option>
+                ))}
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -522,8 +584,8 @@ export default function BrokersPage() {
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
+        {/* Error Message (only show when no data is rendered) */}
+        {error && filteredBrokers.length === 0 && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             {error}
           </div>
@@ -593,9 +655,12 @@ export default function BrokersPage() {
                   <input
                     value={newBroker.name}
                     onChange={(e) => setNewBroker({ ...newBroker, name: e.target.value })}
-                    className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    className={`w-full px-3 py-2 rounded-md border ${showNameError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'} focus:outline-none focus:ring-1`}
                     placeholder="Enter name"
                   />
+                  {showNameError && (
+                    <p className="mt-1 text-xs text-red-600">Name must be at least 2 characters.</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -603,18 +668,24 @@ export default function BrokersPage() {
                     type="email"
                     value={newBroker.email}
                     onChange={(e) => setNewBroker({ ...newBroker, email: e.target.value })}
-                    className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    className={`w-full px-3 py-2 rounded-md border ${showEmailError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'} focus:outline-none focus:ring-1`}
                     placeholder="Enter email"
                   />
+                  {showEmailError && (
+                    <p className="mt-1 text-xs text-red-600">{!isEmailValid ? 'Enter a valid email.' : 'Email already exists.'}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700  mb-1">Phone</label>
                   <input
                     value={newBroker.phone}
                     onChange={(e) => setNewBroker({ ...newBroker, phone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                    className={`w-full px-3 py-2 rounded-md border ${showPhoneError ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-teal-500'} focus:outline-none focus:ring-1`}
                     placeholder="Enter phone"
                   />
+                  {showPhoneError && (
+                    <p className="mt-1 text-xs text-red-600">{!isPhoneValid ? 'Phone must be exactly 10 digits.' : 'Phone already exists.'}</p>
+                  )}
                 </div>
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <button
@@ -630,37 +701,8 @@ export default function BrokersPage() {
                         console.log('Creating broker:', newBroker);
                         
                         // Basic required validation
-                        if (!newBroker.name.trim() || !newBroker.email.trim() || !newBroker.phone.trim()) {
-                          setError('Please fill in all fields');
-                          toast.error('Please fill in all fields');
-                          return;
-                        }
-
-                        // Phone validation: exactly 10 digits
-                        const phoneOnlyDigits = newBroker.phone.replace(/\D/g, '');
-                        if (!/^\d{10}$/.test(phoneOnlyDigits)) {
-                          toast.error('Phone must be exactly 10 digits');
-                          return;
-                        }
-
-                        // Email validation (simple)
-                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                        if (!emailRegex.test(newBroker.email.trim())) {
-                          toast.error('Please enter a valid email');
-                          return;
-                        }
-
-                        // Duplicate checks against current list
-                        const normalizedPhone = phoneOnlyDigits;
-                        const phoneExists = brokers.some(b => (b.phone || '').replace(/\D/g, '') === normalizedPhone);
-                        if (phoneExists) {
-                          toast.error('Phone already exists');
-                          return;
-                        }
-
-                        const emailExists = brokers.some(b => (b.email || '').toLowerCase() === newBroker.email.trim().toLowerCase());
-                        if (emailExists) {
-                          toast.error('Email already exists');
+                        if (!isFormValid) {
+                          toast.error('Please fix validation errors');
                           return;
                         }
                         
@@ -668,9 +710,23 @@ export default function BrokersPage() {
                         const response = await brokerAPI.createBroker(
                           newBroker.name.trim(),
                           newBroker.email.trim(),
-                          newBroker.phone.trim()
+                          phoneOnlyDigits
                         );
                         
+                        // Handle servers that return 200 with an error message
+                        const responseMessage = (response?.message || '').toLowerCase();
+                        const responseSuccess = response?.success;
+                        if (!responseSuccess && responseMessage) {
+                          if (responseMessage.includes('phone') && responseMessage.includes('already')) {
+                            toast.error('Phone already exists');
+                            return;
+                          }
+                          if (responseMessage.includes('email') && responseMessage.includes('already')) {
+                            toast.error('Email already exists');
+                            return;
+                          }
+                        }
+
                         console.log('Broker created successfully:', response);
                         toast.success('Broker created successfully');
                         
@@ -701,7 +757,8 @@ export default function BrokersPage() {
                         toast.error(message);
                       }
                     }}
-                    className="px-5 py-2 rounded-md  text-white bg-teal-600 hover:bg-teal-700"
+                    className={`px-5 py-2 rounded-md text-white ${isFormValid ? 'bg-teal-600 hover:bg-teal-700' : 'bg-gray-300 cursor-not-allowed'}`}
+                    disabled={!isFormValid}
                   >
                     Create
                   </button>
@@ -740,7 +797,7 @@ export default function BrokersPage() {
 
               {/* Table Body */}
               <div className="divide-y divide-gray-200">
-                {filteredBrokers.map((broker, index) => {
+                {(debouncedSearchTerm ? pagedBrokers : filteredBrokers).map((broker, index) => {
                   const sampleData = getSampleData(broker, index);
                   return (
                     <div key={broker._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
