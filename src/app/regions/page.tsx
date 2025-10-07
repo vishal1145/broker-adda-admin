@@ -189,15 +189,46 @@ export default function RegionsPage() {
       // Add small delay to avoid too many API calls
       const timeout = setTimeout(() => {
         const service = new window.google.maps.places.AutocompleteService();
+        
+        // Build component restrictions based on selected city
+        const componentRestrictions: any = { country: ['in'] };
+        
+        // Note: Google Places API doesn't support city-level component restrictions
+        // We'll filter results client-side instead
+        
         service.getPlacePredictions(
           { 
             input: value, 
-            componentRestrictions: { country: ['in'] },
+            componentRestrictions: componentRestrictions,
             types: ['establishment', 'geocode']
           },
           (predictions, status) => {
             if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-              setSuggestions(predictions);
+              // Only filter if city is selected and we have enough suggestions to filter
+              let filteredPredictions = predictions;
+              
+              if (formData.city) {
+                filteredPredictions = predictions.filter(prediction => {
+                  const cityName = formData.city.toLowerCase();
+                  const description = prediction.description.toLowerCase();
+                  const secondaryText = prediction.structured_formatting?.secondary_text?.toLowerCase() || '';
+                  
+                  // More strict filtering - city name must appear in the location
+                  // Check if city name appears in the main text or secondary text
+                  const mainText = prediction.structured_formatting?.main_text?.toLowerCase() || '';
+                  
+                  return (
+                    // City name in main text (e.g., "Noida Sector 1")
+                    mainText.includes(cityName) ||
+                    // City name in secondary text (e.g., "Noida, Uttar Pradesh")
+                    secondaryText.includes(cityName) ||
+                    // City name in full description
+                    description.includes(cityName)
+                  );
+                });
+              }
+              
+              setSuggestions(filteredPredictions);
               setShowSuggestions(true);
             } else {
               setSuggestions([]);
@@ -231,6 +262,22 @@ export default function RegionsPage() {
   // Handle input blur
   const handleInputBlur = () => {
     setTimeout(() => setShowSuggestions(false), 200);
+  };
+
+  // Handle city change - clear center location when city changes
+  const handleCityChange = (city: string) => {
+    setFormData(prev => ({ ...prev, city, center: '' }));
+    setInputValue(''); // Clear the center location input
+    setSuggestions([]); // Clear suggestions
+    setShowSuggestions(false); // Hide suggestions
+  };
+
+  // Handle edit city change - clear center location when city changes
+  const handleEditCityChange = (city: string) => {
+    setEditFormData(prev => ({ ...prev, city, center: '' }));
+    setEditInputValue(''); // Clear the center location input
+    setEditSuggestions([]); // Clear suggestions
+    setShowEditSuggestions(false); // Hide suggestions
   };
 
   // Reset form function
@@ -329,15 +376,46 @@ export default function RegionsPage() {
       // Add small delay to avoid too many API calls
       const timeout = setTimeout(() => {
         const service = new window.google.maps.places.AutocompleteService();
+        
+        // Build component restrictions based on selected city
+        const componentRestrictions: any = { country: ['in'] };
+        
+        // Note: Google Places API doesn't support city-level component restrictions
+        // We'll filter results client-side instead
+        
         service.getPlacePredictions(
           { 
             input: value, 
-            componentRestrictions: { country: ['in'] },
+            componentRestrictions: componentRestrictions,
             types: ['establishment', 'geocode']
           },
           (predictions, status) => {
             if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-              setEditSuggestions(predictions);
+              // Only filter if city is selected and we have enough suggestions to filter
+              let filteredPredictions = predictions;
+              
+              if (editFormData.city) {
+                filteredPredictions = predictions.filter(prediction => {
+                  const cityName = editFormData.city.toLowerCase();
+                  const description = prediction.description.toLowerCase();
+                  const secondaryText = prediction.structured_formatting?.secondary_text?.toLowerCase() || '';
+                  
+                  // More strict filtering - city name must appear in the location
+                  // Check if city name appears in the main text or secondary text
+                  const mainText = prediction.structured_formatting?.main_text?.toLowerCase() || '';
+                  
+                  return (
+                    // City name in main text (e.g., "Noida Sector 1")
+                    mainText.includes(cityName) ||
+                    // City name in secondary text (e.g., "Noida, Uttar Pradesh")
+                    secondaryText.includes(cityName) ||
+                    // City name in full description
+                    description.includes(cityName)
+                  );
+                });
+              }
+              
+              setEditSuggestions(filteredPredictions);
               setShowEditSuggestions(true);
             } else {
               setEditSuggestions([]);
@@ -729,7 +807,7 @@ export default function RegionsPage() {
                         <div className="relative">
                           <select
                             value={formData.city}
-                            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            onChange={(e) => handleCityChange(e.target.value)}
                             className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
                             required
                           >
@@ -751,6 +829,13 @@ export default function RegionsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Center Location
                     </label>
+                    {formData.city && (
+                      <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-xs text-blue-700">
+                          <span className="font-medium">Note:</span> Center location search is restricted to {formData.city}
+                        </p>
+                      </div>
+                    )}
                     <div className="relative">
                       {!isLoaded ? (
                         <div className="text-sm text-gray-500">Loading Google Maps...</div>
@@ -774,9 +859,10 @@ export default function RegionsPage() {
                           </div>
                           
                           {/* Custom Dropdown Suggestions */}
-                          {showSuggestions && suggestions.length > 0 && (
+                          {showSuggestions && (
                             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-32 overflow-y-auto">
-                              {suggestions.map((suggestion, index) => (
+                              {suggestions.length > 0 ? (
+                                suggestions.map((suggestion, index) => (
                                 <div
                                   key={index}
                                   className="px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
@@ -801,7 +887,12 @@ export default function RegionsPage() {
                                     </div>
                                   </div>
                                 </div>
-                              ))}
+                                ))
+                              ) : (
+                                <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                                  {formData.city ? `No locations found in ${formData.city}` : 'No suggestions available'}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1117,7 +1208,7 @@ export default function RegionsPage() {
                         <div className="relative">
                           <select
                             value={editFormData.city}
-                            onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                            onChange={(e) => handleEditCityChange(e.target.value)}
                             className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
                             required
                           >
@@ -1139,6 +1230,13 @@ export default function RegionsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Center Location
                     </label>
+                    {editFormData.city && (
+                      <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-xs text-blue-700">
+                          <span className="font-medium">Note:</span> Center location search is restricted to {editFormData.city}
+                        </p>
+                      </div>
+                    )}
                     <div className="relative">
                       {!isLoaded ? (
                         <div className="text-sm text-gray-500">Loading Google Maps...</div>
@@ -1162,9 +1260,10 @@ export default function RegionsPage() {
                           </div>
                           
                           {/* Custom Dropdown Suggestions */}
-                          {showEditSuggestions && editSuggestions.length > 0 && (
+                          {showEditSuggestions && (
                             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-32 overflow-y-auto">
-                              {editSuggestions.map((suggestion, index) => (
+                              {editSuggestions.length > 0 ? (
+                                editSuggestions.map((suggestion, index) => (
                                 <div
                                   key={index}
                                   className="px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
@@ -1189,7 +1288,12 @@ export default function RegionsPage() {
                                     </div>
                                   </div>
                                 </div>
-                              ))}
+                                ))
+                              ) : (
+                                <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                                  {editFormData.city ? `No locations found in ${editFormData.city}` : 'No suggestions available'}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
