@@ -217,14 +217,60 @@ export default function BrokerDetailsPage() {
           <div className="w-20 h-20 bg-gray-200 rounded-full animate-pulse"></div>
           <div className="flex-1 space-y-4">
             <div className="h-6 bg-gray-200 rounded animate-pulse w-48"></div>
-                  <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
+            <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
             <div className="grid grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="space-y-2">
+              {/* Left column placeholders */}
+              <div className="space-y-6">
+                <div className="space-y-2">
                   <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
                   <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
                 </div>
-              ))}
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                </div>
+              </div>
+
+              {/* Middle column placeholders */}
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded animate-pulse w-20"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-28"></div>
+                </div>
+              </div>
+
+              {/* Right column placeholders: License + Regions (aligned right) */}
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-8">
+                  {/* License */}
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                  </div>
+                  {/* Regions (right-aligned label and chips) */}
+                  <div className="text-right space-y-2">
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-16 ml-auto"></div>
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      <div className="h-5 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+                      <div className="h-5 w-14 bg-gray-200 rounded-full animate-pulse"></div>
+                      <div className="h-5 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+                {/* Specializations placeholder */}
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded animate-pulse w-20"></div>
+                  <div className="flex flex-wrap gap-2">
+                    <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse"></div>
+                    <div className="h-5 w-28 bg-gray-200 rounded-full animate-pulse"></div>
+                    <div className="h-5 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -336,7 +382,7 @@ export default function BrokerDetailsPage() {
         ) : (
           <>
               {/* Broker Information Section */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
                   <h2 className="text-xl font-bold text-gray-900">Broker Information</h2>
                   {broker.approvedByAdmin === 'unblocked' ? (
@@ -389,8 +435,8 @@ export default function BrokerDetailsPage() {
                   
                   {/* Profile Details */}
                   <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-1">{broker.name || 'N/A'}</h3>
-                    <p className="text-lg text-gray-600 mb-6 capitalize">{broker.firmName || 'N/A'}</p>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-1">{broker.name || '-'}</h3>
+                    <p className="text-lg text-gray-600 mb-6 capitalize">{broker.firmName || '-'}</p>
                     
                     {/* Details Grid */}
                     <div className="grid grid-cols-3 gap-8">
@@ -403,7 +449,7 @@ export default function BrokerDetailsPage() {
                             </svg>
                             <p className="text-sm font-medium text-gray-500">Firm</p>
                           </div>
-                          <p className="text-sm font-semibold text-gray-900 capitalize">{broker.firmName || 'N/A'}</p>
+                          <p className="text-sm font-semibold text-gray-900 capitalize">{broker.firmName || '-'}</p>
                         </div>
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
@@ -412,7 +458,7 @@ export default function BrokerDetailsPage() {
                             </svg>
                             <p className="text-sm font-medium text-gray-500">Gender</p>
                           </div>
-                          <p className="text-sm font-semibold text-gray-900 capitalize">{broker.gender || 'N/A'}</p>
+                          <p className="text-sm font-semibold text-gray-900 capitalize">{broker.gender || '-'}</p>
                         </div>
                       </div>
 
@@ -433,7 +479,7 @@ export default function BrokerDetailsPage() {
                               : 'bg-gray-100 text-gray-800'
                           }`}>
                             {broker.approvedByAdmin === 'unblocked' ? 'Unblocked' : 
-                             broker.approvedByAdmin === 'blocked' ? 'Blocked' : 'N/A'}
+                             broker.approvedByAdmin === 'blocked' ? 'Blocked' : '-'}
                           </span>
                         </div>
                         <div>
@@ -443,20 +489,42 @@ export default function BrokerDetailsPage() {
                             </svg>
                             <p className="text-sm font-medium text-gray-500">Joined Date</p>
                           </div>
-                          <p className="text-sm font-semibold text-gray-900">{broker.createdAt ? new Date(broker.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</p>
+                          <p className="text-sm font-semibold text-gray-900">{broker.createdAt ? new Date(broker.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</p>
                         </div>
                       </div>
               
                       {/* Right Column */}
                       <div className="space-y-6">
-                        <div>
-                          <div className="flex items-center space-x-2 mb-1">
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p className="text-sm font-medium text-gray-500">License</p>
+                        <div className="grid grid-cols-2 gap-8">
+                          <div>
+                            <div className="flex items-center space-x-2 mb-1">
+                              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <p className="text-sm font-medium text-gray-500">License</p>
+                            </div>
+                            <p className="text-sm font-semibold text-gray-900">{broker.licenseNumber || '-'}</p>
                           </div>
-                          <p className="text-sm font-semibold text-gray-900">{broker.licenseNumber || 'N/A'}</p>
+                          <div className="text-right min-w-[180px] flex flex-col items-end">
+                            <div className="inline-flex items-center gap-2 mb-1 mr-7 ">
+                              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0L6.343 16.657a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <p className="text-sm font-medium text-gray-500 mb-1">Regions</p>
+                            </div>
+                            {Array.isArray(broker.region) && broker.region.length > 0 ? (
+                              <div className="flex flex-wrap gap-2 justify-end w-full">
+                                {broker.region.map((r) => (
+                                  <span key={r._id} className="inline-flex items-center px-3 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full capitalize">
+                                    {r.name || '-'}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm font-semibold text-gray-900">-</p>
+                            )}
+                          </div>
                         </div>
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
@@ -487,6 +555,7 @@ export default function BrokerDetailsPage() {
             </div>
           </div>
 
+
               {/* Contact Details & Active Leads Section */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Contact Details */}
@@ -501,7 +570,7 @@ export default function BrokerDetailsPage() {
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-500">Mobile</p>
                         <div className="flex items-center space-x-2">
-                          <p className="text-sm font-semibold text-teal-600">{broker.phone || 'N/A'}</p>
+                          <p className="text-sm font-semibold text-teal-600">{broker.phone || '-'}</p>
                           {broker.phone && (
                             <svg className="w-3 h-3 text-teal-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -517,7 +586,7 @@ export default function BrokerDetailsPage() {
                       </svg>
                       <div>
                         <p className="text-sm font-medium text-gray-500">WhatsApp</p>
-                        <p className="text-sm font-semibold text-teal-600">{broker.whatsappNumber || broker.phone || 'N/A'}</p>
+                        <p className="text-sm font-semibold text-teal-600">{broker.whatsappNumber || broker.phone || '-'}</p>
                       </div>
                     </div>
                     
@@ -528,7 +597,7 @@ export default function BrokerDetailsPage() {
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-500">Email</p>
                         <div className="flex items-center space-x-2">
-                          <p className="text-sm font-semibold text-teal-600">{broker.email || 'N/A'}</p>
+                          <p className="text-sm font-semibold text-teal-600">{broker.email || '-'}</p>
                           {broker.email && (
                             <svg className="w-3 h-3 text-teal-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -545,7 +614,7 @@ export default function BrokerDetailsPage() {
                       </svg>
                       <div>
                         <p className="text-sm font-medium text-gray-500">Office Address</p>
-                        <p className="text-sm font-semibold text-gray-900">{broker.address || 'N/A'}</p>
+                        <p className="text-sm font-semibold text-gray-900">{broker.address || '-'}</p>
                       </div>
                     </div>
                     
@@ -644,10 +713,10 @@ export default function BrokerDetailsPage() {
                     ].map((doc, index) => {
                       // Extract file extension from URL
                       const getFileExtension = (url: string | undefined) => {
-                        if (!url) return 'N/A';
+                        if (!url) return '-';
                         const extension = url.split('.').pop()?.toUpperCase();
                         console.log('📄 File extension extracted:', extension, 'from URL:', url);
-                        return extension || 'N/A';
+                        return extension || '-';
                       };
                       
                       const fileType = getFileExtension(doc.url);

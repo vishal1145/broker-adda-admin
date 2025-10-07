@@ -80,6 +80,7 @@ export default function LeadsPage() {
   
   const [viewSlideIn, setViewSlideIn] = useState(false);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [activeViewTab, setActiveViewTab] = useState<'overview' | 'share'>('overview');
   const [brokerDropdownOpen, setBrokerDropdownOpen] = useState(false);
   const [brokerSearch, setBrokerSearch] = useState('');
   const [selectedBrokers, setSelectedBrokers] = useState<string[]>([]);
@@ -274,7 +275,10 @@ export default function LeadsPage() {
         isFilterApplied
       });
 
-      const response = await leadsAPI.getLeads(currentPage, pageSize, debouncedSearchTerm, statusFilter, apiFilters);
+      // Always include region from main controls
+      const regionFilterObj = filterRegion ? { region: filterRegion } : undefined;
+      const mergedFilters = { ...(apiFilters || {}), ...(regionFilterObj || {}) };
+      const response = await leadsAPI.getLeads(currentPage, pageSize, debouncedSearchTerm, statusFilter, mergedFilters);
       
       // Map API response to our leads format
       const leadsData = response.data?.items || response.data?.leads || response.leads || response.data || [];
@@ -394,7 +398,7 @@ export default function LeadsPage() {
     } finally {
       setIsLoadingLeads(false);
     }
-  }, [currentPage, debouncedSearchTerm, statusFilter, isFilterApplied, appliedFilters, pageSize]);
+  }, [currentPage, debouncedSearchTerm, statusFilter, isFilterApplied, appliedFilters, pageSize, filterRegion]);
 
   // Fetch leads when key inputs change (debounced)
   useEffect(() => {
@@ -440,14 +444,13 @@ export default function LeadsPage() {
   // Apply Advanced Filters
   const applyFilters = async () => {
     console.log('🔍 Applying filters:', {
-      filterRegion,
       filterRequirement,
       filterPropertyType,
       filterMaxBudget
     });
     
-    // Check if any filter is selected
-    const hasFilters = filterRegion || filterRequirement || filterPropertyType || filterMaxBudget !== 500000;
+    // Check if any filter is selected (region handled in main controls)
+    const hasFilters = filterRequirement || filterPropertyType || filterMaxBudget !== 500000;
     
     if (!hasFilters) {
       console.log('⚠️ No filters selected, clearing filters instead');
@@ -458,7 +461,6 @@ export default function LeadsPage() {
     console.log('✅ Filters selected, applying filters...');
     // snapshot currently selected filters
     const snapshot = {
-      region: filterRegion || undefined,
       requirement: filterRequirement || undefined,
       propertyType: filterPropertyType || undefined,
       maxBudget: filterMaxBudget !== 500000 ? filterMaxBudget : undefined,
@@ -634,6 +636,15 @@ export default function LeadsPage() {
     }
   };
 
+  // Drawer status pill styles: light bg + dark text per status
+  const drawerStatusPills: Record<string, string> = {
+    'New': 'bg-amber-100 text-amber-800',
+    'Assigned': 'bg-blue-100 text-blue-800',
+    'In Progress': 'bg-violet-100 text-violet-800',
+    'Closed': 'bg-emerald-100 text-emerald-800',
+    'Rejected': 'bg-rose-100 text-rose-800'
+  };
+
   return (
     <ProtectedRoute>
       <Layout>
@@ -671,8 +682,39 @@ export default function LeadsPage() {
                   />
                 </div>
 
-                {/* Right side controls: status + Advanced Filters */}
+                {/* Right side controls: region + status + Advanced Filters */}
                 <div className="flex items-center gap-3 sm:ml-4">
+                {/* Region Dropdown (moved from Advanced Filters) */}
+                <div className="relative">
+                  <select
+                    value={filterRegion}
+                    onChange={async (e) => {
+                      const value = e.target.value;
+                      setFilterRegion(value);
+                      setCurrentPage(1);
+                      await fetchLeads();
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                  >
+                    <option value="">All Regions</option>
+                    {isLoadingRegions ? (
+                      <option disabled>Loading regions...</option>
+                    ) : regionsError ? (
+                      <option disabled>Error loading regions</option>
+                    ) : (
+                      regions.map((region) => (
+                        <option key={region.id} value={region.id}>
+                          {region.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
                 {/* Status Dropdown */}
                 <div className="relative">
                   <select
@@ -703,8 +745,8 @@ export default function LeadsPage() {
                     Advanced Filters {isFilterApplied && '✓'}
                   </button>
 
-                  {/* Clear Filters button - only show when filters are applied */}
-                  {isFilterApplied && (
+                  {/* Clear Filters button - show when region or advanced filters are active */}
+                  {(isFilterApplied || Boolean(filterRegion)) && (
                     <button 
                       onClick={clearFilters}
                       className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 transition-colors"
@@ -1295,33 +1337,7 @@ export default function LeadsPage() {
                   }}
                 >
                   <div className="px-5 py-4 space-y-4">
-                    {/* Region */}
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Region</label>
-                      <div className="relative">
-                        <select 
-                          value={filterRegion}
-                          onChange={(e) => setFilterRegion(e.target.value)}
-                          className="w-full appearance-none px-3 py-2 text-sm rounded-md border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pr-8"
-                        >
-                          <option value="">All Regions</option>
-                          {isLoadingRegions ? (
-                            <option disabled>Loading regions...</option>
-                          ) : regionsError ? (
-                            <option disabled>Error loading regions</option>
-                          ) : (
-                            regions.map((region) => (
-                              <option key={region.id} value={region.id}>
-                                {region.name}
-                              </option>
-                            ))
-                          )}
-                        </select>
-                        <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                      </div>
-                    </div>
+                    
 
                     {/* Requirement */}
                     <div>
@@ -1428,158 +1444,185 @@ export default function LeadsPage() {
               
               {/* Scrollable Content */}
               <div className="h-[calc(100%-57px)] overflow-y-auto bg-gray-50 p-4">
-                {/* Customer Summary Card */}
-                <div className="mb-4">
+                {/* Header Summary */}
+                <div className="mb-3">
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                          <span className="text-lg font-bold text-blue-700">
+                        <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                          <span className="text-sm font-bold text-blue-700">
                             {selectedLead.name.split(' ').map((n: string) => n[0]).join('')}
                           </span>
                         </div>
                         <div>
-                          <div className="text-lg font-bold text-gray-900">{selectedLead.name}</div>
-                          <div className="text-sm text-gray-600">{selectedLead.phone}</div>
+                          <div className="text-sm font-semibold text-gray-900">{selectedLead.name}</div>
+                          <div className="text-xs text-gray-500">{selectedLead.phone}</div>
                         </div>
                       </div>
-                      <span className="inline-flex items-center rounded-full bg-teal-100 text-teal-700 text-sm  px-3 py-1">
-                        {selectedLead.status.charAt(0).toUpperCase() + selectedLead.status.slice(1)}
+                      <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-700 text-[11px] px-3 py-1 border border-blue-100">
+                        {selectedLead.status?.charAt(0).toUpperCase() + selectedLead.status?.slice(1) || 'New'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Customer Information Card */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                {/* Tabs */}
+                <div className="mb-3">
+                  <div className="bg-white rounded-lg border border-gray-200 px-3 pt-3 pb-3">
                     <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      <h3 className="text-lg font-bold text-gray-900">Customer Information</h3>
+                      <button onClick={()=>setActiveViewTab('overview')} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${activeViewTab==='overview' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'}`}>Overview</button>
+                      <button onClick={()=>setActiveViewTab('share')} className={`px-3 py-1.5 rounded-md text-xs font-semibold ${activeViewTab==='share' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'}`}>Share</button>
+                      
                     </div>
-                    {/* Edit button removed as requested */}
-                  </div>
-
-                  <div className="divide-y divide-gray-100">
-                    
-
-                    <div className="flex items-center px-4 py-3">
-                      <div className="w-4 h-4 mr-3 text-gray-400">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
+                        {activeViewTab === 'overview' ? (
+           
+                    <div className="space-y-3">
+                    {/* Contact Details */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-4">
+                      <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a3 3 0 11-6 0 3 3 0 016 0zM5 21a7 7 0 0114 0"/></svg>
+                        <span className="text-sm font-semibold text-gray-900">Contact Details</span>
                       </div>
-                      <div className="text-sm text-gray-500">Email:</div>
-                      <div className="ml-auto text-sm text-gray-900">{selectedLead.contact}</div>
-                    </div>
-
-                    <div className="flex items-center px-4 py-3">
-                      <div className="w-4 h-4 mr-3 text-gray-400">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                        </svg>
-                      </div>
-                      <div className="text-sm text-gray-500">Requirement:</div>
-                      <div className="ml-auto text-sm text-gray-900">{selectedLead.requirement}</div>
-                    </div>
-
-                    <div className="flex items-center px-4 py-3">
-                      <div className="w-4 h-4 mr-3 text-gray-400">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                      </div>
-                      <div className="text-sm text-gray-500">Property Type:</div>
-                      <div className="ml-auto text-sm text-gray-900">{selectedLead.propertyType || 'Residential'}</div>
-                    </div>
-
-                    <div className="flex items-center px-4 py-3">
-                      <div className="w-4 h-4 mr-3 text-gray-400">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <div className="text-sm text-gray-500">Primary Region:</div>
-                      <div className="ml-auto text-sm text-gray-900">{selectedLead.region}</div>
-                    </div>
-
-                    {selectedLead.secondaryRegion && selectedLead.secondaryRegion.toLowerCase() !== (selectedLead.region || '').toLowerCase() && (
-                      <div className="flex items-center px-4 py-3">
-                        <div className="w-4 h-4 mr-3 text-gray-400">
-                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
+                      <div className="divide-y divide-gray-100">
+                        <div className="flex items-center px-4 py-3">
+                          <div className="w-4 h-4 mr-3 text-gray-400">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                          </div>
+                          <div className="text-xs text-gray-500">Email</div>
+                          <div className="ml-auto text-xs text-gray-900">{selectedLead.contact}</div>
                         </div>
-                        <div className="text-sm text-gray-500">Secondary Region:</div>
-                        <div className="ml-auto text-sm text-gray-900">{selectedLead.secondaryRegion}</div>
+                        <div className="flex items-center px-4 py-3">
+                          <div className="w-4 h-4 mr-3 text-gray-400">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 5a2 2 0 012-2h2a2 2 0 012 2v1a2 2 0 01-.586 1.414l-1.121 1.121a2 2 0 00-.293 2.475 11.04 11.04 0 004.989 4.989 2 2 0 002.475-.293l1.121-1.121A2 2 0 0116 13h1a2 2 0 012 2v2a2 2 0 01-2 2h-.5C9.596 19 5 14.404 5 8.5V8a3 3 0 013-3H8"/></svg>
+                          </div>
+                          <div className="text-xs text-gray-500">Phone</div>
+                          <div className="ml-auto text-xs text-gray-900">{selectedLead.phone}</div>
+                        </div>
                       </div>
-                    )}
-
-                    <div className="flex items-center px-4 py-3">
-                      <div className="w-4 h-4 mr-3 text-gray-400">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                        </svg>
-                      </div>
-                      <div className="text-sm text-gray-500">Budget:</div>
-                      <div className="ml-auto text-sm text-gray-900">{selectedLead.budget}</div>
                     </div>
+
+                    {/* Property Preferences */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                      <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+                        <span className="text-sm font-semibold text-gray-900">Property Preferences</span>
+                      </div>
+                      <div className="divide-y divide-gray-100">
+                        <div className="flex items-center px-4 py-3">
+                          <div className="w-4 h-4 mr-3 text-gray-400"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg></div>
+                          <div className="text-xs text-gray-500">Property Type</div>
+                          <div className="ml-auto text-xs text-gray-900">{selectedLead.propertyType || 'Residential'}</div>
+                        </div>
+                        <div className="flex items-center px-4 py-3">
+                          <div className="w-4 h-4 mr-3 text-gray-400"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1"/></svg></div>
+                          <div className="text-xs text-gray-500">Budget</div>
+                          <div className="ml-auto text-xs text-gray-900">{selectedLead.budget}</div>
+                        </div>
+                        <div className="flex items-center px-4 py-3">
+                          <div className="w-4 h-4 mr-3 text-gray-400"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 9h14l1 12H4L5 9z"/></svg></div>
+                          <div className="text-xs text-gray-500">Requirement</div>
+                          <div className="ml-auto text-xs text-gray-900">{selectedLead.requirement}</div>
+                        </div>
+                        <div className="flex items-center px-4 py-3">
+                          <div className="w-4 h-4 mr-3 text-gray-400"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0L6.343 16.657a8 8 0 1111.314 0z"/></svg></div>
+                          <div className="text-xs text-gray-500">Primary Region</div>
+                          <div className="ml-auto text-xs text-gray-900">{selectedLead.region}</div>
+                        </div>
+                        <div className="flex items-center px-4 py-3">
+                          <div className="w-4 h-4 mr-3 text-gray-400"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0L6.343 16.657a8 8 0 1111.314 0z"/></svg></div>
+                          <div className="text-xs text-gray-500">Secondary Region</div>
+                          <div className="ml-auto text-xs text-gray-900">{selectedLead.secondaryRegion || '-'}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex items-center justify-between">
+                      <div>
+                        <div className="text-xs text-gray-500">Status</div>
+                        {(() => {
+                          const label = selectedLead.status?.charAt(0).toUpperCase() + selectedLead.status?.slice(1) || 'New';
+                          const pill = drawerStatusPills[label] || 'bg-gray-100 text-gray-800';
+                          return (
+                            <span className={`inline-flex items-center mt-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-transparent ${pill}`}>
+                              {label}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                    </div>
+              
+                ) : (
+                  // Share Tab
+
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-3">
+                      <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12v.01M8 12v.01M12 12v.01M16 12v.01M20 12v.01"/></svg>
+                        <span className="text-sm font-semibold text-gray-900">Share History</span>
+                      </div>
+                      <div className="p-4">
+                      {(() => {
+                        const toList = (selectedLead.sharedWithList && selectedLead.sharedWithList.length > 0)
+                          ? selectedLead.sharedWithList
+                          : (selectedLead.sharedWith && selectedLead.sharedWith.trim()
+                              ? selectedLead.sharedWith.split(',').map(s => s.trim()).filter(Boolean)
+                              : []);
+                        if (toList.length === 0) {
+                          return <div className="text-sm text-gray-500">Not shared</div>;
+                        }
+                        const fromName = selectedLead.brokerName || '-';
+                        const primaryRegion = selectedLead.region || '-';
+                        const secondaryRegion = selectedLead.secondaryRegion || '-';
+                        const imageList = Array.isArray(selectedLead.sharedWithImages) ? selectedLead.sharedWithImages : [];
+                        return (
+                          <div className="space-y-3">
+                            {toList.map((toName, idx) => (
+                              <div key={`${toName}-${idx}`} className="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
+                                <div className="flex items-start gap-3">
+                                  {/* Avatar: show image if present, else default avatar */}
+                                  {(() => {
+                                    const img = imageList[idx];
+                                    const src = img && String(img).trim() ? String(img) : DEFAULT_AVATAR;
+                                    return (
+                                      <img
+                                        src={src}
+                                        alt={toName}
+                                        className="w-8 h-8 rounded-full border border-gray-200 object-cover shrink-0"
+                                        onError={(e) => {
+                                          const t = e.target as HTMLImageElement;
+                                          if (t.src !== DEFAULT_AVATAR) t.src = DEFAULT_AVATAR;
+                                        }}
+                                      />
+                                    );
+                                  })()}
+                                  <div>
+                                    <div className="text-sm text-gray-900">
+                                      <span className="font-medium">{fromName}</span>
+                                      <span className="mx-2 text-gray-400">→</span>
+                                      <span className="font-medium">{toName}</span>
+                                    </div>
+                                    <div className="text-[11px] text-gray-500 mt-0.5">
+                                      <span>{primaryRegion}</span>
+                                      <span className="mx-2 text-gray-400">→</span>
+                                      <span>{secondaryRegion || '-'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                               
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                      </div>
+                    </div>
+             
+                )}
                   </div>
                 </div>
 
-                {/* Share History - Only show if there's actual shared with data */}
-                {selectedLead.sharedWith && selectedLead.sharedWith.trim() && (
-                  <div className="mt-4">
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                        </svg>
-                        <h3 className="text-lg font-bold text-gray-900">Share History</h3>
-                      </div>
-                      
-                      <div className="divide-y divide-gray-100">
-                        {selectedLead.sharedWith.split(',').map((name, idx) => {
-                          const trimmedName = name.trim();
-                          const candidate = selectedLead.sharedWithImages && selectedLead.sharedWithImages[idx];
-                          const imgSrc = candidate && candidate.trim() ? candidate : DEFAULT_AVATAR;
-                          const avatarColors = ['bg-blue-100', 'bg-green-100', 'bg-purple-100', 'bg-yellow-100', 'bg-pink-100'];
-                          const textColors = ['text-blue-600', 'text-green-600', 'text-purple-600', 'text-yellow-600', 'text-pink-600'];
-                          const colorIndex = idx % avatarColors.length;
-                          
-                          return (
-                            <div key={idx} className="flex items-center justify-between px-4 py-3">
-                              <div className="flex items-center">
-                                <div className={`w-8 h-8 rounded-full ${avatarColors[colorIndex]} flex items-center justify-center mr-3`}>
-                                  <img 
-                                    src={imgSrc}
-                                    alt={trimmedName}
-                                    className="w-full h-full object-cover rounded-full"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      if (target.src !== DEFAULT_AVATAR) {
-                                        target.src = DEFAULT_AVATAR;
-                                      }
-                                    }}
-                                  />
-                                </div>
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">{trimmedName}</div>
-                                  <div className="text-xs text-gray-500">Shared By {selectedLead.brokerName}</div>
-                                </div>
-                              </div>
-                              {/* Delete button removed as requested */}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
+            
               </div>
             </div>
           </div>

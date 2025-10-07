@@ -823,9 +823,9 @@ export default function BrokersPage() {
                               href={`/brokers/${broker.userId}`}
                               className="text-sm font-semibold text-gray-900 hover:text-teal-600 transition-colors cursor-pointer capitalize"
                             >
-                              {broker.name || 'N/A'}
+                              {broker.name || '-'}
                             </Link>
-                            <div className="text-gray-500 text-xs capitalize">{broker.firmName || 'N/A'}</div>
+                            <div className="text-gray-500 text-xs capitalize">{broker.firmName || '-'}</div>
                           </div>
                         </div>
 
@@ -835,7 +835,7 @@ export default function BrokersPage() {
                             <svg className="w-4 h-4 text-gray-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                             </svg>
-                            <span className="font-semibold text-gray-900">{broker.phone || 'N/A'}</span>
+                            <span className="font-semibold text-gray-900">{broker.phone || '-'}</span>
                             {broker.phone && (
                               <svg className="w-3 h-3 text-teal-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -846,7 +846,7 @@ export default function BrokersPage() {
                             <svg className="w-4 h-4 text-gray-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
-                            <span className="text-gray-500 text-xs truncate">{broker.email || 'N/A'}</span>
+                            <span className="text-gray-500 text-xs truncate">{broker.email || '-'}</span>
                             {broker.email && (
                               <svg className="w-3 h-3 text-teal-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -863,7 +863,7 @@ export default function BrokersPage() {
                               <div className="text-gray-500 text-xs">{broker.region[0].city}, {broker.region[0].state}</div>
                             </div>
                           ) : (
-                            'N/A'
+                            '-'
                           )}
                         </div>
 
@@ -878,7 +878,7 @@ export default function BrokersPage() {
                               ? 'bg-gray-100 text-gray-800'
                               : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {broker.membership ? broker.membership.charAt(0).toUpperCase() + broker.membership.slice(1) : 'N/A'}
+                            {broker.membership ? broker.membership.charAt(0).toUpperCase() + broker.membership.slice(1) : '-'}
                           </span>
                         </div>
 
