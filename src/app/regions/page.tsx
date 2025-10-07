@@ -190,8 +190,8 @@ export default function RegionsPage() {
       const timeout = setTimeout(() => {
         const service = new window.google.maps.places.AutocompleteService();
         
-        // Build component restrictions based on selected city
-        const componentRestrictions: any = { country: ['in'] };
+        // Build component restrictions based on selected country (typed)
+        const componentRestrictions: google.maps.places.ComponentRestrictions = { country: ['in'] };
         
         // Note: Google Places API doesn't support city-level component restrictions
         // We'll filter results client-side instead
@@ -377,8 +377,8 @@ export default function RegionsPage() {
       const timeout = setTimeout(() => {
         const service = new window.google.maps.places.AutocompleteService();
         
-        // Build component restrictions based on selected city
-        const componentRestrictions: any = { country: ['in'] };
+        // Build component restrictions based on selected country (typed)
+        const componentRestrictions: google.maps.places.ComponentRestrictions = { country: ['in'] };
         
         // Note: Google Places API doesn't support city-level component restrictions
         // We'll filter results client-side instead
