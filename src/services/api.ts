@@ -1,5 +1,5 @@
 // API Base Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://broker-adda-be.algofolks.com/api';
 
 // Leads API functions
 export const leadsAPI = {
@@ -34,6 +34,7 @@ export const leadsAPI = {
   // Get all leads with pagination and filters
   getLeads: async (page: number = 1, limit: number = 10, search: string = '', status: string = '', filters?: {
     region?: string;
+    broker?: string;
     requirement?: string;
     propertyType?: string;
     maxBudget?: number;
@@ -47,6 +48,7 @@ export const leadsAPI = {
       ...(search && { search }),
       ...(status && status !== 'all' && { status }),
       ...(filters?.region && { regionId: filters.region }),
+      ...(filters?.broker && { createdBy: filters.broker }),
       ...(filters?.requirement && { requirement: filters.requirement }),
       ...(filters?.propertyType && { propertyType: filters.propertyType }),
       ...(filters?.maxBudget && { budgetMax: filters.maxBudget.toString() })

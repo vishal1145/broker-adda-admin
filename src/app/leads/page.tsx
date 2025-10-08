@@ -72,6 +72,7 @@ export default function LeadsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [filterBroker, setFilterBroker] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -151,6 +152,11 @@ export default function LeadsPage() {
     setCurrentPage(1);
   }, [debouncedSearchTerm]);
 
+  // When broker filter changes, reset to first page
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterBroker]);
+
   // Fetch leads metrics on component mount
   useEffect(() => {
     const fetchLeadsMetrics = async () => {
@@ -228,6 +234,76 @@ export default function LeadsPage() {
     fetchRegions();
   }, []);
 
+  // Fetch brokers on component mount
+  useEffect(() => {
+    const fetchBrokers = async () => {
+      try {
+        setIsLoadingBrokers(true);
+        setBrokersError(null);
+        
+        // Check if token exists before making API call
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+          throw new Error('No authentication token found. Please login again.');
+        }
+        
+        const response = await fetch('https://broker-adda-be.algofolks.com/api/brokers', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Map API response to broker names array
+        const brokersData = data.data?.brokers || data.brokers || data.data || [];
+        
+        const brokerData = brokersData.map((broker: {
+          _id?: string; id?: string; name?: string; brokerName?: string; firmName?: string;
+        }) => ({
+          id: broker._id || broker.id || '',
+          name: broker.name || broker.brokerName || broker.firmName || 'Unknown Broker'
+        })).filter((broker: {id: string, name: string}) => broker.id && broker.name);
+        
+        // Remove duplicates based on ID and sort alphabetically by name
+        const brokerMap = new Map<string, {id: string, name: string}>();
+        brokerData.forEach((broker: {id: string, name: string}) => {
+          brokerMap.set(broker.id, broker);
+        });
+        const uniqueBrokers = Array.from(brokerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+        
+        setAllBrokers(uniqueBrokers);
+      } catch (error) {
+        setBrokersError(error instanceof Error ? error.message : 'Failed to fetch brokers');
+        
+        // Fallback to static brokers if API fails
+        const fallbackBrokers = [
+          { id: '1', name: 'Amit Singh' },
+          { id: '2', name: 'Suresh Patel' },
+          { id: '3', name: 'Neha Gupta' },
+          { id: '4', name: 'Kumar Raj' },
+          { id: '5', name: 'Ravi Kumar' },
+          { id: '6', name: 'Priya Sharma' },
+          { id: '7', name: 'Rajesh Verma' },
+          { id: '8', name: 'Sunita Reddy' },
+          { id: '9', name: 'Vikram Joshi' },
+          { id: '10', name: 'Anita Desai' }
+        ];
+        setAllBrokers(fallbackBrokers);
+      } finally {
+        setIsLoadingBrokers(false);
+      }
+    };
+
+    fetchBrokers();
+  }, []);
+
 
   // Extract unique requirements and property types from leads data
   useEffect(() => {
@@ -275,9 +351,10 @@ export default function LeadsPage() {
         isFilterApplied
       });
 
-      // Always include region from main controls
+      // Always include region and broker from main controls
       const regionFilterObj = filterRegion ? { region: filterRegion } : undefined;
-      const mergedFilters = { ...(apiFilters || {}), ...(regionFilterObj || {}) };
+      const brokerFilterObj = filterBroker ? { broker: filterBroker } : undefined;
+      const mergedFilters = { ...(apiFilters || {}), ...(regionFilterObj || {}), ...(brokerFilterObj || {}) };
       const response = await leadsAPI.getLeads(currentPage, pageSize, debouncedSearchTerm, statusFilter, mergedFilters);
       
       // Map API response to our leads format
@@ -398,7 +475,7 @@ export default function LeadsPage() {
     } finally {
       setIsLoadingLeads(false);
     }
-  }, [currentPage, debouncedSearchTerm, statusFilter, isFilterApplied, appliedFilters, pageSize, filterRegion]);
+  }, [currentPage, debouncedSearchTerm, statusFilter, isFilterApplied, appliedFilters, pageSize, filterRegion, filterBroker]);
 
   // Fetch leads when key inputs change (debounced)
   useEffect(() => {
@@ -416,28 +493,20 @@ export default function LeadsPage() {
 
   // Hardcoded/Static data - No API calls (leads data now comes from API)
 
-  // Mock brokers list for transfer dropdown
-  const allBrokers = [
-    'shivi (Agra)',
-    'Unnamed',
-    'Dghgdddd (Agra)',
-    'Vishsisj (Agra)',
-    'Amit Singh (Mumbai)',
-    'Suresh Patel (Delhi)',
-    'Neha Gupta (Bangalore)',
-    'Kumar Raj (Chennai)',
-    'Ravi Kumar (Pune)'
-  ];
-  const filteredBrokers = allBrokers.filter(b => b.toLowerCase().includes(brokerSearch.toLowerCase()));
-  const isAllFilteredSelected = filteredBrokers.length > 0 && filteredBrokers.every(b => selectedBrokers.includes(b));
-  const toggleBroker = (name: string) => {
-    setSelectedBrokers(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  // Brokers data states
+  const [allBrokers, setAllBrokers] = useState<{id: string, name: string}[]>([]);
+  const [isLoadingBrokers, setIsLoadingBrokers] = useState(true);
+  const [brokersError, setBrokersError] = useState<string | null>(null);
+  const filteredBrokers = allBrokers.filter(b => b.name.toLowerCase().includes(brokerSearch.toLowerCase()));
+  const isAllFilteredSelected = filteredBrokers.length > 0 && filteredBrokers.every(b => selectedBrokers.includes(b.id));
+  const toggleBroker = (brokerId: string) => {
+    setSelectedBrokers(prev => prev.includes(brokerId) ? prev.filter(id => id !== brokerId) : [...prev, brokerId]);
   };
   const toggleSelectAllFiltered = () => {
     if (isAllFilteredSelected) {
-      setSelectedBrokers(prev => prev.filter(n => !filteredBrokers.includes(n)));
+      setSelectedBrokers(prev => prev.filter(id => !filteredBrokers.map(b => b.id).includes(id)));
     } else {
-      setSelectedBrokers(prev => Array.from(new Set([...prev, ...filteredBrokers])));
+      setSelectedBrokers(prev => Array.from(new Set([...prev, ...filteredBrokers.map(b => b.id)])));
     }
   };
 
@@ -480,6 +549,7 @@ export default function LeadsPage() {
   const clearFilters = async () => {
     console.log('🧹 Clearing all filters...');
     setFilterRegion('');
+    setFilterBroker('');
     setFilterRequirement('');
     setFilterPropertyType('');
     setFilterMaxBudget(500000);
@@ -495,7 +565,7 @@ export default function LeadsPage() {
   // Apply client-side filtering as fallback when server-side filtering doesn't work properly
   const filteredLeads = leads.filter((lead) => {
     // If no filters are applied, show all leads
-    if (!isFilterApplied) {
+    if (!isFilterApplied && !filterBroker) {
       return true;
     }
 
@@ -505,20 +575,24 @@ export default function LeadsPage() {
     console.log('🔍 Filtering lead:', {
       leadName: lead.name,
       leadRegion: lead.region,
+      leadBroker: lead.brokerName,
       leadRequirement: lead.requirement,
       leadPropertyType: lead.propertyType,
       leadBudget: lead.budget,
-      filters: active
+      filters: active,
+      filterBroker
     });
 
     // Check if any filters are selected
     const hasRegionFilter = Boolean(active.region && String(active.region).trim() !== '');
+    const hasBrokerFilter = Boolean(filterBroker && String(filterBroker).trim() !== '');
     const hasRequirementFilter = Boolean(active.requirement && String(active.requirement).trim() !== '');
     const hasPropertyTypeFilter = Boolean(active.propertyType && String(active.propertyType).trim() !== '');
     const hasBudgetFilter = typeof active.maxBudget === 'number';
 
     console.log('🎯 Filter Status:', {
       hasRegionFilter,
+      hasBrokerFilter,
       hasRequirementFilter,
       hasPropertyTypeFilter,
       hasBudgetFilter
@@ -541,6 +615,22 @@ export default function LeadsPage() {
           });
           return false;
         }
+      }
+    }
+
+    // Apply broker filter - MUST match if selected
+    if (hasBrokerFilter) {
+      // Find the selected broker name from the broker ID
+      const selectedBroker = allBrokers.find(b => b.id === filterBroker);
+      const expectedBrokerName = selectedBroker?.name;
+      
+      if (expectedBrokerName && lead.brokerName !== expectedBrokerName) {
+        console.log('❌ Broker filter failed:', { 
+          leadBroker: lead.brokerName, 
+          expectedBroker: expectedBrokerName,
+          filterBrokerId: filterBroker 
+        });
+        return false;
       }
     }
 
@@ -571,13 +661,32 @@ export default function LeadsPage() {
     return true;
   });
 
+  // Calculate pagination for filtered results
+  // If no filters are applied, use API results directly (server-side pagination)
+  // If filters are applied, use client-side filtered results
+  const shouldUseServerSidePagination = !isFilterApplied && !filterBroker;
+  
+  const filteredLeadsForPagination = shouldUseServerSidePagination ? leads : filteredLeads;
+  const totalFilteredLeads = shouldUseServerSidePagination ? totalLeads : filteredLeadsForPagination.length;
+  const totalFilteredPages = shouldUseServerSidePagination ? totalPages : Math.max(1, Math.ceil(totalFilteredLeads / pageSize));
+  
+  // Get current page data for filtered results
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedFilteredLeads = shouldUseServerSidePagination ? leads : filteredLeadsForPagination.slice(startIndex, endIndex);
+
   console.log('📊 Filter Results:', {
     totalLeads: leads.length,
     filteredLeads: filteredLeads.length,
+    totalFilteredLeads,
+    totalFilteredPages,
+    currentPage,
+    shouldUseServerSidePagination,
     isFilterApplied,
     appliedFilters,
     filters: {
       filterRegion,
+      filterBroker,
       filterRequirement,
       filterPropertyType,
       filterMaxBudget
@@ -736,6 +845,33 @@ export default function LeadsPage() {
                   </div>
                 </div>
 
+                {/* Broker Filter Dropdown */}
+                <div className="relative">
+                  <select
+                    value={filterBroker}
+                    onChange={(e) => setFilterBroker(e.target.value)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                  >
+                    <option value="">All Brokers</option>
+                    {isLoadingBrokers ? (
+                      <option disabled>Loading brokers...</option>
+                    ) : brokersError ? (
+                      <option disabled>Error loading brokers</option>
+                    ) : (
+                      allBrokers.map((broker) => (
+                        <option key={broker.id} value={broker.id}>
+                          {broker.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+
                   {/* Advanced Filters button */}
                   <button onClick={() => setIsFiltersOpen(true)} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                     isFilterApplied 
@@ -745,8 +881,8 @@ export default function LeadsPage() {
                     Advanced Filters {isFilterApplied && '✓'}
                   </button>
 
-                  {/* Clear Filters button - show when region or advanced filters are active */}
-                  {(isFilterApplied || Boolean(filterRegion)) && (
+                  {/* Clear Filters button - show when region, broker, or advanced filters are active */}
+                  {(isFilterApplied || Boolean(filterRegion) || Boolean(filterBroker)) && (
                     <button 
                       onClick={clearFilters}
                       className="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 transition-colors"
@@ -923,7 +1059,7 @@ export default function LeadsPage() {
                       </>
                     )}
                   </div>
-                ) : filteredLeads.length === 0 ? (
+                ) : paginatedFilteredLeads.length === 0 ? (
                   <div className="text-center py-12">
                     <svg className="w-16 h-16 text-gray-300 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -948,7 +1084,7 @@ export default function LeadsPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredLeads.map((lead) => (
+                    {paginatedFilteredLeads.map((lead) => (
                       <div
                         key={lead.id}
                         className={`relative rounded-xl bg-white   shadow-md hover:shadow-lg transition-shadow ${statusStyles[lead.status]?.glow || ''}`}
@@ -1095,8 +1231,8 @@ export default function LeadsPage() {
                   <div className="text-sm text-gray-700">
                     {(() => {
                       const start = (currentPage - 1) * pageSize + 1;
-                      const end = Math.min(currentPage * pageSize, totalLeads);
-                      return `Showing ${totalLeads === 0 ? 0 : start} to ${end} of ${totalLeads} results`;
+                      const end = Math.min(currentPage * pageSize, totalFilteredLeads);
+                      return `Showing ${totalFilteredLeads === 0 ? 0 : start} to ${end} of ${totalFilteredLeads} results`;
                     })()}
                   </div>
 
@@ -1112,12 +1248,12 @@ export default function LeadsPage() {
 
                     {(() => {
                       const pages: number[] = [];
-                      const addPage = (p: number) => { if (p >= 1 && p <= totalPages && !pages.includes(p)) pages.push(p); };
+                      const addPage = (p: number) => { if (p >= 1 && p <= totalFilteredPages && !pages.includes(p)) pages.push(p); };
                       addPage(1);
                       addPage(2);
                       for (let p = currentPage - 1; p <= currentPage + 1; p++) addPage(p);
-                      addPage(totalPages - 1);
-                      addPage(totalPages);
+                      addPage(totalFilteredPages - 1);
+                      addPage(totalFilteredPages);
                       const sorted = Array.from(new Set(pages)).sort((a,b)=>a-b);
 
                       const nodes: React.ReactNode[] = [];
@@ -1143,8 +1279,8 @@ export default function LeadsPage() {
                     })()}
 
                     <button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages || isLoadingLeads}
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalFilteredPages))}
+                      disabled={currentPage === totalFilteredPages || isLoadingLeads}
                       className="px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
@@ -1478,60 +1614,60 @@ export default function LeadsPage() {
            
                     <div className="space-y-3">
                     {/* Contact Details */}
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-4">
-                      <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+                    <div className=" rounded-lg shadow-sm border border-gray-200 mt-4">
+                      <div className="px-4 py-3 flex items-center gap-2">
                         <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a3 3 0 11-6 0 3 3 0 016 0zM5 21a7 7 0 0114 0"/></svg>
                         <span className="text-sm font-semibold text-gray-900">Contact Details</span>
                       </div>
-                      <div className="divide-y divide-gray-100">
-                        <div className="flex items-center px-4 py-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center px-4 py-2">
                           <div className="w-4 h-4 mr-3 text-gray-400">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                           </div>
-                          <div className="text-xs text-gray-500">Email</div>
-                          <div className="ml-auto text-xs text-gray-900">{selectedLead.contact}</div>
+                          <div className="text-xs text-gray-500 mr-2">Email</div>
+                          <div className="text-xs text-gray-900">{selectedLead.contact}</div>
                         </div>
-                        <div className="flex items-center px-4 py-3">
+                        <div className="flex items-center px-4 py-2">
                           <div className="w-4 h-4 mr-3 text-gray-400">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 5a2 2 0 012-2h2a2 2 0 012 2v1a2 2 0 01-.586 1.414l-1.121 1.121a2 2 0 00-.293 2.475 11.04 11.04 0 004.989 4.989 2 2 0 002.475-.293l1.121-1.121A2 2 0 0116 13h1a2 2 0 012 2v2a2 2 0 01-2 2h-.5C9.596 19 5 14.404 5 8.5V8a3 3 0 013-3H8"/></svg>
                           </div>
-                          <div className="text-xs text-gray-500">Phone</div>
-                          <div className="ml-auto text-xs text-gray-900">{selectedLead.phone}</div>
+                          <div className="text-xs text-gray-500 mr-2">Phone</div>
+                          <div className="text-xs text-gray-900">{selectedLead.phone}</div>
                         </div>
                       </div>
                     </div>
 
                     {/* Property Preferences */}
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                      <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+                    <div className=" rounded-lg shadow-sm border border-gray-200">
+                      <div className="px-4 py-3 flex items-center gap-2 ">
                         <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
                         <span className="text-sm font-semibold text-gray-900">Property Preferences</span>
                       </div>
-                      <div className="divide-y divide-gray-100">
+                      <div className="space-y-1">
                         <div className="flex items-center px-4 py-3">
                           <div className="w-4 h-4 mr-3 text-gray-400"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg></div>
-                          <div className="text-xs text-gray-500">Property Type</div>
-                          <div className="ml-auto text-xs text-gray-900">{selectedLead.propertyType || 'Residential'}</div>
+                          <div className="text-xs text-gray-500 mr-2">Property Type</div>
+                          <div className="text-xs text-gray-900">{selectedLead.propertyType || 'Residential'}</div>
                         </div>
                         <div className="flex items-center px-4 py-3">
                           <div className="w-4 h-4 mr-3 text-gray-400"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1"/></svg></div>
-                          <div className="text-xs text-gray-500">Budget</div>
-                          <div className="ml-auto text-xs text-gray-900">{selectedLead.budget}</div>
+                          <div className="text-xs text-gray-500 mr-2">Budget</div>
+                          <div className="text-xs text-gray-900">{selectedLead.budget}</div>
                         </div>
                         <div className="flex items-center px-4 py-3">
                           <div className="w-4 h-4 mr-3 text-gray-400"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 9h14l1 12H4L5 9z"/></svg></div>
-                          <div className="text-xs text-gray-500">Requirement</div>
-                          <div className="ml-auto text-xs text-gray-900">{selectedLead.requirement}</div>
+                          <div className="text-xs text-gray-500 mr-2">Requirement</div>
+                          <div className="text-xs text-gray-900">{selectedLead.requirement}</div>
                         </div>
                         <div className="flex items-center px-4 py-3">
                           <div className="w-4 h-4 mr-3 text-gray-400"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0L6.343 16.657a8 8 0 1111.314 0z"/></svg></div>
-                          <div className="text-xs text-gray-500">Primary Region</div>
-                          <div className="ml-auto text-xs text-gray-900">{selectedLead.region}</div>
+                          <div className="text-xs text-gray-500 mr-2">Primary Region</div>
+                          <div className="text-xs text-gray-900">{selectedLead.region}</div>
                         </div>
                         <div className="flex items-center px-4 py-3">
                           <div className="w-4 h-4 mr-3 text-gray-400"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0L6.343 16.657a8 8 0 1111.314 0z"/></svg></div>
-                          <div className="text-xs text-gray-500">Secondary Region</div>
-                          <div className="ml-auto text-xs text-gray-900">{selectedLead.secondaryRegion || '-'}</div>
+                          <div className="text-xs text-gray-500 mr-2">Secondary Region</div>
+                          <div className="text-xs text-gray-900">{selectedLead.secondaryRegion || '-'}</div>
                         </div>
                       </div>
                     </div>
@@ -1557,7 +1693,7 @@ export default function LeadsPage() {
                   // Share Tab
 
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-3">
-                      <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+                      <div className="px-4 py-3 flex items-center gap-2">
                         <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12v.01M8 12v.01M12 12v.01M16 12v.01M20 12v.01"/></svg>
                         <span className="text-sm font-semibold text-gray-900">Share History</span>
                       </div>
@@ -1576,9 +1712,9 @@ export default function LeadsPage() {
                         const secondaryRegion = selectedLead.secondaryRegion || '-';
                         const imageList = Array.isArray(selectedLead.sharedWithImages) ? selectedLead.sharedWithImages : [];
                         return (
-                          <div className="space-y-3">
+                          <div className="space-y-1">
                             {toList.map((toName, idx) => (
-                              <div key={`${toName}-${idx}`} className="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2">
+                              <div key={`${toName}-${idx}`} className="flex items-center justify-between rounded-lg px-3 py-2">
                                 <div className="flex items-start gap-3">
                                   {/* Avatar: show image if present, else default avatar */}
                                   {(() => {
@@ -1690,18 +1826,22 @@ export default function LeadsPage() {
 
                           {/* List */}
                           <div className="max-h-56 overflow-auto">
-                            {filteredBrokers.length === 0 ? (
+                            {isLoadingBrokers ? (
+                              <div className="px-3 py-2 text-xs text-gray-500">Loading brokers...</div>
+                            ) : brokersError ? (
+                              <div className="px-3 py-2 text-xs text-red-500">Error loading brokers</div>
+                            ) : filteredBrokers.length === 0 ? (
                               <div className="px-3 py-2 text-xs text-gray-500">No results</div>
                             ) : (
-                              filteredBrokers.map(name => (
-                                <label key={name} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm">
+                              filteredBrokers.map(broker => (
+                                <label key={broker.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm">
                                   <input
                                     type="checkbox"
                                     className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                                    checked={selectedBrokers.includes(name)}
-                                    onChange={() => toggleBroker(name)}
+                                    checked={selectedBrokers.includes(broker.id)}
+                                    onChange={() => toggleBroker(broker.id)}
                                   />
-                                  <span className="text-gray-800">{name}</span>
+                                  <span className="text-gray-800">{broker.name}</span>
                                 </label>
                               ))
                             )}
