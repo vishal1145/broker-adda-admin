@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import Layout from '@/components/Layout';
@@ -155,7 +156,8 @@ const SummaryCardsSkeleton = () => {
   );
 };
 
-export default function BrokersPage() {
+function BrokersPageInner() {
+  const searchParams = useSearchParams();
   const [brokers, setBrokers] = useState<Broker[]>([]);
   const [regions, setRegions] = useState<Array<{ _id: string; name: string; city?: string; state?: string }>>([]);
   const [loading, setLoading] = useState(true);
@@ -163,7 +165,7 @@ export default function BrokersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [membershipFilter, setMembershipFilter] = useState('all');
-  const [regionFilter, setRegionFilter] = useState('all');
+  const [regionFilter, setRegionFilter] = useState(() => searchParams?.get('regionId') || 'all');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [debouncedStatusFilter, setDebouncedStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -1054,5 +1056,13 @@ export default function BrokersPage() {
         </div>
       </Layout>
     </ProtectedRoute>
+  );
+}
+
+export default function BrokersPage() {
+  return (
+    <Suspense>
+      <BrokersPageInner />
+    </Suspense>
   );
 }

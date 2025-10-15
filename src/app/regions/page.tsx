@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
+import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { regionAPI } from '@/services/api';
 import Popup from 'reactjs-popup';
@@ -1551,8 +1552,13 @@ export default function RegionsPage() {
                       
                         {/* Stats Column */}
                         <div className="text-sm">
-                          <div className="font-semibold text-gray-900">{region.brokerCount || 0} Brokers</div>
-                          
+                          <Link 
+                            href={`/brokers?regionId=${region._id}`}
+                            className="font-semibold text-gray-900 cursor-pointer"
+                            title="View brokers in this region"
+                          >
+                            {region.brokerCount || 0} Brokers
+                          </Link>
                         </div>
                        
                         {/* Action Column */}

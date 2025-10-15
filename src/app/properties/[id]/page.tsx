@@ -81,6 +81,26 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     }, 3000);
   };
 
+  // Resolve a broker avatar image URL with proxy support and fallback
+  const getBrokerAvatarUrl = (property: Property | null) => {
+    const fallback = 'https://www.w3schools.com/howto/img_avatar.png';
+    if (!property) return fallback;
+    let rawUrl: string | undefined;
+    if (typeof property.broker === 'object' && property.broker) {
+      rawUrl = (property.broker as unknown as { brokerImage?: string }).brokerImage || property.contact?.avatar || undefined;
+    } else {
+      rawUrl = property.contact?.avatar || undefined;
+    }
+    if (!rawUrl) return fallback;
+    if (
+      rawUrl.includes('https://') ||
+      (rawUrl.includes('http://') && !rawUrl.includes('localhost'))
+    ) {
+      return `/api/image-proxy?url=${encodeURIComponent(rawUrl)}`;
+    }
+    return rawUrl;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -459,7 +479,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                     <div className="w-full flex flex-col items-center text-center">
                       <Image
                         className="w-14 h-14 rounded-full object-cover ring-2 ring-white shadow"
-                        src={data.contact?.avatar || 'https://www.w3schools.com/howto/img_avatar.png'}
+                        src={getBrokerAvatarUrl(data)}
                         alt="Agent avatar"
                         width={64}
                         height={64}

@@ -5,7 +5,7 @@ import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
 import Image from 'next/image';
-import { propertiesAPI } from '@/services/api';
+import { propertiesAPI, regionAPI } from '@/services/api';
 
 // Skeleton Loader Components
 const Skeleton = ({ className = '', height = 'h-4', width = 'w-full', rounded = false }: { className?: string; height?: string; width?: string; rounded?: boolean }) => (
@@ -46,8 +46,9 @@ const getSafeImageUrl = (images: string[] | undefined): string => {
   const validImage = images.find(img => 
     img && 
     typeof img === 'string' && 
-    !img.includes('example.com') && 
-    (img.startsWith('https://images.unsplash.com') || img.startsWith('/') || img.startsWith('http://localhost'))
+    !img.includes('example.com') &&
+    // accept absolute http/https or app-relative URLs
+    (img.startsWith('https://') || img.startsWith('http://') || img.startsWith('/'))
   );
   
   return validImage || defaultImage;
@@ -64,6 +65,8 @@ export default function PropertiesPage() {
   type PropertyCard = {
     _id: string;
     title: string;
+    description?: string;
+    propertyDescription?: string;
     price: number;
     priceUnit: string;
     address: string;
@@ -72,6 +75,8 @@ export default function PropertiesPage() {
     images: string[];
     bedrooms: number;
     bathrooms: number;
+    area?: number; // optional built-up area in sqft
+    areaUnit?: string; // e.g., sqft, sqyd
     propertyType: string;
     subType: string;
     status: string;
@@ -90,6 +95,8 @@ export default function PropertiesPage() {
     sold: 0
   });
   const [metricsLoading, setMetricsLoading] = useState(true);
+  const [regions, setRegions] = useState<string[]>([]);
+  const [regionsLoading, setRegionsLoading] = useState(false);
 
   // Load property metrics from API
   useEffect(() => {
@@ -118,6 +125,39 @@ export default function PropertiesPage() {
     };
     
     loadMetrics();
+  }, []);
+
+  type RegionsApiItem = Partial<{ name: string; region: string; city: string; state: string }> | string | unknown;
+  const getRegionDisplayName = (item: RegionsApiItem): string | undefined => {
+    if (typeof item === 'string') return item;
+    const obj = item as Partial<{ name: string; region: string; city: string; state: string }>;
+    return obj?.name || obj?.region || obj?.city || obj?.state || undefined;
+  };
+
+  // Load regions for filter
+  useEffect(() => {
+    const loadRegions = async () => {
+      try {
+        setRegionsLoading(true);
+        const res = await regionAPI.getRegions(1, 100);
+        // Flexible extraction based on possible API shapes
+        const list: RegionsApiItem[] = res?.data?.regions || res?.regions || res?.data || [];
+        const names: string[] = Array.isArray(list)
+          ? list
+              .map((r: RegionsApiItem) => getRegionDisplayName(r))
+              .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+          : [];
+        // unique & sorted
+        const uniqueNames = Array.from(new Set(names)).sort();
+        setRegions(uniqueNames);
+      } catch (err) {
+        console.error('Failed to load regions for filter:', err);
+        // keep regions empty → dropdown will still show "All Regions"
+      } finally {
+        setRegionsLoading(false);
+      }
+    };
+    loadRegions();
   }, []);
 
   // Load properties from API
@@ -163,15 +203,55 @@ export default function PropertiesPage() {
         });
         
         // Filter out invalid image URLs and ensure only valid images are used
-        let processedProperties = Array.isArray(properties) ? properties.map(property => ({
-          ...property,
-          images: property.images ? property.images.filter((img: string) => 
-            img && 
-            typeof img === 'string' && 
-            !img.includes('example.com') && 
-            (img.startsWith('https://images.unsplash.com') || img.startsWith('/'))
-          ) : []
-        })) : [];
+        type ApiProperty = Partial<PropertyCard> & {
+          name?: string;
+          propertyDescription?: string;
+          propertySize?: number | string;
+          bedrooms?: number | string;
+          bathrooms?: number | string;
+          price?: number | string;
+          images?: string[];
+          address?: string;
+          city?: string;
+          region?: string;
+        };
+
+        let processedProperties = Array.isArray(properties) ? properties.map((prop: unknown) => {
+          const property = prop as ApiProperty;
+          // normalize fields coming from API (strings -> numbers, alternate names)
+          const normalizedBedrooms = typeof property.bedrooms === 'string' ? parseInt(property.bedrooms, 10) : property.bedrooms;
+          const normalizedBathrooms = typeof property.bathrooms === 'string' ? parseInt(property.bathrooms, 10) : property.bathrooms;
+          const areaFromSize = property.propertySize;
+          const normalizedArea = typeof areaFromSize === 'string' ? parseFloat(areaFromSize) : areaFromSize;
+          const normalizedPrice = typeof property.price === 'string' ? parseFloat(property.price) : property.price;
+
+          const filteredImages = property.images ? property.images.filter((img: string) => 
+            img && typeof img === 'string' && !img.includes('example.com') && (img.startsWith('https://') || img.startsWith('http://') || img.startsWith('/'))
+          ) : [];
+
+          const normalized: PropertyCard = {
+            _id: (property._id as string) || '',
+            title: property.title || property.name || '',
+            description: (property as { description?: string })?.description || property.propertyDescription || '',
+            propertyDescription: property.propertyDescription,
+            price: typeof normalizedPrice === 'number' && !Number.isNaN(normalizedPrice) ? normalizedPrice : (property.price as number) || 0,
+            priceUnit: property.priceUnit || 'INR',
+            address: property.address || '',
+            city: property.city || '',
+            region: property.region || '',
+            images: filteredImages,
+            bedrooms: typeof normalizedBedrooms === 'number' && !Number.isNaN(normalizedBedrooms) ? normalizedBedrooms : (property.bedrooms as number) || 0,
+            bathrooms: typeof normalizedBathrooms === 'number' && !Number.isNaN(normalizedBathrooms) ? normalizedBathrooms : (property.bathrooms as number) || 0,
+            area: typeof normalizedArea === 'number' && !Number.isNaN(normalizedArea) ? normalizedArea : property.area,
+            areaUnit: property.areaUnit || 'sqft',
+            propertyType: property.propertyType || '',
+            subType: property.subType || '',
+            status: property.status || '',
+            isFeatured: Boolean(property.isFeatured),
+          };
+
+          return normalized;
+        }) : [];
 
         // Client-side filtering as fallback (in case API doesn't filter properly)
         if (Array.isArray(processedProperties)) {
@@ -199,11 +279,14 @@ export default function PropertiesPage() {
               return false;
             }
 
-            // Region filter
-            if (regionFilter !== 'all' && 
-                property.region !== regionFilter && 
-                property.city !== regionFilter) {
-              return false;
+            // Region filter (case-insensitive, checks both region and city)
+            if (regionFilter !== 'all') {
+              const selected = regionFilter.toLowerCase();
+              const propRegion = (property.region || '').toLowerCase();
+              const propCity = (property.city || '').toLowerCase();
+              if (propRegion !== selected && propCity !== selected) {
+                return false;
+              }
             }
 
             return true;
@@ -353,16 +436,10 @@ export default function PropertiesPage() {
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                 >
                   <option value="all">All Regions</option>
-                  <option value="Mumbai">Mumbai</option>
-                  <option value="Delhi">Delhi</option>
-                  <option value="Bangalore">Bangalore</option>
-                  <option value="Hyderabad">Hyderabad</option>
-                  <option value="Pune">Pune</option>
-                  <option value="Chennai">Chennai</option>
-                  <option value="Noida">Noida</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Karnataka">Karnataka</option>
-                  <option value="Delhi">Delhi</option>
+                  {regionsLoading && <option disabled>Loading...</option>}
+                  {!regionsLoading && regions.map((r) => (
+                    <option key={`region-opt-${r}`} value={r}>{r}</option>
+                  ))}
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -395,34 +472,7 @@ export default function PropertiesPage() {
             </div>
           )}
 
-          {/* Active Filters Indicator */}
-          {(searchTerm || typeFilter !== 'all' || statusFilter !== 'all' || regionFilter !== 'all') && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
-              <div className="font-semibold">Active Filters:</div>
-              <div className="text-sm mt-1 flex flex-wrap gap-2">
-                {searchTerm && (
-                  <span className="bg-blue-100 px-2 py-1 rounded-full text-xs">
-                    Search: &quot;{searchTerm}&quot;
-                  </span>
-                )}
-                {typeFilter !== 'all' && (
-                  <span className="bg-blue-100 px-2 py-1 rounded-full text-xs">
-                    Type: {typeFilter}
-                  </span>
-                )}
-                {statusFilter !== 'all' && (
-                  <span className="bg-blue-100 px-2 py-1 rounded-full text-xs">
-                    Status: {statusFilter}
-                  </span>
-                )}
-                {regionFilter !== 'all' && (
-                  <span className="bg-blue-100 px-2 py-1 rounded-full text-xs">
-                    Region: {regionFilter}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Active Filters Indicator removed as requested */}
 
 
        
@@ -517,19 +567,67 @@ export default function PropertiesPage() {
                       />
                     </div>
                     <div className="p-3">
-                      <div className="text-gray-900 text-base font-bold mb-1">
+                      {property.title && (
+                        <div className="text-[13px] font-semibold text-gray-900 mb-1 line-clamp-1">{property.title}</div>
+                      )}
+                      {property.description && (
+                        <div className="text-[11px] text-gray-500 mb-2 line-clamp-2">{property.description}</div>
+                      )}
+                      <div className="text-gray-900 text-base font-bold mb-2">
                         ₹{property.price.toLocaleString()}
                         {property.priceUnit && ` ${property.priceUnit}`}
                       </div>
-                      <div className="flex items-start text-gray-600 text-xs mb-1">
-                        <svg className="w-4 h-4 mr-1 mt-[2px] text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.5 10.5c0 7.5-7.5 10.5-7.5 10.5S4.5 18 4.5 10.5a7.5 7.5 0 1115 0z" />
-                        </svg>
-                        <span className="truncate">{property.address}, {property.city}</span>
+                      {/* City & Region plain with icons (no chips) */}
+                      <div className="flex items-center gap-4 mb-2 text-xs text-gray-600">
+                        {property.city && (
+                          <span className="inline-flex items-center gap-1">
+                            {/* building icon */}
+                            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M6 21V7a2 2 0 012-2h4a2 2 0 012 2v14M6 10h6m-6 4h6m6 7V11a2 2 0 00-2-2h-2" />
+                            </svg>
+                            {property.city}
+                          </span>
+                        )}
+                        {property.region && (
+                          <span className="inline-flex items-center gap-1">
+                            {/* location pin */}
+                            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 11a3 3 0 100-6 3 3 0 000 6z" />
+                              <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.5-7.5 10.5-7.5 10.5S4.5 18 4.5 10.5a7.5 7.5 0 1115 0z" />
+                            </svg>
+                            {property.region}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[11px] text-gray-500">
-                        {property.bedrooms} beds / {property.bathrooms} baths / {property.subType}
+
+                      {/* Features section */}
+                      <div>
+                        <div className="text-[11px] text-gray-500 mb-1">Features</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] bg-green-50 text-green-700 border border-green-200">
+                            {/* bed icon */}
+                            <svg className="w-3.5 h-3.5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 18V8a2 2 0 012-2h14a2 2 0 012 2v10M3 14h18" />
+                            </svg>
+                            {property.bedrooms} bd
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] bg-green-50 text-green-700 border border-green-200">
+                            {/* bath icon */}
+                            <svg className="w-3.5 h-3.5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 10h18v4a5 5 0 01-5 5H8a5 5 0 01-5-5v-4zm4-3a3 3 0 016 0v3" />
+                            </svg>
+                            {property.bathrooms} bt
+                          </span>
+                          {(property.area || property.subType) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] bg-green-50 text-green-700 border border-green-200">
+                              {/* area icon */}
+                              <svg className="w-3.5 h-3.5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 3h6v6H3V3zm12 0h6v6h-6V3zM3 15h6v6H3v-6zm12 0h6v6h-6v-6z" />
+                              </svg>
+                              {property.area ? `${property.area} ${property.areaUnit || 'sqft'}` : property.subType}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Link>
