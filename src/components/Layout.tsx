@@ -73,7 +73,7 @@ export default function Layout({ children }: LayoutProps) {
             >
            Leads
             </Link>
-            {/* <Link
+            <Link
               href="/properties"
               className={`text-sm font-medium transition-colors ${
                 pathname === '/properties'
@@ -82,7 +82,7 @@ export default function Layout({ children }: LayoutProps) {
               }`}
             >
             Properties
-            </Link> */}
+            </Link>
           </div>
           
           {/* User Profile - Right side */}
