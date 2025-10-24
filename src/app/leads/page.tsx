@@ -1,7 +1,9 @@
 'use client';
 /* eslint-disable @next/next/no-img-element */
 
+import { Suspense } from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { leadsAPI, regionAPI } from '@/services/api';
@@ -26,6 +28,7 @@ type Lead = {
   region: string;
   secondaryRegion?: string;
   brokerName: string;
+  brokerId?: string;
   sharedWith: string; // comma-joined for quick display/fallback
   sharedWithList?: string[]; // normalized list of names
   sharedWithImages?: string[]; // profile images for shared with users
@@ -66,9 +69,11 @@ type ApiLead = {
   source?: string; createdAt?: string;
 };
 
-export default function LeadsPage() {
+function LeadsPageContent() {
   const DEFAULT_AVATAR = 'https://www.w3schools.com/howto/img_avatar.png';
   const pageSize = 9;
+  const searchParams = useSearchParams();
+  const brokerId = searchParams.get('brokerId');
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -328,159 +333,267 @@ export default function LeadsPage() {
   }, [leads]);
 
   // Fetch leads data (uses snapshot in appliedFilters)
-  const fetchLeads = useCallback(async () => {
-    try {
-      setIsLoadingLeads(true);
-      setLeadsError(null);
-      
-      // Check if token exists before making API call
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        throw new Error('No authentication token found. Please login again.');
-      }
-      
-      // Use only applied filters snapshot for API calls
-      const apiFilters = isFilterApplied ? appliedFilters : undefined;
+ const fetchLeads = useCallback(async () => {
+  try {
+    setIsLoadingLeads(true);
+    setLeadsError(null);
 
-      console.log('📡 Making API call with:', {
-        currentPage,
-        pageSize,
-        debouncedSearchTerm,
-        statusFilter,
-        apiFilters,
-        isFilterApplied
+    // Check if token exists before making API call
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      throw new Error('No authentication token found. Please login again.');
+    }
+
+    // ✅ Get brokerId from URL (using useSearchParams hook)
+    // brokerId is already available from the component state
+
+    // Use only applied filters snapshot for API calls
+    const apiFilters = isFilterApplied ? appliedFilters : undefined;
+
+    console.log('📡 Making API call with:', {
+      currentPage,
+      pageSize,
+      debouncedSearchTerm,
+      statusFilter,
+      apiFilters,
+      isFilterApplied,
+      brokerId, // ✅ Added for debugging
+    });
+
+    // Always include region and broker from main controls
+    const regionFilterObj = filterRegion ? { region: filterRegion } : undefined;
+    const brokerFilterObj = filterBroker ? { broker: filterBroker } : undefined;
+
+    // ✅ Include brokerId from URL if present
+    const brokerIdFilterObj = brokerId ? { broker: brokerId } : undefined;
+
+    const mergedFilters = {
+      ...(apiFilters || {}),
+      ...(regionFilterObj || {}),
+      ...(brokerFilterObj || {}),
+      ...(brokerIdFilterObj || {}), // ✅ merged broker filter
+    };
+
+    const response = await leadsAPI.getLeads(
+      currentPage,
+      pageSize,
+      debouncedSearchTerm,
+      statusFilter,
+      mergedFilters
+    );
+
+    // Map API response to our leads format
+    const leadsData =
+      response.data?.items ||
+      response.data?.leads ||
+      response.leads ||
+      response.data ||
+      [];
+
+    console.log('📊 API Response Summary:', {
+      success: response.success,
+      message: response.message,
+      itemsCount: response.data?.items?.length || 0,
+      total: response.data?.total || 0,
+      page: response.data?.page || 1,
+      totalPages: response.data?.totalPages || 0,
+    });
+
+    // If no leads data from API, set empty array instead of fallback
+    if (!leadsData || !Array.isArray(leadsData) || leadsData.length === 0) {
+      console.log('No leads data found, setting empty array');
+      setLeads([]);
+      setTotalLeads(0);
+      setTotalPages(1);
+      return;
+    }
+
+    const mappedLeads: Lead[] = (leadsData as ApiLead[]).map((lead: ApiLead, index: number) => {
+      console.log('🔍 Mapping lead region:', {
+        leadId: lead._id || lead.id,
+        primaryRegion: lead.primaryRegion,
+        region: lead.region,
+        city: lead.city,
+        location: lead.location,
       });
 
-      // Always include region and broker from main controls
-      const regionFilterObj = filterRegion ? { region: filterRegion } : undefined;
-      const brokerFilterObj = filterBroker ? { broker: filterBroker } : undefined;
-      const mergedFilters = { ...(apiFilters || {}), ...(regionFilterObj || {}), ...(brokerFilterObj || {}) };
-      const response = await leadsAPI.getLeads(currentPage, pageSize, debouncedSearchTerm, statusFilter, mergedFilters);
-      
-      // Map API response to our leads format
-      const leadsData = response.data?.items || response.data?.leads || response.leads || response.data || [];
-      
-      console.log('📊 API Response Summary:', {
-        success: response.success,
-        message: response.message,
-        itemsCount: response.data?.items?.length || 0,
-        total: response.data?.total || 0,
-        page: response.data?.page || 1,
-        totalPages: response.data?.totalPages || 0
-      });
-      
-      // If no leads data from API, set empty array instead of fallback
-      if (!leadsData || !Array.isArray(leadsData) || leadsData.length === 0) {
-        console.log('No leads data found, setting empty array');
-        setLeads([]);
-        setTotalLeads(0);
-        setTotalPages(1);
-        return;
-      }
-      
-      const mappedLeads: Lead[] = (leadsData as ApiLead[]).map((lead: ApiLead, index: number) => {
-        // Debug logging for region mapping
-        console.log('🔍 Mapping lead region:', {
-          leadId: lead._id || lead.id,
-          primaryRegion: lead.primaryRegion,
-          region: lead.region,
-          city: lead.city,
-          location: lead.location
-        });
-
-        return {
+      return {
         id: lead._id || lead.id || index + 1,
         name: lead.customerName || lead.name || 'Unknown',
         contact: lead.customerEmail || lead.email || lead.contact || 'No email',
         phone: lead.customerPhone || lead.phone || lead.contactNumber || '+91 00000 00000',
         requirement: lead.requirement || 'Not specified',
         propertyType: lead.propertyType || '',
-        budget: (lead.budget !== undefined && lead.budget !== null) ? `$${lead.budget.toLocaleString('en-US')}` : (lead.price !== undefined && lead.price !== null) ? `$${lead.price.toLocaleString('en-US')}` : 'Not specified',
+        budget:
+          lead.budget !== undefined && lead.budget !== null
+            ? `$${lead.budget.toLocaleString('en-US')}`
+            : lead.price !== undefined && lead.price !== null
+            ? `$${lead.price.toLocaleString('en-US')}`
+            : 'Not specified',
         region:
           typeof lead.primaryRegion === 'string'
             ? lead.primaryRegion
-            : (lead.primaryRegion as { name?: string } | undefined)?.name
-              || (typeof lead.region === 'string' ? lead.region : (lead.region as { name?: string } | undefined)?.name)
-              || lead.city
-              || lead.location?.city
-              || 'Not specified',
+            : (lead.primaryRegion as { name?: string } | undefined)?.name ||
+              (typeof lead.region === 'string'
+                ? lead.region
+                : (lead.region as { name?: string } | undefined)?.name) ||
+              lead.city ||
+              lead.location?.city ||
+              'Not specified',
         secondaryRegion:
-          (typeof lead.secondaryRegion === 'string' ? lead.secondaryRegion : (lead.secondaryRegion as { name?: string } | undefined)?.name)
-          || (typeof lead.optionalRegion === 'string' ? lead.optionalRegion : (lead.optionalRegion as { name?: string } | undefined)?.name)
-          || (typeof lead.region2 === 'string' ? lead.region2 : (lead.region2 as { name?: string } | undefined)?.name)
-          || lead.secondaryCity
-          || undefined,
+          (typeof lead.secondaryRegion === 'string'
+            ? lead.secondaryRegion
+            : (lead.secondaryRegion as { name?: string } | undefined)?.name) ||
+          (typeof lead.optionalRegion === 'string'
+            ? lead.optionalRegion
+            : (lead.optionalRegion as { name?: string } | undefined)?.name) ||
+          (typeof lead.region2 === 'string'
+            ? lead.region2
+            : (lead.region2 as { name?: string } | undefined)?.name) ||
+          lead.secondaryCity ||
+          undefined,
         brokerName: lead.createdBy?.name || lead.brokerName || lead.broker?.name || 'Unknown Broker',
-        // Only show shared-with if transfers/collaborators/sharedWith exist; otherwise blank
-        sharedWith: (Array.isArray(lead.transfers) && lead.transfers.length > 0)
-          ? (lead.transfers).map(t => (typeof t?.toBroker === 'string' ? t.toBroker : t?.toBroker?.name || '')).filter(Boolean).join(', ')
-          : Array.isArray(lead.sharedWith)
-            ? (lead.sharedWith).map((u) => (typeof u === 'string' ? u : u?.name || '')).filter(Boolean).join(', ')
+        sharedWith:
+          Array.isArray(lead.transfers) && lead.transfers.length > 0
+            ? lead.transfers
+                .map((t) =>
+                  typeof t?.toBroker === 'string' ? t.toBroker : t?.toBroker?.name || ''
+                )
+                .filter(Boolean)
+                .join(', ')
+            : Array.isArray(lead.sharedWith)
+            ? lead.sharedWith
+                .map((u) => (typeof u === 'string' ? u : u?.name || ''))
+                .filter(Boolean)
+                .join(', ')
             : typeof lead.sharedWith === 'string'
-              ? (lead.sharedWith as string)
+            ? (lead.sharedWith as string)
             : Array.isArray(lead.collaborators)
-                ? (lead.collaborators).map((u) => (typeof u === 'string' ? u : u?.name || '')).filter(Boolean).join(', ')
-                : '',
-        sharedWithList: (Array.isArray(lead.transfers) && lead.transfers.length > 0)
-          ? (lead.transfers).map(t => (typeof t?.toBroker === 'string' ? t.toBroker : t?.toBroker?.name || '')).filter(Boolean)
-          : Array.isArray(lead.sharedWith)
-            ? (lead.sharedWith).map((u) => (typeof u === 'string' ? u : u?.name || '')).filter(Boolean)
+            ? lead.collaborators
+                .map((u) => (typeof u === 'string' ? u : u?.name || ''))
+                .filter(Boolean)
+                .join(', ')
+            : '',
+        sharedWithList:
+          Array.isArray(lead.transfers) && lead.transfers.length > 0
+            ? lead.transfers
+                .map((t) =>
+                  typeof t?.toBroker === 'string' ? t.toBroker : t?.toBroker?.name || ''
+                )
+                .filter(Boolean)
+            : Array.isArray(lead.sharedWith)
+            ? lead.sharedWith
+                .map((u) => (typeof u === 'string' ? u : u?.name || ''))
+                .filter(Boolean)
             : typeof lead.sharedWith === 'string'
-              ? (lead.sharedWith as string).split(',').map(s => s.trim()).filter(Boolean)
-              : Array.isArray(lead.collaborators)
-                ? (lead.collaborators).map((u) => (typeof u === 'string' ? u : u?.name || '')).filter(Boolean)
-                : [],
-        sharedWithImages: (Array.isArray(lead.transfers) && lead.transfers.length > 0)
-          ? (lead.transfers).map(t => (typeof t?.toBroker === 'object' && t?.toBroker && 'brokerImage' in t.toBroker ? (t.toBroker as BrokerRef).brokerImage : null)).filter((img): img is string => Boolean(img))
-          : Array.isArray(lead.sharedWith)
-            ? (lead.sharedWith).map((u) => (typeof u === 'object' && u && 'brokerImage' in u ? (u as BrokerRef).brokerImage : null)).filter((img): img is string => Boolean(img))
+            ? (lead.sharedWith as string)
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
             : Array.isArray(lead.collaborators)
-              ? (lead.collaborators).map((u) => (typeof u === 'object' && u && 'brokerImage' in u ? (u as BrokerRef).brokerImage : null)).filter((img): img is string => Boolean(img))
-              : [],
+            ? lead.collaborators
+                .map((u) => (typeof u === 'string' ? u : u?.name || ''))
+                .filter(Boolean)
+            : [],
+        sharedWithImages:
+          Array.isArray(lead.transfers) && lead.transfers.length > 0
+            ? lead.transfers
+                .map((t) =>
+                  typeof t?.toBroker === 'object' &&
+                  t?.toBroker &&
+                  'brokerImage' in t.toBroker
+                    ? (t.toBroker as BrokerRef).brokerImage
+                    : null
+                )
+                .filter((img): img is string => Boolean(img))
+            : Array.isArray(lead.sharedWith)
+            ? lead.sharedWith
+                .map((u) =>
+                  typeof u === 'object' && u && 'brokerImage' in u
+                    ? (u as BrokerRef).brokerImage
+                    : null
+                )
+                .filter((img): img is string => Boolean(img))
+            : Array.isArray(lead.collaborators)
+            ? lead.collaborators
+                .map((u) =>
+                  typeof u === 'object' && u && 'brokerImage' in u
+                    ? (u as BrokerRef).brokerImage
+                    : null
+                )
+                .filter((img): img is string => Boolean(img))
+            : [],
         status: lead.status || '',
         source: lead.source || 'Website',
-        createdAt: lead.createdAt ? new Date(lead.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-        };
-      });
-      
-      setLeads(mappedLeads);
-      // After setting leads, refresh global caches from the latest batch as well
-      try {
-        const batchRequirements = Array.from(new Set(mappedLeads.map(l => l.requirement).filter(Boolean)));
-        const batchPropertyTypes = Array.from(new Set(mappedLeads.map(l => l.propertyType || '').filter(Boolean)));
-        setAllRequirements(prev => Array.from(new Set([...(prev || []), ...batchRequirements])));
-        setAllPropertyTypes(prev => Array.from(new Set([...(prev || []), ...batchPropertyTypes])));
-      } catch {}
-      const apiTotal = response.data?.total || response.data?.totalLeads || response.totalLeads;
-      const apiTotalPages = response.data?.totalPages || response.totalPages;
-      const computedTotal = typeof apiTotal === 'number' ? apiTotal : mappedLeads.length;
-      const computedPages = typeof apiTotalPages === 'number' ? apiTotalPages : Math.max(1, Math.ceil(computedTotal / pageSize));
-      setTotalLeads(computedTotal);
-      setTotalPages(computedPages);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch leads';
-      
-      // Check if it's a "no data" scenario
-      if (errorMessage.includes('404') || errorMessage.includes('not found')) {
-        setLeadsError('Data not found');
-        setLeads([]);
-        setTotalPages(1);
-        setTotalLeads(0);
-      } else {
-        setLeadsError(errorMessage);
-        setLeads([]);
-        setTotalPages(1);
-        setTotalLeads(0);
-      }
-    } finally {
-      setIsLoadingLeads(false);
+        createdAt: lead.createdAt
+          ? new Date(lead.createdAt).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0],
+      };
+    });
+
+    // ✅ Extra filter safeguard — if brokerId is in query, filter locally too
+    const filteredLeads = brokerId
+      ? mappedLeads.filter((lead) => lead.brokerId === brokerId || lead.brokerName)
+      : mappedLeads;
+
+    setLeads(filteredLeads);
+
+    // Refresh global caches
+    try {
+      const batchRequirements = Array.from(new Set(mappedLeads.map((l) => l.requirement).filter(Boolean)));
+      const batchPropertyTypes = Array.from(new Set(mappedLeads.map((l) => l.propertyType || '').filter(Boolean)));
+      setAllRequirements((prev) => Array.from(new Set([...(prev || []), ...batchRequirements])));
+      setAllPropertyTypes((prev) => Array.from(new Set([...(prev || []), ...batchPropertyTypes])));
+    } catch {}
+
+    const apiTotal = response.data?.total || response.data?.totalLeads || response.totalLeads;
+    const apiTotalPages = response.data?.totalPages || response.totalPages;
+    const computedTotal =
+      typeof apiTotal === 'number' ? apiTotal : filteredLeads.length;
+    const computedPages =
+      typeof apiTotalPages === 'number'
+        ? apiTotalPages
+        : Math.max(1, Math.ceil(computedTotal / pageSize));
+
+    setTotalLeads(computedTotal);
+    setTotalPages(computedPages);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch leads';
+    if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+      setLeadsError('Data not found');
+      setLeads([]);
+      setTotalPages(1);
+      setTotalLeads(0);
+    } else {
+      setLeadsError(errorMessage);
+      setLeads([]);
+      setTotalPages(1);
+      setTotalLeads(0);
     }
-  }, [currentPage, debouncedSearchTerm, statusFilter, isFilterApplied, appliedFilters, pageSize, filterRegion, filterBroker]);
+  } finally {
+    setIsLoadingLeads(false);
+  }
+}, [
+  currentPage,
+  debouncedSearchTerm,
+  statusFilter,
+  isFilterApplied,
+  appliedFilters,
+  pageSize,
+  filterRegion,
+  filterBroker,
+  brokerId,
+]);
+
+  // Reset to page 1 when brokerId changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [brokerId]);
 
   // Fetch leads when key inputs change (debounced)
   useEffect(() => {
     fetchLeads();
-  }, [fetchLeads]);
+  }, [fetchLeads, brokerId]);
 
 
   const closeView = () => {
@@ -766,15 +879,31 @@ export default function LeadsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900">Leads & Visitors</h1>
-                    <p className="text-gray-500 mt-1 text-sm">Track and manage your sales pipeline effectively.</p>
+                    {brokerId ? (
+                      <p className="text-gray-500 mt-1 text-sm">Viewing leads for selected broker</p>
+                    ) : (
+                      <p className="text-gray-500 mt-1 text-sm">Track and manage your sales pipeline effectively.</p>
+                    )}
                   </div>
+                  {/* {brokerId && (
+                    <Link 
+                      href="/leads"
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                      </svg>
+                      Back to All Leads
+                    </Link>
+                  )} */}
                   
                   {/* Toggle Buttons removed by request */}
                 </div>
               </div>
 
               {/* Search and Filters - Under title/description */}
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+              {!brokerId && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                 {/* Search Bar (left) */}
                 <div className="relative  w-[500px]">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -892,6 +1021,7 @@ export default function LeadsPage() {
                   )}
                 </div>
               </div>
+              )}
 
               {/* Stats Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
@@ -1065,12 +1195,15 @@ export default function LeadsPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <p className="text-lg font-medium text-gray-500">
-                      {isFilterApplied ? 'No leads match your filters' : 'No leads found'}
+                      {brokerId ? 'No leads found for this broker' : (isFilterApplied ? 'No leads match your filters' : 'No leads found')}
                     </p>
                     <p className="text-sm text-gray-400">
-                      {isFilterApplied 
-                        ? 'Try adjusting your filter criteria or clear filters to see all leads' 
-                        : 'Try adjusting your search or filter criteria'
+                      {brokerId 
+                        ? 'This broker hasn\'t received any leads yet'
+                        : (isFilterApplied 
+                          ? 'Try adjusting your filter criteria or clear filters to see all leads' 
+                          : 'Try adjusting your search or filter criteria'
+                        )
                       }
                     </p>
                     {isFilterApplied && (
@@ -1869,5 +2002,13 @@ export default function LeadsPage() {
         )}
       </Layout>
     </ProtectedRoute>
+  );
+}
+
+export default function LeadsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LeadsPageContent />
+    </Suspense>
   );
 }

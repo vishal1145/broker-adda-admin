@@ -34,6 +34,17 @@ const nextConfig: NextConfig = {
         hostname: 'example.com',
         pathname: '/**',
       },
+      // ✅ The important part (new domain)
+      {
+        protocol: 'http',
+        hostname: 'broker-adda-be.algofolks.com',
+        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'broker-adda-be.algofolks.com',
+        pathname: '/uploads/images/**',
+      },
     ],
   },
 };

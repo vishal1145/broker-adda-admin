@@ -745,5 +745,46 @@ export const propertiesAPI = {
     const result = await response.json();
     console.log('📊 API Response:', result);
     return result;
+  },
+
+ getPropertyByBrokerId: async (brokerId: string | null, page: number = 1, limit: number = 10) => {
+  console.log('🏠 propertiesAPI.getPropertyByBrokerId called with:', { brokerId, page, limit });
+
+  if (!brokerId) throw new Error('Broker ID is required to fetch properties');
+
+  const token = localStorage.getItem('adminToken');
+  console.log('🏠 Token found:', token ? 'Yes' : 'No');
+
+  if (!token) throw new Error('No authentication token found');
+
+  const params = new URLSearchParams({
+    brokerId: brokerId,
+    page: page.toString(),
+    limit: limit.toString()
+  });
+
+  const url = `${API_BASE_URL}/properties?${params}`;
+  console.log('🏠 Making API call to:', url);
+
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  console.log('🏠 Response status:', response.status);
+  console.log('🏠 Response ok:', response.ok);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('🔴 API Error:', errorText);
+    throw new Error('Failed to fetch properties for this broker');
   }
-};
+
+  const result = await response.json();
+  console.log('🏠 API Response:', result);
+
+  return result;
+},
+}

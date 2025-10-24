@@ -9,6 +9,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { brokerAPI, regionAPI } from '@/services/api';
 import ReactPaginate from 'react-paginate';
 import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 interface Broker {
   _id: string;
@@ -47,6 +48,7 @@ interface Broker {
   brokerImage?: string;
   membership?: "basic" | "standard" | "premium";
   // Optional aggregate counts from API
+  propertyCount?: number;
   leadCount?: number;
   leadsCount?: number;
   totalLeads?: number;
@@ -460,11 +462,8 @@ function BrokersPageInner() {
     }
     return 0;
   };
-  const getPropertiesCount = (broker: Broker) => {
-    const count = broker.propertiesCount as number | undefined;
-    return typeof count === 'number' && !Number.isNaN(count) ? count : 0;
-  };
 
+const router = useRouter();
 
   return (
     <ProtectedRoute>
@@ -885,10 +884,23 @@ function BrokersPageInner() {
                         </div>
 
                         {/* Numbers Column */}
-                        <div className="text-sm">
-                          <div className="capitalize text-gray-500">{getLeadCount(broker)} leads</div>
-                          <div className="text-gray-500 text-xs capitalize">{getPropertiesCount(broker)} properties</div>
-                        </div>
+                       <div className="text-sm space-y-1">
+  {/* Leads count (clickable) */}
+  <div
+    className="capitalize text-gray-500 cursor-pointer hover:text-gray-700"
+    onClick={() => router.push(`/leads?brokerId=${broker?._id}`)}
+  >
+    {getLeadCount(broker)} leads
+  </div>
+
+  {/* Properties count (clickable) */}
+  <div
+    className="text-gray-500 text-xs capitalize cursor-pointer hover:text-gray-700"
+    onClick={() => router.push(`/properties?brokerId=${broker?._id}`)}
+  >
+    {broker?.propertyCount || broker?.propertiesCount || 0} properties
+  </div>
+</div>
 
                         {/* Action Column */}
                         <div>

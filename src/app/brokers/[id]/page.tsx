@@ -9,6 +9,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
 import { brokerAPI } from '@/services/api';
 
+
 interface Broker {
   _id: string;
   userId: {
@@ -44,8 +45,24 @@ interface Broker {
   email: string;
   name: string;
   phone: string;
+  propertyCount?: number;
+  propertiesCount?: number;
   address: string;
   gender: string;
+
+  // ✅ ADD THIS FIELD
+  properties?: Array<{
+    _id: string;
+    title: string;
+    type: string;
+    status: string;
+    price: number;
+    location: string;
+    images?: string[];
+    createdAt: string;
+    updatedAt: string;
+  }>;
+
   // Hardcoded fields for other sections
   accreditedBy?: string;
   licenseNumber?: string;
@@ -76,22 +93,22 @@ interface Broker {
     nextBillingDate: string;
     amountDue: string;
   };
-  // Optional nested leads info coming from API like { leadsCreated: { count, items } }
   leadsCreated?: {
     count?: number;
     items?: Array<{
       _id?: string;
       customerName?: string;
-      name?: string; // fallback if API uses name
+      name?: string;
       inquiry?: string;
-      requirement?: string; // e.g., Buy/Sell/Rent
-      propertyType?: string; // e.g., Apartment/Villa/Plot
+      requirement?: string;
+      propertyType?: string;
       property?: string;
       status?: string;
       createdAt?: string;
     }>;
   };
 }
+
 
 export default function BrokerDetailsPage() {
   const params = useParams();
@@ -338,6 +355,12 @@ export default function BrokerDetailsPage() {
     }
     return brokerImage;
   };
+
+
+  const handleViewDetails = (_id: string) => {
+    router.push(`/properties/${_id}`); // Navigate to property detail page
+  };
+ 
 
   return (
     <ProtectedRoute>
@@ -940,7 +963,9 @@ export default function BrokerDetailsPage() {
                         const property = lead.property || '';
                         const status = (lead.status || '').trim() || 'New';
                         return (
-                          <div key={lead._id || `${title}-${inquiry}`} className="bg-white border border-gray-200 rounded-lg p-4">
+                          <div key={lead._id || `${title}-${inquiry}`} 
+                          onClick={() => router.push(`/leads?brokerId=${broker?._id}`)}
+                          className="bg-white border border-gray-200 cursor-pointer rounded-lg p-4">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <h3 className="text-sm font-semibold text-gray-900 mb-1">{title}</h3>
@@ -1044,7 +1069,7 @@ export default function BrokerDetailsPage() {
                 <div className="mb-8">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-teal-600 mb-1">150</div>
+                      <div className="text-3xl font-bold text-teal-600 mb-1">{broker?.propertyCount || broker?.propertiesCount || 0}</div>
                       <div className="text-sm text-gray-500">Total Properties</div>
                     </div>
                     <div className="text-center">
@@ -1059,77 +1084,59 @@ export default function BrokerDetailsPage() {
                 </div>
                 
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Featured Properties</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[
-                      { 
-                        id: 1, 
-                        title: 'Modern Family Home', 
-                        price: '$2,850,000', 
-                        image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop&auto=format&q=80' 
-                      },
-                      { 
-                        id: 2, 
-                        title: 'Luxury Penthouse', 
-                        location: 'Downtown LA, CA',
-                        price: '$4,200,000', 
-                        image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=300&fit=crop&auto=format&q=80' 
-                      },
-                      { 
-                        id: 3, 
-                        title: 'Prime Commercial Space', 
-                        location: 'Santa Monica, CA',
-                        price: '$12,500/month', 
-                        image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop&auto=format&q=80' 
-                      },
-                      { 
-                        id: 4, 
-                        title: 'Charming Suburban Retreat', 
-                        location: 'Culver City, CA',
-                        price: '$1,500,000', 
-                        image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&h=300&fit=crop&auto=format&q=80' 
-                      },
-                      { 
-                        id: 5, 
-                        title: 'Mountain View Cabin', 
-                        location: 'Malibu, CA',
-                        price: '$3,100,000', 
-                        image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&h=300&fit=crop&auto=format&q=80' 
-                      },
-                      { 
-                        id: 6, 
-                        title: 'Beachfront Villa', 
-                        location: 'Malibu, CA',
-                        price: '$7,900,000', 
-                        image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&h=300&fit=crop&auto=format&q=80' 
-                      }
-                    ].map((property) => (
-                      <div key={property.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                        <div className="relative w-full h-48">
-                          <Image
-                            src={property.image}
-                            alt={property.title}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 100vw, 33vw"
-                          />
-                          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                            <h4 className="text-sm font-semibold text-white mb-1">{property.title}</h4>
-                            {property.location && (
-                              <p className="text-xs text-white/90 mb-2">{property.location}</p>
-                            )}
-                            <span className="text-sm font-semibold text-teal-400">{property.price}</span>
-                            <div className="flex justify-center mt-3">
-                              <button className="w-full px-4 py-1 text-s font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
-                                View Details
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+  <h3 className="text-lg font-semibold text-gray-900 mb-4">Featured Properties</h3>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+   {broker?.properties && broker.properties.length > 0 ? (
+  broker.properties.map((property) => (
+    <div
+      key={property._id}
+      className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+    >
+          <div className="relative w-full h-48">
+            <Image
+              src={
+                property.images?.[0] ||
+                "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop&auto=format&q=80"
+              }
+              alt={property.title || "Property"}
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 33vw"
+            />
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+              <h4 className="text-sm font-semibold text-white mb-1">
+                {property.title || "Untitled Property"}
+              </h4>
+
+              {property.location && (
+                <p className="text-xs text-white/90 mb-2">
+                  {property.location}
+                </p>
+              )}
+
+              <span className="text-sm font-semibold text-teal-400">
+               {property.price ?? "Price on Request"}
+              </span>
+
+              <div className="flex justify-center mt-3">
+                <button
+                  onClick={() => handleViewDetails(property._id)}
+                  className="w-full px-4 py-1 text-s font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors cursor-pointer"
+                >
+                  View Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))
+    ) : (
+      <p className="text-gray-500">No properties available.</p>
+    )}
+  </div>
+</div>
+
               </div>
               
               {/* Reviews & Ratings Section */}
