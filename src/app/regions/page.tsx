@@ -166,7 +166,7 @@ export default function RegionsPage() {
   // Load Google Maps API
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: "AIzaSyA5Lb-4aPQwchmojJe4IpblpreNOjxHFMc",
+    googleMapsApiKey: "AIzaSyBv6RdaS-wDtw9mlyKVpBUTBM80lhumlhk",
     libraries: ['places'] as const,
   });
 
