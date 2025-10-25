@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { regionAPI } from '@/services/api';
 import Popup from 'reactjs-popup';
 import ReactPaginate from 'react-paginate';
+import toast from 'react-hot-toast';
 // Removed unused Select import
 import { useJsApiLoader } from '@react-google-maps/api';
 
@@ -162,6 +163,7 @@ export default function RegionsPage() {
   const [editSearchTimeout, setEditSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [updating, setUpdating] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   // Load Google Maps API
   const { isLoaded } = useJsApiLoader({
@@ -316,19 +318,29 @@ export default function RegionsPage() {
       setError('');
       console.log('Deleting region:', regionToDelete._id);
       
-      await regionAPI.deleteRegion(regionToDelete._id);
-      console.log('Region deleted successfully');
+      const response = await regionAPI.deleteRegion(regionToDelete._id);
+      console.log('Delete region API Response:', response);
       
-      // Close confirmation dialog
-      setShowDeleteConfirm(false);
-      setRegionToDelete(null);
-      
-      // Refresh the regions list
-      fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
-      fetchRegionStats(); // Refresh the statistics
+      // Check if the API response indicates success or failure
+      if (response && response.success) {
+        toast.success(response.message || 'Region deleted successfully!');
+        // Close confirmation dialog
+        setShowDeleteConfirm(false);
+        setRegionToDelete(null);
+        // Refresh the regions list
+        fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
+        fetchRegionStats(); // Refresh the statistics
+      } else {
+        // API returned success: false
+        const errorMessage = response?.message || response?.error || 'Failed to delete region';
+        toast.error(errorMessage);
+        setError(errorMessage);
+      }
     } catch (err) {
       console.error('Error deleting region:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete region');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete region';
+      toast.error(errorMessage);
+      setError(errorMessage);
     } finally {
       setDeleting(false);
     }
@@ -471,7 +483,7 @@ export default function RegionsPage() {
       setError('');
       console.log('Updating region with data:', editFormData);
       
-      await regionAPI.updateRegion(
+      const response = await regionAPI.updateRegion(
         editingRegion._id,
         editFormData.name,
         editFormData.description,
@@ -481,14 +493,26 @@ export default function RegionsPage() {
         parseFloat(editFormData.radius) || 0
       );
       
-      console.log('Region updated successfully');
-      resetEditForm();
-      setShowEditForm(false);
-      fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : ''); // Refresh the regions list
-      fetchRegionStats(); // Refresh the statistics
+      console.log('Update region API Response:', response);
+      
+      // Check if the API response indicates success or failure
+      if (response && response.success) {
+        toast.success(response.message || 'Region updated successfully!');
+        resetEditForm();
+        setShowEditForm(false);
+        fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : ''); // Refresh the regions list
+        fetchRegionStats(); // Refresh the statistics
+      } else {
+        // API returned success: false
+        const errorMessage = response?.message || response?.error || 'Failed to update region';
+        toast.error(errorMessage);
+        setError(errorMessage);
+      }
     } catch (err) {
       console.error('Error updating region:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update region');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update region';
+      toast.error(errorMessage);
+      setError(errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -553,6 +577,7 @@ export default function RegionsPage() {
     console.log('Form submitted with data:', formData); // Debug log
     
     try {
+      setCreating(true);
       setError('');
       console.log('Calling regionAPI.createRegion...'); // Debug log
       const response = await regionAPI.createRegion(
@@ -564,15 +589,27 @@ export default function RegionsPage() {
         parseFloat(formData.radius) || 0
       );
       console.log('Create region API Response:', response); // Debug log
-      
-      resetForm(); // Reset all form fields including center location input
-      setShowForm(false);
-      console.log('Refreshing regions list...'); // Debug log
-      fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : ''); // Refresh the regions list
-      fetchRegionStats(); // Refresh the statistics
+      // Check if the API response indicates success or failure
+      if (response && response.success) {
+        toast.success(response.message || 'Region created successfully!');
+        resetForm(); // Reset all form fields including center location input
+        setShowForm(false);
+        console.log('Refreshing regions list...'); // Debug log
+        fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : ''); // Refresh the regions list
+        fetchRegionStats(); // Refresh the statistics
+      } else {
+        // API returned success: false
+        const errorMessage = response?.message || response?.error || 'Failed to create region';
+        toast.error(errorMessage);
+        setError(errorMessage);
+      }
     } catch (err) {
       console.error('Error creating region:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create region');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create region';
+      toast.error(errorMessage);
+      setError(errorMessage);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -718,7 +755,7 @@ export default function RegionsPage() {
                 setStateFilter('all');
                 setCityFilter('all');
               }}
-              className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
+              className="inline-flex items-center space-x-2 px-4 cursor-pointer py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -765,7 +802,8 @@ export default function RegionsPage() {
                   resetForm(); // Reset form when closing
                   setShowForm(false);
                 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                disabled={creating}
+                className="text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -953,9 +991,20 @@ export default function RegionsPage() {
               <div className="flex space-x-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                  disabled={creating}
+                  className="flex-1 bg-[var(--color-teal-600)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-teal-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center space-x-2"
                 >
-                  Create Region
+                  {creating ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <span>Create Region</span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -963,7 +1012,8 @@ export default function RegionsPage() {
                     resetForm(); // Reset form when canceling
                     setShowForm(false);
                   }}
-                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors cursor-pointer"
+                  disabled={creating}
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1385,12 +1435,6 @@ export default function RegionsPage() {
           </div>
         </Popup>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error}
-          </div>
-        )}
 
         {/* Summary Cards */}
         {loading ? (

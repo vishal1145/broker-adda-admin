@@ -755,9 +755,12 @@ function PropertiesPageContent() {
                         setStatusFilter("all");
                         setRegionFilter("all");
                       }}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors"
-                    >
-                      Clear Filters
+                      className="inline-flex cursor-pointer items-center space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span>Clear Filters</span>
                     </button>
                   )}
                 </div>

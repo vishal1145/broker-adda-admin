@@ -1012,12 +1012,13 @@ export default function BrokerDetailsPage() {
                     
                     <div>
                       <div className="flex items-center space-x-2 mb-1">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+                          <text x="12" y="16" textAnchor="middle" fontSize="12" fontWeight="bold" fill="currentColor">₹</text>
                         </svg>
                         <p className="text-sm font-medium text-gray-500">Average Deal Value</p>
                       </div>
-                      <p className="text-sm font-semibold text-gray-900">$1,200,000</p>
+                      <p className="text-sm font-semibold text-gray-900">₹1,200,000</p>
                     </div>
                     
                     <div>
