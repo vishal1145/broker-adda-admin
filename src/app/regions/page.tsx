@@ -114,7 +114,6 @@ const SummaryCardsSkeleton = () => {
 export default function RegionsPage() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
@@ -315,7 +314,6 @@ export default function RegionsPage() {
     
     try {
       setDeleting(true);
-      setError('');
       console.log('Deleting region:', regionToDelete._id);
       
       const response = await regionAPI.deleteRegion(regionToDelete._id);
@@ -334,13 +332,11 @@ export default function RegionsPage() {
         // API returned success: false
         const errorMessage = response?.message || response?.error || 'Failed to delete region';
         toast.error(errorMessage);
-        setError(errorMessage);
       }
     } catch (err) {
       console.error('Error deleting region:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete region';
       toast.error(errorMessage);
-      setError(errorMessage);
     } finally {
       setDeleting(false);
     }
@@ -370,7 +366,7 @@ export default function RegionsPage() {
       setEditInputValue(region.centerLocation);
     } catch (err) {
       console.error('Error preparing edit form:', err);
-      setError('Failed to prepare edit form');
+      toast.error('Failed to prepare edit form');
     }
   };
 
@@ -480,7 +476,6 @@ export default function RegionsPage() {
     
     try {
       setUpdating(true);
-      setError('');
       console.log('Updating region with data:', editFormData);
       
       const response = await regionAPI.updateRegion(
@@ -506,13 +501,11 @@ export default function RegionsPage() {
         // API returned success: false
         const errorMessage = response?.message || response?.error || 'Failed to update region';
         toast.error(errorMessage);
-        setError(errorMessage);
       }
     } catch (err) {
       console.error('Error updating region:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to update region';
       toast.error(errorMessage);
-      setError(errorMessage);
     } finally {
       setUpdating(false);
     }
@@ -543,7 +536,6 @@ export default function RegionsPage() {
   const fetchRegions = useCallback(async (page = 1, limit = 10, search = '', state = '', city = '') => {
     try {
       setLoading(true);
-      setError('');
       const response = await regionAPI.getRegions(page, limit, search, state, city);
       console.log('Regions API Response:', response); // Debug log
       
@@ -561,7 +553,6 @@ export default function RegionsPage() {
       }
     } catch (err) {
       console.error('Error fetching regions:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch regions');
       setRegions([]); // Ensure regions is always an array
       setTotalRegions(0);
     } finally {
@@ -578,7 +569,6 @@ export default function RegionsPage() {
     
     try {
       setCreating(true);
-      setError('');
       console.log('Calling regionAPI.createRegion...'); // Debug log
       const response = await regionAPI.createRegion(
         formData.name, 
@@ -601,13 +591,11 @@ export default function RegionsPage() {
         // API returned success: false
         const errorMessage = response?.message || response?.error || 'Failed to create region';
         toast.error(errorMessage);
-        setError(errorMessage);
       }
     } catch (err) {
       console.error('Error creating region:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to create region';
       toast.error(errorMessage);
-      setError(errorMessage);
     } finally {
       setCreating(false);
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Layout from "@/components/Layout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Link from "next/link";
@@ -167,7 +167,7 @@ function PropertiesPageContent() {
     | unknown;
 
   // Helper function to extract region display name from object or string
-  const getRegionDisplayName = (item: RegionsApiItem | unknown): string => {
+  const getRegionDisplayName = useCallback((item: RegionsApiItem | unknown): string => {
     if (typeof item === "string") return item;
     if (!item || typeof item !== "object") return "";
     const obj = item as Partial<{
@@ -182,21 +182,8 @@ function PropertiesPageContent() {
       radius?: number;
     }>;
     return obj?.name || obj?.region || obj?.city || obj?.state || "";
-  };
+  }, []);
 
-  // Helper function to extract region ID from object
-  const getRegionId = (item: RegionsApiItem | unknown): string => {
-    if (typeof item === "string") return item;
-    if (!item || typeof item !== "object") return "";
-    const obj = item as Partial<{
-      _id?: string;
-      id?: string;
-      name?: string;
-    }>;
-    // Try _id first (MongoDB), then id
-    const regionId = obj?._id || obj?.id || "";
-    return regionId;
-  };
 
   // Load regions for filter
   useEffect(() => {
@@ -210,31 +197,37 @@ function PropertiesPageContent() {
         // Handle the API response structure - same as regions page
         let regionsList: Array<{ id: string; name: string }> = [];
         
+        type RegionItem = {
+          _id?: string;
+          id?: string;
+          name?: string;
+        };
+        
         if (res && res.success && res.data && res.data.regions && Array.isArray(res.data.regions)) {
           // Standard API response: { success: true, data: { regions: [...] } }
           console.log("🔵 Found regions in response.data.regions:", res.data.regions.length);
-          regionsList = res.data.regions.map((region: any) => ({
+          regionsList = res.data.regions.map((region: RegionItem) => ({
             id: region._id || region.id || "",
             name: region.name || ""
           })).filter((r: { id: string; name: string }) => r.id && r.name);
         } else if (res?.data?.regions && Array.isArray(res.data.regions)) {
           // Alternative: { data: { regions: [...] } }
           console.log("🔵 Found regions in res.data.regions:", res.data.regions.length);
-          regionsList = res.data.regions.map((region: any) => ({
+          regionsList = res.data.regions.map((region: RegionItem) => ({
             id: region._id || region.id || "",
             name: region.name || ""
           })).filter((r: { id: string; name: string }) => r.id && r.name);
         } else if (Array.isArray(res?.regions)) {
           // Alternative: { regions: [...] }
           console.log("🔵 Found regions in res.regions:", res.regions.length);
-          regionsList = res.regions.map((region: any) => ({
+          regionsList = res.regions.map((region: RegionItem) => ({
             id: region._id || region.id || "",
             name: region.name || ""
           })).filter((r: { id: string; name: string }) => r.id && r.name);
         } else if (Array.isArray(res?.data)) {
           // Alternative: { data: [...] }
           console.log("🔵 Found regions in res.data array:", res.data.length);
-          regionsList = res.data.map((region: any) => ({
+          regionsList = res.data.map((region: RegionItem) => ({
             id: region._id || region.id || "",
             name: region.name || ""
           })).filter((r: { id: string; name: string }) => r.id && r.name);
@@ -285,21 +278,28 @@ function PropertiesPageContent() {
         // Handle the API response structure
         let brokersList: Array<{ id: string; name: string }> = [];
         
+        type BrokerItem = {
+          _id?: string;
+          id?: string;
+          name?: string;
+          firmName?: string;
+        };
+        
         if (res && res.data && res.data.brokers && Array.isArray(res.data.brokers)) {
           console.log("🔷 Found brokers in response.data.brokers:", res.data.brokers.length);
-          brokersList = res.data.brokers.map((broker: any) => ({
+          brokersList = res.data.brokers.map((broker: BrokerItem) => ({
             id: broker._id || broker.id || "",
             name: broker.name || broker.firmName || ""
           })).filter((b: { id: string; name: string }) => b.id && b.name);
         } else if (Array.isArray(res?.brokers)) {
           console.log("🔷 Found brokers in res.brokers:", res.brokers.length);
-          brokersList = res.brokers.map((broker: any) => ({
+          brokersList = res.brokers.map((broker: BrokerItem) => ({
             id: broker._id || broker.id || "",
             name: broker.name || broker.firmName || ""
           })).filter((b: { id: string; name: string }) => b.id && b.name);
         } else if (Array.isArray(res?.data)) {
           console.log("🔷 Found brokers in res.data array:", res.data.length);
-          brokersList = res.data.map((broker: any) => ({
+          brokersList = res.data.map((broker: BrokerItem) => ({
             id: broker._id || broker.id || "",
             name: broker.name || broker.firmName || ""
           })).filter((b: { id: string; name: string }) => b.id && b.name);
@@ -340,8 +340,6 @@ function PropertiesPageContent() {
         setLoading(true);
         setError("");
 
-        let propertiesResponse;
-
         // Always use getProperties with all filters including brokerFilter
         // brokerFilter takes priority over URL brokerId for filtering
         const effectiveBrokerId = brokerFilter !== "all" ? brokerFilter : (brokerId || "");
@@ -356,7 +354,7 @@ function PropertiesPageContent() {
           currentPage
         });
         
-        propertiesResponse = await propertiesAPI.getProperties(
+        const propertiesResponse = await propertiesAPI.getProperties(
           currentPage,
           itemsPerPage,
           debouncedSearchTerm,
@@ -464,7 +462,7 @@ function PropertiesPageContent() {
           region?: string | RegionsApiItem;
         };
 
-        let processedProperties = Array.isArray(properties)
+        const processedProperties = Array.isArray(properties)
           ? properties.map((prop: unknown) => {
               const property = prop as ApiProperty;
               // normalize fields coming from API (strings -> numbers, alternate names)
@@ -607,6 +605,7 @@ function PropertiesPageContent() {
     regionFilter,
     brokerFilter,
     brokerId,
+    getRegionDisplayName,
   ]);
 
   // Debounce search term
