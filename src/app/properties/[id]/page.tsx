@@ -445,7 +445,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="text-base text-gray-500">{row.label}</div>
-                          <div className="text-base font-semibold text-gray-900 truncate">{row.value}</div>
+                          <div className="text-base font-semibold text-gray-900 truncate">{String(row.value || '')}</div>
                         </div>
                       </div>
                     ))}
