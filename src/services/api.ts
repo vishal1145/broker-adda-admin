@@ -1,6 +1,12 @@
 // API Base Configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://broker-adda-be.algofolks.com/api';
 
+// Debug: Log the API base URL on module load (only in development)
+if (typeof window !== 'undefined') {
+  console.log('🌐 API Base URL configured:', API_BASE_URL);
+  console.log('🌐 Environment variable:', process.env.NEXT_PUBLIC_API_BASE_URL || 'Using default');
+}
+
 // Leads API functions
 export const leadsAPI = {
   // Get leads metrics
@@ -568,47 +574,89 @@ export const regionAPI = {
 // Properties API functions
 export const propertiesAPI = {
   // Get all properties with pagination and filters
-  getProperties: async (page: number = 1, limit: number = 10, search: string = '', propertyType: string = '', status: string = '', region: string = '') => {
-    console.log('🏠 propertiesAPI.getProperties called with:', { page, limit, search, propertyType, status, region });
-    
-    const token = localStorage.getItem('adminToken');
-    console.log('🏠 Token found:', token ? 'Yes' : 'No');
-    
-    if (!token) throw new Error('No authentication token found');
+  getProperties: async (page: number = 1, limit: number = 10, search: string = '', propertyType: string = '', status: string = '', region: string = '', city: string = '', brokerId: string = '') => {
+    try {
+      console.log('🏠 propertiesAPI.getProperties called with:', { page, limit, search, propertyType, status, region, city, brokerId });
+      
+      const token = localStorage.getItem('adminToken');
+      console.log('🏠 Token found:', token ? 'Yes' : 'No');
+      
+      if (!token) throw new Error('No authentication token found');
 
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...(search && { search }),
-      ...(propertyType && propertyType !== 'all' && { propertyType }),
-      ...(status && status !== 'all' && { status }),
-      ...(region && region !== 'all' && { region })
-    });
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(search && { search }),
+        ...(propertyType && propertyType !== 'all' && { propertyType }),
+        ...(status && status !== 'all' && { status }),
+        ...(region && region !== 'all' && { regionId: region }),
+        ...(city && city !== 'all' && { city }),
+        ...(brokerId && brokerId !== 'all' && brokerId.trim() !== '' && { brokerId })
+      });
+      
+      console.log('🏠 API params built:', Object.fromEntries(params.entries()));
 
-    const url = `${API_BASE_URL}/properties?${params}`;
-    console.log('🏠 Making API call to:', url);
-    console.log('🏠 Query parameters:', Object.fromEntries(params.entries()));
-    console.log('🏠 Filter values:', { search, propertyType, status, region });
+      // Ensure API_BASE_URL doesn't have trailing slash
+      const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+      const url = `${baseUrl}/properties?${params}`;
+      console.log('🏠 Making API call to:', url);
+      console.log('🏠 API Base URL:', API_BASE_URL);
+      console.log('🏠 Query parameters:', Object.fromEntries(params.entries()));
+      console.log('🏠 Filter values:', { search, propertyType, status, region, city });
 
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        // Add these to help with CORS and network issues
+        mode: 'cors',
+        credentials: 'omit'
+      });
+
+      console.log('🏠 Response status:', response.status);
+      console.log('🏠 Response ok:', response.ok);
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to fetch properties';
+        if (response.status === 401) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (response.status === 404) {
+          errorMessage = 'Properties API endpoint not found.';
+        } else if (response.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (response.status === 403) {
+          errorMessage = 'Access denied. You do not have permission to view properties.';
+        }
+        
+        const errorText = await response.text().catch(() => '');
+        console.error('🔴 API Error:', response.status, errorText);
+        throw new Error(`${errorMessage} (Status: ${response.status})`);
       }
-    });
-
-    console.log('🏠 Response status:', response.status);
-    console.log('🏠 Response ok:', response.ok);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('🔴 API Error:', errorText);
-      throw new Error('Failed to fetch properties');
+      
+      const result = await response.json();
+      console.log('🏠 API Response:', result);
+      return result;
+    } catch (error) {
+      // Handle network errors and other fetch failures
+      console.error('🔴 Fetch Error Details:', error);
+      
+      if (error instanceof TypeError) {
+        if (error.message === 'Failed to fetch' || error.message.includes('fetch')) {
+          console.error('🔴 Network Error: Failed to connect to API server');
+          console.error('🔴 API URL attempted:', `${API_BASE_URL}/properties`);
+          throw new Error('Network error: Unable to connect to the server. Please check your internet connection and ensure the API server is running.');
+        }
+        throw error;
+      } else if (error instanceof Error) {
+        // Re-throw existing error messages
+        throw error;
+      } else {
+        console.error('🔴 Unknown Error:', error);
+        throw new Error('An unexpected error occurred while fetching properties.');
+      }
     }
-    
-    const result = await response.json();
-    console.log('🏠 API Response:', result);
-    return result;
   },
 
   // Get single property by ID
@@ -763,28 +811,60 @@ export const propertiesAPI = {
     limit: limit.toString()
   });
 
-  const url = `${API_BASE_URL}/properties?${params}`;
-  console.log('🏠 Making API call to:', url);
+    // Ensure API_BASE_URL doesn't have trailing slash
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    const url = `${baseUrl}/properties?${params}`;
+    console.log('🏠 Making API call to:', url);
 
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      });
 
-  console.log('🏠 Response status:', response.status);
-  console.log('🏠 Response ok:', response.ok);
+      console.log('🏠 Response status:', response.status);
+      console.log('🏠 Response ok:', response.ok);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('🔴 API Error:', errorText);
-    throw new Error('Failed to fetch properties for this broker');
-  }
+      if (!response.ok) {
+        let errorMessage = 'Failed to fetch properties for this broker';
+        if (response.status === 401) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (response.status === 404) {
+          errorMessage = 'Broker properties not found.';
+        } else if (response.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+        
+        const errorText = await response.text().catch(() => '');
+        console.error('🔴 API Error:', response.status, errorText);
+        throw new Error(`${errorMessage} (Status: ${response.status})`);
+      }
 
-  const result = await response.json();
-  console.log('🏠 API Response:', result);
+      const result = await response.json();
+      console.log('🏠 API Response:', result);
 
-  return result;
+      return result;
+    } catch (error) {
+      console.error('🔴 Fetch Error Details:', error);
+      
+      if (error instanceof TypeError) {
+        if (error.message === 'Failed to fetch' || error.message.includes('fetch')) {
+          console.error('🔴 Network Error: Failed to connect to API server');
+          console.error('🔴 API URL attempted:', `${API_BASE_URL}/properties`);
+          throw new Error('Network error: Unable to connect to the server. Please check your internet connection and ensure the API server is running.');
+        }
+        throw error;
+      } else if (error instanceof Error) {
+        throw error;
+      } else {
+        console.error('🔴 Unknown Error:', error);
+        throw new Error('An unexpected error occurred while fetching properties.');
+      }
+    }
 },
 }

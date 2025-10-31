@@ -6,7 +6,7 @@ import Layout from "@/components/Layout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Link from "next/link";
 import Image from "next/image";
-import { propertiesAPI, regionAPI } from "@/services/api";
+import { propertiesAPI, regionAPI, brokerAPI } from "@/services/api";
 import { useSearchParams } from "next/navigation";
 
 // Skeleton Loader Components
@@ -83,6 +83,7 @@ function PropertiesPageContent() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [regionFilter, setRegionFilter] = useState("all");
+  const [brokerFilter, setBrokerFilter] = useState("all");
   const searchParams = useSearchParams();
   const brokerId = searchParams.get("brokerId");
   type PropertyCard = {
@@ -118,8 +119,19 @@ function PropertiesPageContent() {
     sold: 0,
   });
   const [metricsLoading, setMetricsLoading] = useState(true);
-  const [regions, setRegions] = useState<string[]>([]);
+  const [regions, setRegions] = useState<Array<{ id: string; name: string }>>([]);
   const [regionsLoading, setRegionsLoading] = useState(false);
+  const [brokers, setBrokers] = useState<Array<{ id: string; name: string }>>([]);
+  const [brokersLoading, setBrokersLoading] = useState(false);
+
+  // Debug: Log regions state changes
+  useEffect(() => {
+    console.log("🔵 Regions state updated:", {
+      count: regions.length,
+      regions: regions,
+      loading: regionsLoading
+    });
+  }, [regions, regionsLoading]);
 
   // Load property metrics from API
   useEffect(() => {
@@ -150,54 +162,176 @@ function PropertiesPageContent() {
   }, []);
 
   type RegionsApiItem =
-    | Partial<{ name: string; region: string; city: string; state: string }>
+    | Partial<{ _id: string; id: string; name: string; region: string; city: string; state: string; description?: string; centerLocation?: string; radius?: number }>
     | string
     | unknown;
 
+  // Helper function to extract region display name from object or string
+  const getRegionDisplayName = (item: RegionsApiItem | unknown): string => {
+    if (typeof item === "string") return item;
+    if (!item || typeof item !== "object") return "";
+    const obj = item as Partial<{
+      _id?: string;
+      id?: string;
+      name: string;
+      region: string;
+      city: string;
+      state: string;
+      description?: string;
+      centerLocation?: string;
+      radius?: number;
+    }>;
+    return obj?.name || obj?.region || obj?.city || obj?.state || "";
+  };
+
+  // Helper function to extract region ID from object
+  const getRegionId = (item: RegionsApiItem | unknown): string => {
+    if (typeof item === "string") return item;
+    if (!item || typeof item !== "object") return "";
+    const obj = item as Partial<{
+      _id?: string;
+      id?: string;
+      name?: string;
+    }>;
+    // Try _id first (MongoDB), then id
+    const regionId = obj?._id || obj?.id || "";
+    return regionId;
+  };
+
   // Load regions for filter
   useEffect(() => {
-    const getRegionDisplayName = (item: RegionsApiItem): string | undefined => {
-      if (typeof item === "string") return item;
-      const obj = item as Partial<{
-        name: string;
-        region: string;
-        city: string;
-        state: string;
-      }>;
-      return obj?.name || obj?.region || obj?.city || obj?.state || undefined;
-    };
     const loadRegions = async () => {
       try {
         setRegionsLoading(true);
         const res = await regionAPI.getRegions(1, 100);
-        // Flexible extraction based on possible API shapes
-        const list: RegionsApiItem[] =
-          res?.data?.regions || res?.regions || res?.data || [];
-        const names: string[] = Array.isArray(list)
-          ? list
-              .map((r: RegionsApiItem) => getRegionDisplayName(r))
-              .filter(
-                (v): v is string => typeof v === "string" && v.trim().length > 0
-              )
-          : [];
-        // unique & sorted
-        const uniqueNames = Array.from(new Set(names)).sort();
-        setRegions(uniqueNames);
+        
+        console.log("🔵 Full regions API response:", res);
+        
+        // Handle the API response structure - same as regions page
+        let regionsList: Array<{ id: string; name: string }> = [];
+        
+        if (res && res.success && res.data && res.data.regions && Array.isArray(res.data.regions)) {
+          // Standard API response: { success: true, data: { regions: [...] } }
+          console.log("🔵 Found regions in response.data.regions:", res.data.regions.length);
+          regionsList = res.data.regions.map((region: any) => ({
+            id: region._id || region.id || "",
+            name: region.name || ""
+          })).filter((r: { id: string; name: string }) => r.id && r.name);
+        } else if (res?.data?.regions && Array.isArray(res.data.regions)) {
+          // Alternative: { data: { regions: [...] } }
+          console.log("🔵 Found regions in res.data.regions:", res.data.regions.length);
+          regionsList = res.data.regions.map((region: any) => ({
+            id: region._id || region.id || "",
+            name: region.name || ""
+          })).filter((r: { id: string; name: string }) => r.id && r.name);
+        } else if (Array.isArray(res?.regions)) {
+          // Alternative: { regions: [...] }
+          console.log("🔵 Found regions in res.regions:", res.regions.length);
+          regionsList = res.regions.map((region: any) => ({
+            id: region._id || region.id || "",
+            name: region.name || ""
+          })).filter((r: { id: string; name: string }) => r.id && r.name);
+        } else if (Array.isArray(res?.data)) {
+          // Alternative: { data: [...] }
+          console.log("🔵 Found regions in res.data array:", res.data.length);
+          regionsList = res.data.map((region: any) => ({
+            id: region._id || region.id || "",
+            name: region.name || ""
+          })).filter((r: { id: string; name: string }) => r.id && r.name);
+        } else {
+          console.warn("🔵 Unexpected API response structure:", res);
+        }
+        
+        console.log("🔵 Processed regions list:", regionsList);
+        console.log("🔵 Number of valid regions:", regionsList.length);
+        
+        // Remove duplicates by ID and sort by name
+        const uniqueRegions = Array.from(
+          new Map(regionsList.map(r => [r.id, r])).values()
+        ).sort((a, b) => a.name.localeCompare(b.name));
+        
+        console.log("🔵 Final unique regions:", uniqueRegions);
+        
+        // If no regions found, log a warning
+        if (uniqueRegions.length === 0) {
+          console.warn("⚠️ No regions extracted from API response. Response structure:", JSON.stringify(res, null, 2));
+        }
+        
+        setRegions(uniqueRegions);
       } catch (err) {
-        console.error("Failed to load regions for filter:", err);
+        console.error("❌ Failed to load regions for filter:", err);
+        console.error("❌ Error details:", err instanceof Error ? err.message : String(err));
         // keep regions empty → dropdown will still show "All Regions"
+        setRegions([]);
       } finally {
         setRegionsLoading(false);
       }
     };
 
+    // Load regions for filter dropdown
     loadRegions();
   }, [brokerId]);
 
-  // Reset to page 1 when brokerId changes
+  // Load brokers for filter
+  useEffect(() => {
+    const loadBrokers = async () => {
+      try {
+        setBrokersLoading(true);
+        // Fetch all brokers (page 1, limit 100 to get all)
+        const res = await brokerAPI.getBrokers(1, 100);
+        
+        console.log("🔷 Full brokers API response:", res);
+        
+        // Handle the API response structure
+        let brokersList: Array<{ id: string; name: string }> = [];
+        
+        if (res && res.data && res.data.brokers && Array.isArray(res.data.brokers)) {
+          console.log("🔷 Found brokers in response.data.brokers:", res.data.brokers.length);
+          brokersList = res.data.brokers.map((broker: any) => ({
+            id: broker._id || broker.id || "",
+            name: broker.name || broker.firmName || ""
+          })).filter((b: { id: string; name: string }) => b.id && b.name);
+        } else if (Array.isArray(res?.brokers)) {
+          console.log("🔷 Found brokers in res.brokers:", res.brokers.length);
+          brokersList = res.brokers.map((broker: any) => ({
+            id: broker._id || broker.id || "",
+            name: broker.name || broker.firmName || ""
+          })).filter((b: { id: string; name: string }) => b.id && b.name);
+        } else if (Array.isArray(res?.data)) {
+          console.log("🔷 Found brokers in res.data array:", res.data.length);
+          brokersList = res.data.map((broker: any) => ({
+            id: broker._id || broker.id || "",
+            name: broker.name || broker.firmName || ""
+          })).filter((b: { id: string; name: string }) => b.id && b.name);
+        } else {
+          console.warn("🔷 Unexpected brokers API response structure:", res);
+        }
+        
+        console.log("🔷 Processed brokers list:", brokersList);
+        
+        // Remove duplicates by ID and sort by name
+        const uniqueBrokers = Array.from(
+          new Map(brokersList.map(b => [b.id, b])).values()
+        ).sort((a, b) => a.name.localeCompare(b.name));
+        
+        console.log("🔷 Final unique brokers:", uniqueBrokers);
+        setBrokers(uniqueBrokers);
+      } catch (err) {
+        console.error("❌ Failed to load brokers for filter:", err);
+        setBrokers([]);
+      } finally {
+        setBrokersLoading(false);
+      }
+    };
+
+    loadBrokers();
+  }, []);
+
+
+  // Reset to page 1 when brokerId or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [brokerId]);
+  }, [brokerId, typeFilter, statusFilter, regionFilter, brokerFilter, debouncedSearchTerm]);
 
   // Load properties from API
   useEffect(() => {
@@ -208,44 +342,32 @@ function PropertiesPageContent() {
 
         let propertiesResponse;
 
-        // If brokerId is provided, load broker-specific properties
-        if (brokerId) {
-          propertiesResponse = await propertiesAPI.getPropertyByBrokerId(
-            brokerId,
-            currentPage,
-            itemsPerPage
-          );
-          console.log("Broker-specific properties:", propertiesResponse);
-        } else {
-          // For all properties, check if we need client-side filtering
-          const needsClientSideFiltering =
-            debouncedSearchTerm ||
-            typeFilter !== "all" ||
-            statusFilter !== "all" ||
-            regionFilter !== "all";
-
-          if (needsClientSideFiltering) {
-            // Get ALL properties for client-side filtering
-            propertiesResponse = await propertiesAPI.getProperties(
-              1, // Get first page
-              1000, // Get large number to get all properties
-              "", // No search term
-              "all", // No type filter
-              "all", // No status filter
-              "all" // No region filter
-            );
-          } else {
-            // Use server-side pagination
-            propertiesResponse = await propertiesAPI.getProperties(
-              currentPage,
-              itemsPerPage,
-              debouncedSearchTerm,
-              typeFilter,
-              statusFilter,
-              regionFilter
-            );
-          }
-        }
+        // Always use getProperties with all filters including brokerFilter
+        // brokerFilter takes priority over URL brokerId for filtering
+        const effectiveBrokerId = brokerFilter !== "all" ? brokerFilter : (brokerId || "");
+        
+        console.log("🔷 LoadProperties called with filters:", {
+          brokerFilter,
+          effectiveBrokerId,
+          typeFilter,
+          statusFilter,
+          regionFilter,
+          debouncedSearchTerm,
+          currentPage
+        });
+        
+        propertiesResponse = await propertiesAPI.getProperties(
+          currentPage,
+          itemsPerPage,
+          debouncedSearchTerm,
+          typeFilter,
+          statusFilter,
+          regionFilter,
+          "", // city parameter (empty for now)
+          effectiveBrokerId // brokerId parameter
+        );
+        
+        console.log("✅ Properties API response received");
 
         console.log("Properties API Response:", propertiesResponse);
         console.log("Properties data:", propertiesResponse.data);
@@ -259,20 +381,32 @@ function PropertiesPageContent() {
           typeFilter,
           statusFilter,
           regionFilter,
+          brokerFilter,
         });
         console.log(
           "API URL called:",
           `${
-            process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api"
-          }/properties?page=${currentPage}&limit=${itemsPerPage}&search=${debouncedSearchTerm}&propertyType=${typeFilter}&status=${statusFilter}&region=${regionFilter}`
+            process.env.NEXT_PUBLIC_API_BASE_URL || "https://broker-adda-be.algofolks.com/api"
+          }/properties?page=${currentPage}&limit=${itemsPerPage}&search=${debouncedSearchTerm}&propertyType=${typeFilter}&status=${statusFilter}&regionId=${regionFilter}${brokerFilter !== "all" ? `&brokerId=${brokerFilter}` : ""}`
         );
 
         // Handle different possible response structures
-        const properties =
-          propertiesResponse.data?.properties ||
-          propertiesResponse.properties ||
-          propertiesResponse.data ||
-          [];
+        let properties = [];
+        
+        // Try multiple response structure patterns
+        if (Array.isArray(propertiesResponse)) {
+          properties = propertiesResponse;
+        } else if (propertiesResponse?.data?.properties && Array.isArray(propertiesResponse.data.properties)) {
+          properties = propertiesResponse.data.properties;
+        } else if (propertiesResponse?.properties && Array.isArray(propertiesResponse.properties)) {
+          properties = propertiesResponse.properties;
+        } else if (propertiesResponse?.data && Array.isArray(propertiesResponse.data)) {
+          properties = propertiesResponse.data;
+        } else if (Array.isArray(propertiesResponse?.data?.data)) {
+          properties = propertiesResponse.data.data;
+        }
+        
+        console.log("Extracted properties:", properties.length, "properties found");
 
         // Handle pagination data - check for both general and broker-specific response structures
         let totalPages, total;
@@ -327,7 +461,7 @@ function PropertiesPageContent() {
           images?: string[];
           address?: string;
           city?: string;
-          region?: string;
+          region?: string | RegionsApiItem;
         };
 
         let processedProperties = Array.isArray(properties)
@@ -380,7 +514,9 @@ function PropertiesPageContent() {
                 priceUnit: property.priceUnit || "INR",
                 address: property.address || "",
                 city: property.city || "",
-                region: property.region || "",
+                region: typeof property.region === "string" 
+                  ? property.region 
+                  : getRegionDisplayName(property.region),
                 images: filteredImages,
                 bedrooms:
                   typeof normalizedBedrooms === "number" &&
@@ -408,46 +544,8 @@ function PropertiesPageContent() {
             })
           : [];
 
-        // Client-side filtering as fallback (in case API doesn't filter properly)
-        // Only apply client-side filtering if we're not using broker-specific filtering
-        if (Array.isArray(processedProperties) && !brokerId) {
-          processedProperties = processedProperties.filter((property) => {
-            // Search filter
-            if (debouncedSearchTerm && debouncedSearchTerm !== "") {
-              const searchLower = debouncedSearchTerm.toLowerCase();
-              const matchesSearch =
-                property.title?.toLowerCase().includes(searchLower) ||
-                property.address?.toLowerCase().includes(searchLower) ||
-                property.city?.toLowerCase().includes(searchLower) ||
-                property.region?.toLowerCase().includes(searchLower) ||
-                property.price?.toString().includes(searchLower);
-
-              if (!matchesSearch) return false;
-            }
-
-            // Type filter
-            if (typeFilter !== "all" && property.propertyType !== typeFilter) {
-              return false;
-            }
-
-            // Status filter
-            if (statusFilter !== "all" && property.status !== statusFilter) {
-              return false;
-            }
-
-            // Region filter (case-insensitive, checks both region and city)
-            if (regionFilter !== "all") {
-              const selected = regionFilter.toLowerCase();
-              const propRegion = (property.region || "").toLowerCase();
-              const propCity = (property.city || "").toLowerCase();
-              if (propRegion !== selected && propCity !== selected) {
-                return false;
-              }
-            }
-
-            return true;
-          });
-        }
+        // Server-side filtering is now handled by the API
+        // No need for client-side filtering anymore
 
         console.log(
           "Processed properties after image filtering:",
@@ -468,23 +566,10 @@ function PropertiesPageContent() {
               ? totalPages
               : Math.ceil(calculatedTotal / itemsPerPage);
         } else {
-          // For general properties, check if client-side filtering was applied
-          const hasClientSideFiltering =
-            debouncedSearchTerm ||
-            typeFilter !== "all" ||
-            statusFilter !== "all" ||
-            regionFilter !== "all";
-
-          if (hasClientSideFiltering) {
-            // Use client-side filtered results for pagination
-            calculatedTotal = processedProperties.length;
-            calculatedTotalPages = Math.ceil(calculatedTotal / itemsPerPage);
-          } else {
-            // Use API pagination data, but ensure we calculate correctly
-            calculatedTotal = total > 0 ? total : processedProperties.length;
-            // Always calculate pages based on total, don't rely on API totalPages
-            calculatedTotalPages = Math.ceil(calculatedTotal / itemsPerPage);
-          }
+          // For general properties, use API pagination data
+          calculatedTotal = total > 0 ? total : processedProperties.length;
+          // Always calculate pages based on total, don't rely on API totalPages
+          calculatedTotalPages = Math.ceil(calculatedTotal / itemsPerPage);
         }
 
         console.log("Final values:", {
@@ -493,18 +578,6 @@ function PropertiesPageContent() {
           originalTotal: total,
           originalTotalPages: totalPages,
           processedPropertiesLength: processedProperties.length,
-          hasClientSideFiltering:
-            !brokerId &&
-            (debouncedSearchTerm ||
-              typeFilter !== "all" ||
-              statusFilter !== "all" ||
-              regionFilter !== "all"),
-          needsClientSideFiltering:
-            !brokerId &&
-            (debouncedSearchTerm ||
-              typeFilter !== "all" ||
-              statusFilter !== "all" ||
-              regionFilter !== "all"),
           brokerId,
           currentPage,
           itemsPerPage,
@@ -514,9 +587,12 @@ function PropertiesPageContent() {
         setTotalProperties(calculatedTotal);
       } catch (err) {
         console.error("Error loading properties:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to load properties"
-        );
+        const errorMessage = err instanceof Error ? err.message : "Failed to load properties";
+        setError(errorMessage);
+        // Set empty array on error to show "no properties" message
+        setCards([]);
+        setTotalPages(1);
+        setTotalProperties(0);
       } finally {
         setLoading(false);
       }
@@ -529,6 +605,7 @@ function PropertiesPageContent() {
     typeFilter,
     statusFilter,
     regionFilter,
+    brokerFilter,
     brokerId,
   ]);
 
@@ -546,27 +623,8 @@ function PropertiesPageContent() {
   const goToPage = (p: number) =>
     setCurrentPage(Math.min(Math.max(1, p), totalPages));
 
-  // Client-side pagination for filtered results
-  const getPaginatedCards = () => {
-    const hasClientSideFiltering =
-      !brokerId &&
-      (debouncedSearchTerm ||
-        typeFilter !== "all" ||
-        statusFilter !== "all" ||
-        regionFilter !== "all");
-
-    if (hasClientSideFiltering) {
-      // Apply client-side pagination
-      const startIndex = (safePage - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      return cards.slice(startIndex, endIndex);
-    }
-
-    // For API pagination, return all cards
-    return cards;
-  };
-
-  const paginatedCards = getPaginatedCards();
+  // Server-side pagination - API handles pagination
+  const paginatedCards = cards;
 
   // Debug cards state
   useEffect(() => {
@@ -660,8 +718,8 @@ function PropertiesPageContent() {
                       <option value="all">All Properties</option>
                       <option value="Residential">Residential</option>
                       <option value="Commercial">Commercial</option>
-                      <option value="Industrial">Industrial</option>
-                      <option value="Land">Land</option>
+                      <option value="Plot">Plot</option>
+                      <option value="Other">Other</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                       <svg
@@ -719,13 +777,58 @@ function PropertiesPageContent() {
                       className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                     >
                       <option value="all">All Regions</option>
-                      {regionsLoading && <option disabled>Loading...</option>}
-                      {!regionsLoading &&
+                      {regionsLoading ? (
+                        <option disabled>Loading regions...</option>
+                      ) : regions.length === 0 ? (
+                        <option disabled>No regions available</option>
+                      ) : (
                         regions.map((r) => (
-                          <option key={`region-opt-${r}`} value={r}>
-                            {r}
+                          <option key={`region-opt-${r.id}`} value={r.id}>
+                            {r.name}
                           </option>
-                        ))}
+                        ))
+                      )}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg
+                        className="w-4 h-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Broker Dropdown */}
+                  <div className="relative">
+                    <select
+                      value={brokerFilter}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        console.log("🔷 Broker filter changed from", brokerFilter, "to", newValue);
+                        setBrokerFilter(newValue);
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                    >
+                      <option value="all">All Brokers</option>
+                      {brokersLoading ? (
+                        <option disabled>Loading brokers...</option>
+                      ) : brokers.length === 0 ? (
+                        <option disabled>No brokers available</option>
+                      ) : (
+                        brokers.map((b) => (
+                          <option key={`broker-opt-${b.id}`} value={b.id}>
+                            {b.name}
+                          </option>
+                        ))
+                      )}
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                       <svg
@@ -747,13 +850,15 @@ function PropertiesPageContent() {
                   {(searchTerm ||
                     typeFilter !== "all" ||
                     statusFilter !== "all" ||
-                    regionFilter !== "all") && (
+                    regionFilter !== "all" ||
+                    brokerFilter !== "all") && (
                     <button
                       onClick={() => {
                         setSearchTerm("");
                         setTypeFilter("all");
                         setStatusFilter("all");
                         setRegionFilter("all");
+                        setBrokerFilter("all");
                       }}
                       className="inline-flex cursor-pointer items-center space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
               >

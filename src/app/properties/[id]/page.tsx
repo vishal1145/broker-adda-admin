@@ -7,6 +7,17 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
 import { propertiesAPI } from '@/services/api';
 
+type RegionItem = string | {
+  _id?: string;
+  name?: string;
+  description?: string;
+  state?: string;
+  city?: string;
+  centerLocation?: string;
+  radius?: number;
+  region?: string;
+} | unknown;
+
 type Property = {
   _id: string;
   title: string;
@@ -14,7 +25,7 @@ type Property = {
   priceUnit: string;
   address: string;
   city: string;
-  region: string;
+  region: string | RegionItem;
   coordinates: { lat: number; lng: number };
   bedrooms: number;
   bathrooms: number;
@@ -82,6 +93,22 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     }, 3000);
   };
 
+  // Helper function to extract region display name from object or string
+  const getRegionDisplayName = (item: RegionItem): string => {
+    if (typeof item === "string") return item;
+    if (!item || typeof item !== "object") return "";
+    const obj = item as {
+      name?: string;
+      region?: string;
+      city?: string;
+      state?: string;
+      description?: string;
+      centerLocation?: string;
+      radius?: number;
+    };
+    return obj?.name || obj?.region || obj?.city || obj?.state || "";
+  };
+
   // Resolve a broker avatar image URL with proxy support and fallback
   const getBrokerAvatarUrl = (property: Property | null) => {
     const fallback = 'https://www.w3schools.com/howto/img_avatar.png';
@@ -111,7 +138,16 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
         const response = await propertiesAPI.getPropertyById(id);
         console.log('Property API Response:', response);
         
-        setData(response.data || response);
+        const rawData = response.data || response;
+        // Normalize region to string if it's an object
+        const propertyData = rawData ? {
+          ...rawData,
+          region: typeof rawData.region === 'string' 
+            ? rawData.region 
+            : getRegionDisplayName(rawData.region)
+        } : null;
+        
+        setData(propertyData);
       } catch (err) {
         console.error('Error loading property:', err);
         setError(err instanceof Error ? err.message : 'Property not found');
