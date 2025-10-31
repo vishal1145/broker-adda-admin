@@ -47,6 +47,8 @@ interface Broker {
   state?: string;
   brokerImage?: string;
   membership?: "basic" | "standard" | "premium";
+  // Optional verification status from API
+  verificationStatus?: "Verified" | "Unverified";
   // Optional aggregate counts from API
   propertyCount?: number;
   leadCount?: number;
@@ -70,12 +72,13 @@ const BrokersTableSkeleton = () => {
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       {/* Table Header Skeleton */}
       <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-        <div className="grid grid-cols-6 gap-4">
+        <div className="grid grid-cols-7 gap-4">
           <Skeleton height="h-4" width="w-16" />
           <Skeleton height="h-4" width="w-20" />
           <Skeleton height="h-4" width="w-16" />
           <Skeleton height="h-4" width="w-24" />
           <Skeleton height="h-4" width="w-20" />
+          <Skeleton height="h-4" width="w-16" />
           <Skeleton height="h-4" width="w-16" />
         </div>
       </div>
@@ -84,7 +87,7 @@ const BrokersTableSkeleton = () => {
       <div className="divide-y divide-gray-200">
         {Array.from({ length: 5 }).map((_, index) => (
           <div key={index} className="px-6 py-4">
-            <div className="grid grid-cols-6 gap-4 items-center">
+            <div className="grid grid-cols-7 gap-4 items-center">
               {/* Name Column Skeleton */}
               <div className="flex items-center space-x-3">
                 <Skeleton height="h-10" width="w-10" rounded />
@@ -123,6 +126,11 @@ const BrokersTableSkeleton = () => {
               <div className="space-y-1">
                 <Skeleton height="h-4" width="w-16" />
                 <Skeleton height="h-3" width="w-20" />
+              </div>
+
+              {/* Status Column Skeleton */}
+              <div>
+                <Skeleton height="h-7" width="w-20" rounded />
               </div>
 
               {/* Action Column Skeleton */}
@@ -180,11 +188,15 @@ function BrokersPageInner() {
   });
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showUnblockConfirm, setShowUnblockConfirm] = useState(false);
+  const [showVerifyConfirm, setShowVerifyConfirm] = useState(false);
+  const [showUnverifyConfirm, setShowUnverifyConfirm] = useState(false);
   const [selectedBrokerId, setSelectedBrokerId] = useState<string | null>(null);
   const [selectedBrokerName, setSelectedBrokerName] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newBroker, setNewBroker] = useState({ name: '', email: '', phone: '' });
+  // Hardcoded verification status (using broker ID for consistent state)
+  const [verificationStatus, setVerificationStatus] = useState<Record<string, 'verified' | 'unverified'>>({});
 
   // Derived validation for Add Broker modal
   const phoneOnlyDigits = (newBroker.phone || '').replace(/\D/g, '');
@@ -242,6 +254,17 @@ function BrokersPageInner() {
       }));
       
       setBrokers(brokersWithMembership);
+      
+      // Initialize verification status from API response if available
+      const verificationStatusMap: Record<string, 'verified' | 'unverified'> = {};
+      brokersWithMembership.forEach((broker: Broker) => {
+        if (broker.verificationStatus) {
+          verificationStatusMap[broker._id] = broker.verificationStatus.toLowerCase() as 'verified' | 'unverified';
+        }
+      });
+      if (Object.keys(verificationStatusMap).length > 0) {
+        setVerificationStatus(prev => ({ ...prev, ...verificationStatusMap }));
+      }
 
       const pagination = response?.data?.pagination || response?.pagination || {};
       setTotalPages(pagination.totalPages || 1);
@@ -362,6 +385,99 @@ function BrokersPageInner() {
     } catch (err) {
       console.error('🟢 Unblock error:', err);
       setError(err instanceof Error ? err.message : 'Failed to unblock broker');
+    }
+  };
+
+  // Get verification status for a broker (from API or local state - defaults to unverified)
+  const getVerificationStatus = (brokerId: string): 'verified' | 'unverified' => {
+    // Check local state first
+    if (verificationStatus[brokerId]) {
+      return verificationStatus[brokerId];
+    }
+    // Fallback: check broker object from API response
+    const broker = brokers.find(b => b._id === brokerId);
+    if (broker?.verificationStatus) {
+      return broker.verificationStatus.toLowerCase() as 'verified' | 'unverified';
+    }
+    // Default to unverified
+    return 'unverified';
+  };
+
+  // Handle verify confirmation
+  const handleVerifyClick = (brokerId: string, brokerName: string) => {
+    setSelectedBrokerId(brokerId);
+    setSelectedBrokerName(brokerName);
+    setShowVerifyConfirm(true);
+  };
+
+  // Handle unverify confirmation
+  const handleUnverifyClick = (brokerId: string, brokerName: string) => {
+    setSelectedBrokerId(brokerId);
+    setSelectedBrokerName(brokerName);
+    setShowUnverifyConfirm(true);
+  };
+
+  // Handle verification
+  const handleVerify = async () => {
+    if (!selectedBrokerId) return;
+    
+    try {
+      setError('');
+      console.log('✅ Verifying broker with ID:', selectedBrokerId);
+      const response = await brokerAPI.updateBrokerVerification(selectedBrokerId, 'Verified');
+      console.log('✅ Verify API response:', response);
+      
+      // Update local state immediately
+      setVerificationStatus(prev => ({
+        ...prev,
+        [selectedBrokerId]: 'verified'
+      }));
+      
+      // Also refresh from API to get any other updates
+      await fetchBrokers();
+      
+      toast.success('Broker verified successfully');
+      
+      // Close confirmation dialog
+      setShowVerifyConfirm(false);
+      setSelectedBrokerId(null);
+      setSelectedBrokerName('');
+    } catch (err) {
+      console.error('✅ Verify error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to verify broker');
+      toast.error(err instanceof Error ? err.message : 'Failed to verify broker');
+    }
+  };
+
+  // Handle unverification
+  const handleUnverify = async () => {
+    if (!selectedBrokerId) return;
+    
+    try {
+      setError('');
+      console.log('✅ Unverifying broker with ID:', selectedBrokerId);
+      const response = await brokerAPI.updateBrokerVerification(selectedBrokerId, 'Unverified');
+      console.log('✅ Unverify API response:', response);
+      
+      // Update local state immediately
+      setVerificationStatus(prev => ({
+        ...prev,
+        [selectedBrokerId]: 'unverified'
+      }));
+      
+      // Also refresh from API to get any other updates
+      await fetchBrokers();
+      
+      toast.success('Broker unverified successfully');
+      
+      // Close confirmation dialog
+      setShowUnverifyConfirm(false);
+      setSelectedBrokerId(null);
+      setSelectedBrokerName('');
+    } catch (err) {
+      console.error('✅ Unverify error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to unverify broker');
+      toast.error(err instanceof Error ? err.message : 'Failed to unverify broker');
     }
   };
 
@@ -792,12 +908,13 @@ const router = useRouter();
             <>
               {/* Table Header */}
               <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                <div className="grid grid-cols-6 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <div className="grid grid-cols-7 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wide">
                   <div>Name</div>
                   <div>Contact</div>
                   <div>Region</div>
                   <div>Membership</div>
                   <div>Numbers</div>
+                  <div>Status</div>
                   <div>Action</div>
                 </div>
               </div>
@@ -807,7 +924,7 @@ const router = useRouter();
                 {filteredBrokers.map((broker: Broker) => {
                   return (
                     <div key={broker._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                      <div className="grid grid-cols-6 gap-4 items-center">
+                      <div className="grid grid-cols-7 gap-4 items-center">
                         {/* Name Column */}
                         <div className="flex items-center space-x-3">
                           <Link href={`/brokers/${broker.userId}`} className="cursor-pointer">
@@ -901,6 +1018,38 @@ const router = useRouter();
     {broker?.propertyCount || broker?.propertiesCount || 0} properties
   </div>
 </div>
+
+                        {/* Status Column */}
+                        <div>
+                          {(() => {
+                            const verifyStatus = getVerificationStatus(broker._id);
+                            if (verifyStatus === 'verified') {
+                              return (
+                                <button 
+                                  onClick={() => handleUnverifyClick(broker._id, broker.name || 'Broker')}
+                                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors text-sm"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  <span>Verified</span>
+                                </button>
+                              );
+                            } else {
+                              return (
+                                <button 
+                                  onClick={() => handleVerifyClick(broker._id, broker.name || 'Broker')}
+                                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded text-white bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                  <span>Unverified</span>
+                                </button>
+                              );
+                            }
+                          })()}
+                        </div>
 
                         {/* Action Column */}
                         <div>
@@ -1059,6 +1208,86 @@ const router = useRouter();
                     className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                   >
                     Unblock Broker
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Verify Confirmation Dialog */}
+        {showVerifyConfirm && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-[rgba(0,0,0,0.8)]">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 mx-auto bg-teal-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Verify Broker</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Are you sure you want to verify <span className="font-semibold">{selectedBrokerName}</span>? 
+                  This will mark the broker as verified.
+                </p>
+                <div className="flex space-x-3 justify-center">
+                  <button
+                    onClick={() => {
+                      setShowVerifyConfirm(false);
+                      setSelectedBrokerId(null);
+                      setSelectedBrokerName('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleVerify}
+                    className="px-4 py-2 text-sm font-medium text-white bg-teal-600 border border-transparent rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                  >
+                    Verify Broker
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Unverify Confirmation Dialog */}
+        {showUnverifyConfirm && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-[rgba(0,0,0,0.8)]">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 mx-auto bg-orange-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Unverify Broker</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Are you sure you want to unverify <span className="font-semibold">{selectedBrokerName}</span>? 
+                  This will remove the verification status from the broker.
+                </p>
+                <div className="flex space-x-3 justify-center">
+                  <button
+                    onClick={() => {
+                      setShowUnverifyConfirm(false);
+                      setSelectedBrokerId(null);
+                      setSelectedBrokerName('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUnverify}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gray-600 border border-transparent rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    Unverify Broker
                   </button>
                 </div>
               </div>

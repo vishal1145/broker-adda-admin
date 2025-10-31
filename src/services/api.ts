@@ -37,6 +37,67 @@ export const leadsAPI = {
     return response.json();
   },
 
+  // Update lead verification status
+  updateLeadVerification: async (leadId: string, verificationStatus: 'Verified' | 'Unverified') => {
+    console.log('✅ leadsAPI.updateLeadVerification called with ID:', leadId, 'Status:', verificationStatus);
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('✅ Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/leads/${leadId}/verification`;
+    console.log('✅ Making API call to:', url);
+    console.log('✅ Request body:', JSON.stringify({ verificationStatus }));
+    console.log('✅ API_BASE_URL:', API_BASE_URL);
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ verificationStatus })
+    });
+
+    console.log('✅ Response status:', response.status);
+    console.log('✅ Response ok:', response.ok);
+    console.log('✅ Response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      let errorText = '';
+      try {
+        errorText = await response.text();
+        console.error('🔴 API Error Response:', errorText);
+        
+        // Try to parse as JSON for better error message
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.message || errorJson.error || `Failed to update lead verification status: ${response.status}`);
+        } catch {
+          throw new Error(errorText || `Failed to update lead verification status: ${response.status} ${response.statusText}`);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('Failed to update')) {
+          throw err;
+        }
+        throw new Error(`Failed to update lead verification status: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    const result = await response.json();
+    console.log('✅ API Response:', JSON.stringify(result, null, 2));
+    console.log('✅ API Response data:', result.data);
+    console.log('✅ Updated lead:', result.data?.lead || result.data);
+    
+    // Validate response has expected structure
+    if (!result.success && result.message) {
+      console.warn('⚠️ API returned success: false, message:', result.message);
+    }
+    
+    return result;
+  },
+
   // Get all leads with pagination and filters
   getLeads: async (page: number = 1, limit: number = 10, search: string = '', status: string = '', filters?: {
     region?: string;
@@ -256,6 +317,44 @@ export const brokerAPI = {
     console.log('🟢 API Response:', result);
     console.log('🟢 API Response data:', result.data);
     console.log('🟢 Updated broker:', result.data);
+    return result;
+  },
+
+  // Update broker verification status
+  updateBrokerVerification: async (brokerId: string, verificationStatus: 'Verified' | 'Unverified') => {
+    console.log('✅ brokerAPI.updateBrokerVerification called with ID:', brokerId, 'Status:', verificationStatus);
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('✅ Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/brokers/${brokerId}/verification`;
+    console.log('✅ Making API call to:', url);
+    console.log('✅ API_BASE_URL:', API_BASE_URL);
+
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ verificationStatus })
+    });
+
+    console.log('✅ Response status:', response.status);
+    console.log('✅ Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to update broker verification status');
+    }
+    
+    const result = await response.json();
+    console.log('✅ API Response:', result);
+    console.log('✅ API Response data:', result.data);
+    console.log('✅ Updated broker:', result.data);
     return result;
   },
 

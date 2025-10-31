@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { leadsAPI, regionAPI } from '@/services/api';
+import { toast } from 'react-hot-toast';
 
 // Types
 type Region = {
@@ -19,6 +20,7 @@ type Region = {
 
 type Lead = {
   id: string | number;
+  _id?: string; // Store original MongoDB _id for API calls
   name: string;
   contact: string;
   phone: string;
@@ -35,6 +37,8 @@ type Lead = {
   status: string;
   source: string;
   createdAt: string;
+  // Optional verification status from API
+  verificationStatus?: "Verified" | "Unverified";
 };
 
 // API types to avoid 'any' usage
@@ -67,6 +71,7 @@ type ApiLead = {
   transfers?: TransferRecord[];
   status?: string;
   source?: string; createdAt?: string;
+  verificationStatus?: "Verified" | "Unverified";
 };
 
 function LeadsPageContent() {
@@ -90,6 +95,13 @@ function LeadsPageContent() {
   const [brokerDropdownOpen, setBrokerDropdownOpen] = useState(false);
   const [brokerSearch, setBrokerSearch] = useState('');
   const [selectedBrokers, setSelectedBrokers] = useState<string[]>([]);
+  
+  // Verification status states
+  const [verificationStatus, setVerificationStatus] = useState<Record<string, 'verified' | 'unverified'>>({});
+  const [showVerifyConfirm, setShowVerifyConfirm] = useState(false);
+  const [showUnverifyConfirm, setShowUnverifyConfirm] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [selectedLeadName, setSelectedLeadName] = useState<string>('');
 
   // API data states
   const [leadsStats, setLeadsStats] = useState({
@@ -409,16 +421,23 @@ function LeadsPageContent() {
     }
 
     const mappedLeads: Lead[] = (leadsData as ApiLead[]).map((lead: ApiLead, index: number) => {
-      console.log('🔍 Mapping lead region:', {
+      // Extract verification status from various possible field names
+      const verificationStatus = lead.verificationStatus || 
+        (lead as unknown as Record<string, unknown>)?.['verificationStatus'] ||
+        (lead as unknown as Record<string, unknown>)?.['verification'] ||
+        undefined;
+
+      console.log('🔍 Mapping lead:', {
         leadId: lead._id || lead.id,
-        primaryRegion: lead.primaryRegion,
-        region: lead.region,
-        city: lead.city,
-        location: lead.location,
+        name: lead.customerName || lead.name,
+        verificationStatusFromAPI: lead.verificationStatus,
+        extractedVerificationStatus: verificationStatus,
+        fullLeadKeys: Object.keys(lead),
       });
 
       return {
         id: lead._id || lead.id || index + 1,
+        _id: lead._id, // Store original MongoDB _id for API calls
         name: lead.customerName || lead.name || 'Unknown',
         contact: lead.customerEmail || lead.email || lead.contact || 'No email',
         phone: lead.customerPhone || lead.phone || lead.contactNumber || '+91 00000 00000',
@@ -528,6 +547,7 @@ function LeadsPageContent() {
         createdAt: lead.createdAt
           ? new Date(lead.createdAt).toISOString().split('T')[0]
           : new Date().toISOString().split('T')[0],
+        verificationStatus: verificationStatus as "Verified" | "Unverified" | undefined,
       };
     });
 
@@ -537,6 +557,49 @@ function LeadsPageContent() {
       : mappedLeads;
 
     setLeads(filteredLeads);
+
+    // Initialize verification status from API response if available
+    // IMPORTANT: Preserve existing verification status from state if API doesn't return it
+    setVerificationStatus(prev => {
+      const verificationStatusMap: Record<string, 'verified' | 'unverified'> = {};
+      
+      mappedLeads.forEach((lead: Lead) => {
+        // Use both _id and id as keys to ensure we can find it either way
+        const leadId = String(lead.id);
+        const leadMongoId = lead._id ? String(lead._id) : null;
+        
+        // Priority 1: Check if API response has verificationStatus
+        if (lead.verificationStatus) {
+          const status = lead.verificationStatus.toLowerCase() as 'verified' | 'unverified';
+          verificationStatusMap[leadId] = status;
+          if (leadMongoId && leadMongoId !== leadId) {
+            verificationStatusMap[leadMongoId] = status; // Also store by MongoDB _id
+          }
+          console.log(`✅ API returned verificationStatus for lead ${leadId} (${leadMongoId || 'no _id'}):`, status);
+        } else {
+          // Priority 2: If API doesn't have it, preserve existing state if available
+          const existingStatusById = prev[leadId];
+          const existingStatusByMongoId = leadMongoId ? prev[leadMongoId] : undefined;
+          const existingStatus = existingStatusById || existingStatusByMongoId;
+          
+          if (existingStatus) {
+            verificationStatusMap[leadId] = existingStatus;
+            if (leadMongoId && leadMongoId !== leadId) {
+              verificationStatusMap[leadMongoId] = existingStatus;
+            }
+            console.log(`✅ Preserved existing verificationStatus for lead ${leadId} (${leadMongoId || 'no _id'}):`, existingStatus);
+          } else {
+            console.log(`⚠️ No verificationStatus found in API or state for lead ${leadId} (${leadMongoId || 'no _id'}), defaulting to unverified`);
+            // Don't set anything - let getVerificationStatus handle default
+          }
+        }
+      });
+      
+      // Merge: API values override, existing state is preserved for IDs not in current response
+      const merged = { ...prev, ...verificationStatusMap };
+      console.log('✅ Verification status map updated (preserving existing state):', merged);
+      return merged;
+    });
 
     // Refresh global caches
     try {
@@ -602,6 +665,192 @@ function LeadsPageContent() {
       setIsViewOpen(false);
     }, 300);
   };
+  
+  // Get verification status for a lead (from API or local state - defaults to unverified)
+  const getVerificationStatus = (leadId: string | number): 'verified' | 'unverified' => {
+    const stateKey = String(leadId);
+    
+    // First check local state (updated from API or previous actions)
+    if (verificationStatus[stateKey]) {
+      console.log(`✅ Verification status from state for ${stateKey}:`, verificationStatus[stateKey]);
+      return verificationStatus[stateKey];
+    }
+    
+    // Fallback: check lead object from API response (by id or _id)
+    const lead = leads.find(l => String(l.id) === stateKey || (l._id && String(l._id) === stateKey));
+    if (lead?.verificationStatus) {
+      const status = lead.verificationStatus.toLowerCase() as 'verified' | 'unverified';
+      const leadMongoId = lead._id ? String(lead._id) : String(lead.id);
+      console.log(`✅ Verification status from lead object for ${stateKey}:`, status);
+      // Update local state for future use (by both id and _id if different)
+      setVerificationStatus(prev => ({
+        ...prev,
+        [stateKey]: status,
+        [leadMongoId]: status
+      }));
+      return status;
+    }
+    
+    // Also check by MongoDB _id if different from stateKey
+    if (lead?._id && String(lead._id) !== stateKey && verificationStatus[String(lead._id)]) {
+      return verificationStatus[String(lead._id)];
+    }
+    
+    // Default to unverified
+    console.log(`⚠️ No verification status found for ${stateKey}, defaulting to unverified`);
+    return 'unverified';
+  };
+
+  // Handle verify confirmation
+  const handleVerifyClick = (leadId: string | number, leadName: string) => {
+    setSelectedLeadId(String(leadId));
+    setSelectedLeadName(leadName);
+    setShowVerifyConfirm(true);
+  };
+
+  // Handle unverify confirmation
+  const handleUnverifyClick = (leadId: string | number, leadName: string) => {
+    setSelectedLeadId(String(leadId));
+    setSelectedLeadName(leadName);
+    setShowUnverifyConfirm(true);
+  };
+
+  // Handle verification
+  const handleVerify = async () => {
+    if (!selectedLeadId) return;
+    
+    try {
+      console.log('✅ Verifying lead with ID:', selectedLeadId);
+      console.log('✅ Full lead object:', leads.find(l => String(l._id || l.id) === selectedLeadId));
+      
+      const response = await leadsAPI.updateLeadVerification(selectedLeadId, 'Verified');
+      console.log('✅ Verify API response:', JSON.stringify(response, null, 2));
+      
+      // Extract lead _id and verificationStatus from response
+      const updatedLead = response?.data?.lead || response?.data;
+      const updatedLeadId = updatedLead?._id || updatedLead?.id || selectedLeadId;
+      const updatedVerificationStatus = updatedLead?.verificationStatus || 'Verified';
+      
+      console.log('✅ Extracted from response:', {
+        updatedLeadId,
+        updatedVerificationStatus,
+        fullResponse: response
+      });
+      
+      // Update local state immediately using both the _id and the id we used for API call
+      const statusToSet = updatedVerificationStatus.toLowerCase() as 'verified' | 'unverified';
+      
+      setVerificationStatus(prev => {
+        const updated = {
+          ...prev,
+          [String(updatedLeadId)]: statusToSet,
+          [selectedLeadId]: statusToSet
+        };
+        console.log('✅ Updated verification status map:', updated);
+        return updated;
+      });
+      
+      // Update the lead in the leads array directly
+      setLeads(prevLeads => prevLeads.map(lead => {
+        const leadIdStr = String(lead._id || lead.id);
+        if (leadIdStr === String(updatedLeadId) || leadIdStr === selectedLeadId) {
+          console.log('✅ Updating lead in array:', leadIdStr);
+          return {
+            ...lead,
+            verificationStatus: updatedVerificationStatus as 'Verified' | 'Unverified'
+          };
+        }
+        return lead;
+      }));
+      
+      // Wait a bit before refreshing to ensure database is updated
+      setTimeout(async () => {
+        await fetchLeads();
+      }, 500);
+      
+      toast.success('Lead verified successfully');
+      
+      // Close confirmation dialog
+      setShowVerifyConfirm(false);
+      setSelectedLeadId(null);
+      setSelectedLeadName('');
+    } catch (err) {
+      console.error('❌ Verify error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to verify lead';
+      toast.error(errorMessage);
+      
+      // Don't close dialog on error so user can retry
+    }
+  };
+
+  // Handle unverification
+  const handleUnverify = async () => {
+    if (!selectedLeadId) return;
+    
+    try {
+      console.log('✅ Unverifying lead with ID:', selectedLeadId);
+      console.log('✅ Full lead object:', leads.find(l => String(l._id || l.id) === selectedLeadId));
+      
+      const response = await leadsAPI.updateLeadVerification(selectedLeadId, 'Unverified');
+      console.log('✅ Unverify API response:', JSON.stringify(response, null, 2));
+      
+      // Extract lead _id and verificationStatus from response
+      const updatedLead = response?.data?.lead || response?.data;
+      const updatedLeadId = updatedLead?._id || updatedLead?.id || selectedLeadId;
+      const updatedVerificationStatus = updatedLead?.verificationStatus || 'Unverified';
+      
+      console.log('✅ Extracted from response:', {
+        updatedLeadId,
+        updatedVerificationStatus,
+        fullResponse: response
+      });
+      
+      // Update local state immediately using both the _id and the id we used for API call
+      const statusToSet = updatedVerificationStatus.toLowerCase() as 'verified' | 'unverified';
+      
+      setVerificationStatus(prev => {
+        const updated = {
+          ...prev,
+          [String(updatedLeadId)]: statusToSet,
+          [selectedLeadId]: statusToSet
+        };
+        console.log('✅ Updated verification status map:', updated);
+        return updated;
+      });
+      
+      // Update the lead in the leads array directly
+      setLeads(prevLeads => prevLeads.map(lead => {
+        const leadIdStr = String(lead._id || lead.id);
+        if (leadIdStr === String(updatedLeadId) || leadIdStr === selectedLeadId) {
+          console.log('✅ Updating lead in array:', leadIdStr);
+          return {
+            ...lead,
+            verificationStatus: updatedVerificationStatus as 'Verified' | 'Unverified'
+          };
+        }
+        return lead;
+      }));
+      
+      // Wait a bit before refreshing to ensure database is updated
+      setTimeout(async () => {
+        await fetchLeads();
+      }, 500);
+      
+      toast.success('Lead unverified successfully');
+      
+      // Close confirmation dialog
+      setShowUnverifyConfirm(false);
+      setSelectedLeadId(null);
+      setSelectedLeadName('');
+    } catch (err) {
+      console.error('❌ Unverify error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to unverify lead';
+      toast.error(errorMessage);
+      
+      // Don't close dialog on error so user can retry
+    }
+  };
+  
   // Removed unused FAQ state and toggler to satisfy linter
 
   // Hardcoded/Static data - No API calls (leads data now comes from API)
@@ -1263,8 +1512,49 @@ function LeadsPageContent() {
                                 {lead.name.split(' ').map((n: string) => n[0]).join('')}
                               </span>
                             </div>
-                            <div className="min-w-0">
-                              <h3 className="text-sm font-semibold text-gray-900 truncate">{lead.name}</h3>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-semibold text-gray-900 truncate">{lead.name}</h3>
+                                {/* Verification Status Button */}
+                                {(() => {
+                                  const verifyStatus = getVerificationStatus(lead.id);
+                                  // Use _id for API calls if available, otherwise fallback to id
+                                  const leadIdForApi = lead._id || lead.id;
+                                  if (verifyStatus === 'verified') {
+                                    return (
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleUnverifyClick(leadIdForApi, lead.name);
+                                        }}
+                                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors text-xs flex-shrink-0"
+                                        title="Verified"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        <span>Verified</span>
+                                      </button>
+                                    );
+                                  } else {
+                                    return (
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleVerifyClick(leadIdForApi, lead.name);
+                                        }}
+                                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded text-white bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-xs flex-shrink-0"
+                                        title="Unverified"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                        <span>Unverified</span>
+                                      </button>
+                                    );
+                                  }
+                                })()}
+                              </div>
                               <p className="text-xs text-gray-500 truncate">{lead.contact}</p>
                             </div>
                           </div>
@@ -1999,6 +2289,86 @@ function LeadsPageContent() {
                     <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-emerald-700 border border-emerald-700 rounded-md hover:bg-emerald-800">Send Transfer Request</button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Verify Confirmation Dialog */}
+        {showVerifyConfirm && (
+          <div className="fixed inset-0 flex items-center justify-center z-[99999] bg-[rgba(0,0,0,0.8)]">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 mx-auto bg-teal-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Verify Lead</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Are you sure you want to verify <span className="font-semibold">{selectedLeadName}</span>? 
+                  This will mark the lead as verified.
+                </p>
+                <div className="flex space-x-3 justify-center">
+                  <button
+                    onClick={() => {
+                      setShowVerifyConfirm(false);
+                      setSelectedLeadId(null);
+                      setSelectedLeadName('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleVerify}
+                    className="px-4 py-2 text-sm font-medium text-white bg-teal-600 border border-transparent rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                  >
+                    Verify Lead
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Unverify Confirmation Dialog */}
+        {showUnverifyConfirm && (
+          <div className="fixed inset-0 flex items-center justify-center z-[99999] bg-[rgba(0,0,0,0.8)]">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0 w-10 h-10 mx-auto bg-orange-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Unverify Lead</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Are you sure you want to unverify <span className="font-semibold">{selectedLeadName}</span>? 
+                  This will remove the verification status from the lead.
+                </p>
+                <div className="flex space-x-3 justify-center">
+                  <button
+                    onClick={() => {
+                      setShowUnverifyConfirm(false);
+                      setSelectedLeadId(null);
+                      setSelectedLeadName('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUnverify}
+                    className="px-4 py-2 text-sm font-medium text-white bg-gray-600 border border-transparent rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    Unverify Lead
+                  </button>
+                </div>
               </div>
             </div>
           </div>
