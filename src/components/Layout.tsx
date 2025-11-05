@@ -44,16 +44,6 @@ export default function Layout({ children }: LayoutProps) {
           {/* Broker Region Menu - Centered */}
           <div className="flex items-center justify-center flex-1 space-x-8">
             <Link
-              href="/dashboard"
-              className={`text-sm font-medium transition-colors ${
-                pathname === '/dashboard'
-                  ? 'text-teal-600'
-                  : 'text-gray-700 hover:text-teal-600'
-              }`}
-            >
-              Dashboard
-            </Link>
-            <Link
               href="/regions"
               className={`text-sm font-medium transition-colors ${
                 pathname === '/regions'
@@ -92,6 +82,16 @@ export default function Layout({ children }: LayoutProps) {
               }`}
             >
             Properties
+            </Link>
+            <Link
+              href="/support"
+              className={`text-sm font-medium transition-colors ${
+                pathname === '/support'
+                  ? 'text-teal-600'
+                  : 'text-gray-700 hover:text-teal-600'
+              }`}
+            >
+            Support
             </Link>
           </div>
           

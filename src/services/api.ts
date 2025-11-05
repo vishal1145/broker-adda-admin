@@ -966,4 +966,110 @@ export const propertiesAPI = {
       }
     }
 },
+};
+
+// Contact/Support API functions
+export const contactAPI = {
+  // Get all contact/support requests with pagination and filters
+  getContacts: async (page: number = 1, limit: number = 10, search: string = '', status: string = '') => {
+    console.log('📞 contactAPI.getContacts called with:', { page, limit, search, status });
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('📞 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(search && { search }),
+      ...(status && status !== 'all' && { status })
+    });
+
+    const url = `${API_BASE_URL}/contact?${params}`;
+    console.log('📞 Making API call to:', url);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('📞 Response status:', response.status);
+    console.log('📞 Response ok:', response.ok);
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to fetch contact requests';
+      if (response.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (response.status === 404) {
+        errorMessage = 'Contact API endpoint not found.';
+      } else if (response.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (response.status === 403) {
+        errorMessage = 'Access denied. You do not have permission to view contact requests.';
+      }
+      
+      const errorText = await response.text().catch(() => '');
+      console.error('🔴 API Error:', response.status, errorText);
+      throw new Error(`${errorMessage} (Status: ${response.status})`);
+    }
+    
+    const result = await response.json();
+    console.log('📞 API Response:', result);
+    return result;
+  },
+
+  // Update contact request status
+  updateContactStatus: async (contactId: string, status: string) => {
+    console.log('📞 contactAPI.updateContactStatus called with ID:', contactId, 'Status:', status);
+    
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/contact/${contactId}`;
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ status })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to update contact status');
+    }
+    
+    return response.json();
+  },
+
+  // Delete/Block a contact request
+  deleteContact: async (contactId: string) => {
+    console.log('🔴 contactAPI.deleteContact called with ID:', contactId);
+    
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/contact/${contactId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to delete contact request');
+    }
+    
+    return response.json();
+  }
 }
