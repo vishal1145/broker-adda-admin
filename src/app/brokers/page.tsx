@@ -46,7 +46,13 @@ interface Broker {
   expertiseField?: string;
   state?: string;
   brokerImage?: string;
-  membership?: "basic" | "standard" | "premium";
+  subscription?: {
+    planType: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    amount: string;
+  };
   // Optional verification status from API
   verificationStatus?: "Verified" | "Unverified";
   // Optional aggregate counts from API
@@ -248,16 +254,16 @@ function BrokersPageInner() {
       
       // Extract list from either API shape and preserve membership if provided
       const list = response?.data?.brokers || response?.brokers || response?.data || [];
-      const brokersWithMembership = (list as Broker[]).map((broker: Broker, index: number) => ({
-        ...broker,
-        membership: broker.membership || (['basic', 'standard', 'premium'][index % 3] as 'basic' | 'standard' | 'premium')
-      }));
+      // const brokersWithMembership = (list as Broker[]).map((broker: Broker, index: number) => ({
+      //   ...broker,
+      //   membership: broker.membership || (['basic', 'standard', 'premium'][index % 3] as 'basic' | 'standard' | 'premium')
+      // }));
       
-      setBrokers(brokersWithMembership);
+      setBrokers(list);
       
       // Initialize verification status from API response if available
       const verificationStatusMap: Record<string, 'verified' | 'unverified'> = {};
-      brokersWithMembership.forEach((broker: Broker) => {
+      list.forEach((broker: Broker) => {
         if (broker.verificationStatus) {
           verificationStatusMap[broker._id] = broker.verificationStatus.toLowerCase() as 'verified' | 'unverified';
         }
@@ -485,7 +491,7 @@ function BrokersPageInner() {
   const filteredBrokers = brokers.filter(broker => {
     return (
       membershipFilter === 'all' ||
-      (broker.membership && broker.membership.toLowerCase() === membershipFilter.toLowerCase())
+      (broker.subscription && broker?.subscription?.planType.toLowerCase() == membershipFilter.toLowerCase())
     );
   });
 
@@ -655,9 +661,8 @@ const router = useRouter();
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
               >
                 <option value="all">All Membership</option>
-                <option value="premium">Premium</option>
-                <option value="standard">Standard</option>
-                <option value="basic">Basic</option>
+                <option value="basic plan">Basic Plan</option>
+                <option value="premium plan">Premium Plan</option>
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -987,16 +992,8 @@ const router = useRouter();
 
                         {/* Membership Column */}
                         <div>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            broker.membership === 'premium'
-                              ? 'bg-teal-100 text-teal-800' 
-                              : broker.membership === 'standard'
-                              ? 'bg-teal-100 text-teal-800'
-                              : broker.membership === 'basic'
-                              ? 'bg-gray-100 text-gray-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {broker.membership ? broker.membership.charAt(0).toUpperCase() + broker.membership.slice(1) : '-'}
+                          <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800'>
+                          {broker?.subscription?.planType || 'No Subscription'}
                           </span>
                         </div>
 

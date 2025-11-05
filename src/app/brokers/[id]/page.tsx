@@ -87,11 +87,20 @@ interface Broker {
     status: string;
   }>;
   subscription?: {
-    plan: string;
+    _id: string;
+    user: string;
+    planType: string;
+    amount: number;
+    currency: string;
+    periodValue: number;
+    periodUnit: string;
+    startDate: string;
+    endDate: string;
     status: string;
-    paymentMethod: string;
-    nextBillingDate: string;
-    amountDue: string;
+    paymentRef: string;
+    autoRenew: boolean;
+    createdAt: string;
+    updatedAt: string;
   };
   leadsCreated?: {
     count?: number;
@@ -158,6 +167,39 @@ export default function BrokerDetailsPage() {
   }, [params.id, token]);
 
   // Removed unused getStatusColor
+
+  // Helper function to format currency
+  const formatCurrency = (amount: number, currency: string = 'INR') => {
+    if (currency === 'INR') {
+      return `₹${amount.toLocaleString('en-IN')}`;
+    }
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+    }).format(amount);
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  // Helper function to format period unit
+  const formatPeriodUnit = (value: number, unit: string) => {
+    const unitMap: { [key: string]: string } = {
+      'month': value === 1 ? 'Monthly' : `${value} Months`,
+      'year': value === 1 ? 'Yearly' : `${value} Years`,
+      'week': value === 1 ? 'Weekly' : `${value} Weeks`,
+      'day': value === 1 ? 'Daily' : `${value} Days`,
+    };
+    return unitMap[unit] || `${value} ${unit}`;
+  };
 
   // Handle broker blocking confirmation
   const handleBlockClick = () => {
@@ -549,6 +591,7 @@ export default function BrokerDetailsPage() {
                             )}
                           </div>
                         </div>
+                        <div className='grid grid-cols-2 gap-8'>
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -572,6 +615,17 @@ export default function BrokerDetailsPage() {
                             )}
                           </div>
                         </div>
+                        <div className='flex items-end flex-col'>
+                            <div className="flex items-center space-x-2 mb-1">
+                              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <p className="text-sm font-medium text-gray-500">Subscription</p>
+                            </div>
+                            <p className="text-sm font-semibold text-gray-900">{broker.subscription?.planType || 'No Subscription'}</p>
+                          </div>  
+                        </div>
+                        
                       </div>
                 </div>
               </div>
@@ -887,63 +941,102 @@ export default function BrokerDetailsPage() {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Subscription & Payment Details</h2>
                 
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {broker?.subscription ? (
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-3">
+                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Current Plan</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-sm font-semibold text-gray-900">Pro Agent - Monthly</span>
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                          Active
-                        </span>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-500">Current Plan</p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <span className="text-sm font-semibold text-gray-900">
+                            {broker.subscription.planType} - {formatPeriodUnit(broker.subscription.periodValue, broker.subscription.periodUnit)}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                            broker.subscription.status === 'active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : broker.subscription.status === 'expired'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {broker.subscription.status.charAt(0).toUpperCase() + broker.subscription.status.slice(1)}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Subscription Period</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatDate(broker.subscription.startDate)} - {formatDate(broker.subscription.endDate)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Next Billing Date</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatDate(broker.subscription.endDate)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start space-x-3">
+                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Subscription Amount</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(broker.subscription.amount, broker.subscription.currency)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Auto Renew</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {broker.subscription.autoRenew ? 'Enabled' : 'Disabled'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {broker.subscription.paymentRef && (
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Payment Reference</p>
+                          <p className="text-sm font-semibold text-gray-900 font-mono">
+                            {broker.subscription.paymentRef}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="flex items-start space-x-3">
-                    <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                ) : (
+                  <div className="text-center py-8">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Payment Method</p>
-                      <p className="text-sm font-semibold text-gray-900">Visa ending in **** 1234</p>
-                    </div>
+                    <p className="mt-2 text-sm text-gray-500">No subscription found</p>
+                    <p className="text-xs text-gray-400 mt-1">This broker has not subscribed to any plan yet.</p>
                   </div>
-                  
-                  <div className="flex items-start space-x-3">
-                    <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Next Billing Date</p>
-                      <p className="text-sm font-semibold text-gray-900">2024-06-20</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start space-x-3">
-                    <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Amount Due</p>
-                      <p className="text-sm font-semibold text-gray-900">$99.99</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <div className="flex justify-end space-x-3">
-                    <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors">
-                      Upgrade Plan
-                    </button>
-                    <button className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors">
-                      Manage Subscription
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Reviews & Ratings and Performance Snapshot Section */}
