@@ -297,8 +297,23 @@ export default function Dashboard() {
                             index === 2 ? isLoadingLeads : 
                             isLoadingProperties;
 
+            // Map stat names to routes
+            const getRoute = (name: string) => {
+              if (name.includes('Region')) return '/regions';
+              if (name.includes('Broker')) return '/brokers';
+              if (name.includes('Lead')) return '/leads';
+              if (name.includes('Property')) return '/properties';
+              return '#';
+            };
+
+            const route = getRoute(stat.name);
+
             return (
-              <div key={stat.name} className={`relative rounded-xl border ${colors.border} ${colors.bg} p-4`}>
+              <Link 
+                key={stat.name} 
+                href={route}
+                className={`relative rounded-xl border ${colors.border} ${colors.bg} p-4 cursor-pointer hover:shadow-md transition-shadow`}
+              >
                 {isLoading ? (
                   <div>
                     <div className={`h-3 w-20 bg-gray-200 rounded animate-pulse mb-3`}></div>
@@ -320,7 +335,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
-              </div>
+              </Link>
             );
           })}
         </div>
