@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import Link from 'next/link';
 import { leadsAPI, regionAPI, propertiesAPI, brokerAPI } from '@/services/api';
 import { toast } from 'react-hot-toast';
@@ -19,20 +19,16 @@ export default function Dashboard() {
   const [isLoadingBrokers, setIsLoadingBrokers] = useState(false);
   const [totalProperties, setTotalProperties] = useState('1,234');
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
+  const [chartData, setChartData] = useState([
+    { month: 'Jan', leads: 110, brokers: 45, properties: 85 },
+    { month: 'Feb', leads: 135, brokers: 52, properties: 98 },
+    { month: 'Mar', leads: 160, brokers: 58, properties: 112 },
+    { month: 'Apr', leads: 175, brokers: 65, properties: 125 },
+    { month: 'May', leads: 145, brokers: 60, properties: 108 },
+    { month: 'Jun', leads: 190, brokers: 72, properties: 140 },
+  ]);
 
   const stats = [
-    {
-      name: 'Total Regions',
-      value: totalRegions,
-      change: '+22.1%',
-      changeType: 'positive',
-      color: 'rose',
-      icon: (
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-        </svg>
-      ),
-    },
     {
       name: 'Total Brokers',
       value: totalBrokers,
@@ -69,6 +65,18 @@ export default function Dashboard() {
         </svg>
       ),
     },
+    {
+      name: 'Total Regions',
+      value: totalRegions,
+      change: '+22.1%',
+      changeType: 'positive',
+      color: 'rose',
+      icon: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+      ),
+    },
   ];
 
   const regions = [
@@ -102,25 +110,12 @@ export default function Dashboard() {
     { id: 4, name: 'Kavita Desai', email: 'kavita@example.com', location: 'Bangalore', time: '2 hours ago', status: 'Pending', phone: '+91 98765 43223' },
   ];
 
-  // Chart data for the bar chart - Leads by Month
-  const chartData = [
-    { month: 'Jan', value: 110, leads: 110 },
-    { month: 'Feb', value: 135, leads: 135 },
-    { month: 'Mar', value: 160, leads: 160 },
-    { month: 'Apr', value: 175, leads: 175 },
-    { month: 'May', value: 145, leads: 145 },
-    { month: 'Jun', value: 190, leads: 190 },
+  const newProperties = [
+    { id: 1, name: 'Luxury 3BHK Apartment', location: 'Mumbai', price: '₹2.5 Cr', status: 'Active', time: '15 min ago' },
+    { id: 2, name: 'Modern 2BHK Flat', location: 'Pune', price: '₹1.2 Cr', status: 'Active', time: '28 min ago' },
+    { id: 3, name: 'Spacious 4BHK Villa', location: 'Bangalore', price: '₹4.8 Cr', status: 'Pending', time: '45 min ago' },
+    { id: 4, name: 'Premium 1BHK Studio', location: 'Delhi', price: '₹85 L', status: 'Active', time: '1 hour ago' },
   ];
-
-  // Donut chart data for lead status distribution
-  const leadStatusData = [
-    { name: 'New', value: 35, color: '#1E40AF' },
-    { name: 'Assigned', value: 28, color: '#F59E0B' },
-    { name: 'In Progress', value: 22, color: '#3B82F6' },
-    { name: 'Closed', value: 15, color: '#22C55E' },
-  ];
-
-  const COLORS = ['#1E40AF', '#F59E0B', '#3B82F6', '#22C55E'];
 
   // Fetch leads metrics
   const fetchLeadsMetrics = useCallback(async () => {
@@ -227,6 +222,7 @@ export default function Dashboard() {
     fetchPropertiesMetrics();
   }, [fetchLeadsMetrics, fetchRegionsStats, fetchBrokersStats, fetchPropertiesMetrics]);
 
+
   return (
     <ProtectedRoute>
       <Layout>
@@ -292,10 +288,10 @@ export default function Dashboard() {
             const colors = colorClasses[stat.color as keyof typeof colorClasses] || colorClasses.blue;
             
             // Check if this specific stat is loading
-            const isLoading = index === 0 ? isLoadingRegions : 
-                            index === 1 ? isLoadingBrokers : 
-                            index === 2 ? isLoadingLeads : 
-                            isLoadingProperties;
+            const isLoading = index === 0 ? isLoadingBrokers : 
+                            index === 1 ? isLoadingLeads : 
+                            index === 2 ? isLoadingProperties : 
+                            isLoadingRegions;
 
             // Map stat names to routes
             const getRoute = (name: string) => {
@@ -315,7 +311,7 @@ export default function Dashboard() {
                 className={`relative rounded-xl border ${colors.border} ${colors.bg} p-4 cursor-pointer hover:shadow-md transition-shadow`}
               >
                 {isLoading ? (
-                  <div>
+                <div>
                     <div className={`h-3 w-20 bg-gray-200 rounded animate-pulse mb-3`}></div>
                     <div className="mt-1 flex justify-between gap-2">
                       <div className={`h-7 w-16 bg-gray-200 rounded animate-pulse`}></div>
@@ -323,136 +319,91 @@ export default function Dashboard() {
                         {stat.icon}
                       </div>
                     </div>
-                  </div>
+                </div>
                 ) : (
                   <div>
                     <div className={`text-[12px] font-medium ${colors.label}`}>{stat.name}</div>
                     <div className="mt-1 flex justify-between gap-2">
                       <div className={`text-xl font-bold ${colors.value}`}>{stat.value}</div>
                       <div className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${colors.iconBg} ${colors.iconText}`}>
-                        {stat.icon}
-                      </div>
-                    </div>
-                  </div>
+                  {stat.icon}
+                </div>
+              </div>
+            </div>
                 )}
               </Link>
             );
           })}
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Leads by Month - Bar Chart */}
-          <div className="bg-white rounded-xl shadow-xs p-4  duration-200">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
-              <div>
-                <h3 className="text-[16px] font-semibold text-gray-900">Leads by Month</h3>
-                <p className="text-xs text-gray-500 mt-1">Monthly lead generation overview</p>
-              </div>
+        {/* Month-wise Bar Chart */}
+        <div className="bg-white rounded-xl shadow-xs p-4 duration-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
+            <div>
+              <h3 className="text-[16px] font-semibold text-gray-900">Monthly Overview</h3>
+              <p className="text-xs text-gray-500 mt-1">Leads, Brokers, and Properties by month</p>
+            </div>
             </div>
             
-            {/* Bar Chart using Recharts */}
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <XAxis 
-                    dataKey="month" 
-                    stroke="#6B7280"
-                    fontSize={12}
-                    tickLine={false}
-                  />
-                  <YAxis 
-                    stroke="#6B7280"
-                    fontSize={12}
-                    tickLine={false}
-                  />
-                  <Tooltip 
-                    cursor={false}
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="bg-white rounded-lg shadow-xs px-2 py-1.5">
-                            <p className="text-[14px] font-medium text-gray-900 mb-0.5">{payload[0].payload.month}</p>
-                            <p className="text-xs text-blue-600 font-medium">value : {payload[0].value}</p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar 
-                    dataKey="value" 
-                    fill="#3B82F6"
-                    radius={[4, 4, 0, 0]}
-                    barSize={28}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+          {/* Grouped Bar Chart using Recharts */}
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <XAxis 
+                  dataKey="month" 
+                  stroke="#6B7280"
+                  fontSize={12}
+                  tickLine={false}
+                />
+                <YAxis 
+                  stroke="#6B7280"
+                  fontSize={12}
+                  tickLine={false}
+                />
+                <Tooltip 
+                  cursor={false}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-white rounded-lg shadow-xs px-2 py-1.5">
+                          <p className="text-[14px] font-medium text-gray-900 mb-1">{data.month}</p>
+                          {payload.map((entry, index) => (
+                            <p key={index} className={`text-xs font-medium ${
+                              entry.dataKey === 'leads' ? 'text-blue-600' :
+                              entry.dataKey === 'brokers' ? 'text-green-600' :
+                              'text-yellow-600'
+                            }`}>
+                              {entry.dataKey === 'leads' ? 'Leads' : entry.dataKey === 'brokers' ? 'Brokers' : 'Properties'}: {entry.value?.toLocaleString() || 0}
+                            </p>
+                          ))}
             </div>
-          </div>
-
-          {/* Lead Status Distribution - Donut Chart */}
-          <div className="bg-white rounded-xl shadow-xs  p-4  duration-200">
-            <div className="mb-4">
-              <h3 className="text-[16px] font-semibold text-gray-900">Lead Status Distribution</h3>
-              <p className="text-xs text-gray-500 mt-1">Current status of all leads</p>
-            </div>
-            
-            <div className="h-56">
-              <div className="flex flex-col lg:flex-row items-center justify-center h-full">
-                <div className="w-full lg:w-1/2 h-48" style={{ border: 'none', outline: 'none' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart style={{ border: 'none', outline: 'none' }}>
-                      <Pie
-                        data={leadStatusData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={false}
-                        innerRadius={40}
-                        outerRadius={65}
-                        fill="#8884d8"
-                        dataKey="value"
-                        stroke="none"
-                        strokeWidth={0}
-                      >
-                        {leadStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" strokeWidth={0} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-white rounded-lg shadow-xs px-2 py-1.5">
-                                <p className="text-xs font-normal text-gray-700">{payload[0].name} : {payload[0].value}%</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                {/* Legend */}
-                <div className="w-full lg:w-1/2 space-y-2 mt-3 lg:mt-0 lg:pl-4">
-                  {leadStatusData.map((item, index) => (
-                    <div key={item.name} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div 
-                          className="w-3 h-3 rounded-full flex-shrink-0" 
-                          style={{ backgroundColor: COLORS[index] }}
-                        ></div>
-                        <span className="text-xs font-normal text-gray-700">{item.name}</span>
-                  </div>
-                      <span className="text-xs font-normal text-gray-900">{item.value}%</span>
-                  </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="leads" 
+                  fill="#3B82F6"
+                  radius={[4, 4, 0, 0]}
+                  barSize={28}
+                />
+                <Bar 
+                  dataKey="brokers" 
+                  fill="#22C55E"
+                  radius={[4, 4, 0, 0]}
+                  barSize={28}
+                />
+                <Bar 
+                  dataKey="properties" 
+                  fill="#F59E0B"
+                  radius={[4, 4, 0, 0]}
+                  barSize={28}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -559,30 +510,85 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Recent Activity */}
-        <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-6 duration-200">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-            <a href="#" className="text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors">
-                  View All 
-            </a>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="flex items-start space-x-3 py-4 first:pt-0 last:pb-0">
-                <div className="flex-shrink-0 mt-0.5">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                  <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                    </div>
+            {/* Properties and Recent Activity Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Properties Section */}
+              <div className="bg-white rounded-xl shadow-xs p-6 duration-200">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-gray-900">Properties</h3>
+                    <p className="text-xs text-gray-500 mt-1">Recently added properties</p>
                   </div>
-                ))}
-          </div>
-        </div>
+                  <Link href="/properties" className="text-sm font-medium text-teal-600 hover:text-teal-700 flex items-center transition-colors">
+                    View All 
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-gray-200">
+                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PROPERTY</th>
+                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">LOCATION</th>
+                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PRICE</th>
+                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
+                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {newProperties.map((property) => (
+                        <tr key={property.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-4 px-2 text-xs font-semibold text-gray-900">{property.name}</td>
+                          <td className="py-4 px-2">
+                            <span className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                              {property.location}
+                            </span>
+                          </td>
+                          <td className="py-4 px-2 text-xs text-gray-700 font-medium">{property.price}</td>
+                          <td className="py-4 px-2">
+                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                              property.status === 'Active' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {property.status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-2 text-xs text-gray-500">{property.time}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-6 duration-200">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                  <a href="#" className="text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors">
+                    View All 
+                  </a>
+                </div>
+                <div className="divide-y divide-gray-200">
+                  {recentActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-start space-x-3 py-4 first:pt-0 last:pb-0">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                        <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
         </div>
       </Layout>
     </ProtectedRoute>

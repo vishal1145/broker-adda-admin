@@ -17,7 +17,7 @@ export default function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/regions');
+      router.push('/dashboard');
     }
   }, [isAuthenticated, router]);
 
@@ -47,7 +47,7 @@ export default function Login() {
         if (token) {
           login(token);
           console.log('Token saved via context:', token); // Debug log
-          router.push('/regions');
+          router.push('/dashboard');
         } else {
           console.log('No token found in response:', data); // Debug log
           setError('No authentication token received from server.');
