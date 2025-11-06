@@ -139,6 +139,7 @@ function SupportPageInner() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [debouncedStatusFilter, setDebouncedStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [totalPages, setTotalPages] = useState(1);
   const [totalContacts, setTotalContacts] = useState(0);
   const [contactStats, setContactStats] = useState({
@@ -156,12 +157,10 @@ function SupportPageInner() {
       setLoading(true);
       setError('');
 
-      const effectivePage = currentPage;
-      const effectiveLimit = 10;
-
+      // Fetch all data without limit
       const response = await contactAPI.getContacts(
-        effectivePage,
-        effectiveLimit,
+        1, // Always fetch from page 1 when getting all data
+        10000, // Set high limit to get all data
         debouncedSearchTerm || '',
         debouncedStatusFilter === 'all' ? '' : debouncedStatusFilter
       );
@@ -203,9 +202,13 @@ function SupportPageInner() {
       
       setContacts(list);
 
-      const pagination = response?.data?.pagination || response?.pagination || {};
-      setTotalPages(pagination.totalPages || 1);
-      setTotalContacts(pagination.totalContacts || pagination.total || (Array.isArray(list) ? list.length : 0));
+      // Use actual list length for pagination since we're fetching all data
+      const totalItems = Array.isArray(list) ? list.length : 0;
+      setTotalContacts(totalItems);
+      
+      // For client-side pagination, calculate pages based on items per page
+      const calculatedPages = Math.ceil(totalItems / 10);
+      setTotalPages(calculatedPages || 1);
       
       // Update contact statistics from API response
       if (response?.data?.stats) {
@@ -238,7 +241,7 @@ function SupportPageInner() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, debouncedStatusFilter, debouncedSearchTerm]);
+  }, [debouncedStatusFilter, debouncedSearchTerm]); // Removed currentPage dependency since we fetch all data
 
   // Handle contact blocking confirmation
   const handleBlockClick = (contactId: string, contactName: string) => {
@@ -424,10 +427,19 @@ function SupportPageInner() {
     };
   }, [searchTerm, statusFilter]);
 
-  // Refetch when page changes or debounced filters change
+  // Refetch when debounced filters change (not on page change since we fetch all data)
   useEffect(() => {
     fetchContacts();
-  }, [currentPage, debouncedSearchTerm, debouncedStatusFilter, fetchContacts]);
+    setCurrentPage(1); // Reset to page 1 when filters change
+  }, [debouncedSearchTerm, debouncedStatusFilter, fetchContacts]);
+  
+  // Get paginated contacts for current page
+  const getPaginatedContacts = (): Contact[] => {
+    if (!Array.isArray(contacts)) return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return contacts.slice(startIndex, endIndex);
+  };
 
   return (
     <ProtectedRoute>
@@ -463,8 +475,21 @@ function SupportPageInner() {
 
             {/* Filter Buttons */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* Status Dropdown */}
-              {/* <div className="relative">
+              {/* Date Filter */}
+              <div className="relative">
+                <input
+                  type="date"
+                  onChange={(e) => {
+                    // You can add date filtering logic here
+                    console.log('Date filter:', e.target.value);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="Filter by Date"
+                />
+              </div>
+              
+              {/* Status Filter */}
+              <div className="relative">
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -479,12 +504,13 @@ function SupportPageInner() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
-              </div> */}
-              {(searchTerm) && (
+              </div>
+              
+              {(searchTerm || statusFilter !== 'all') && (
                 <button
                   onClick={() => {
                     setSearchTerm('');
-                    // setStatusFilter('all');
+                    setStatusFilter('all');
                   }}
                   className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
                 >
@@ -584,7 +610,7 @@ function SupportPageInner() {
 
                   {/* Table Body - Full Name and Email as first two columns, then dynamic columns */}
                   <div className="divide-y divide-gray-200">
-                    {Array.isArray(contacts) ? contacts.map((contact: Contact) => {
+                    {getPaginatedContacts().map((contact: Contact) => {
                       const columns = getTableColumns();
                       return (
                         <div key={contact._id || String(contact._id) || Math.random()} className="px-6 py-4 hover:bg-gray-50 transition-colors">
@@ -626,7 +652,7 @@ function SupportPageInner() {
                           </div>
                         </div>
                       );
-                    }) : null}
+                    })}
                   </div>
                 </>
               )}
@@ -639,7 +665,7 @@ function SupportPageInner() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center text-sm text-gray-700">
                   <span>
-                    Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, totalContacts)} of {totalContacts} results
+                    Showing {totalContacts > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalContacts)} of {totalContacts} results
                   </span>
                 </div>
                 <ReactPaginate
