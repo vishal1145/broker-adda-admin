@@ -1211,5 +1211,50 @@ export const notificationsAPI = {
     const result = await response.json();
     console.log('✅ All notifications marked as read successfully');
     return result;
+  },
+
+  // Get all admin notifications (simple version without pagination/filters)
+  getAllNotifications: async () => {
+    console.log('🔔 notificationsAPI.getAllNotifications called');
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('🔔 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/notifications/admin/all`;
+    console.log('🔔 Making API call to:', url);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('🔔 Response status:', response.status);
+    console.log('🔔 Response ok:', response.ok);
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to fetch notifications';
+      if (response.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (response.status === 404) {
+        errorMessage = 'Notifications API endpoint not found.';
+      } else if (response.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (response.status === 403) {
+        errorMessage = 'Access denied. You do not have permission to view notifications.';
+      }
+      
+      const errorText = await response.text().catch(() => '');
+      console.error('🔴 API Error:', response.status, errorText);
+      throw new Error(`${errorMessage} (Status: ${response.status})`);
+    }
+    
+    const result = await response.json();
+    console.log('🔔 API Response:', result);
+    return result;
   }
-}
+};

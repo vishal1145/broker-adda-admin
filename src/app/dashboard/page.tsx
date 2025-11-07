@@ -5,7 +5,7 @@ import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import Link from 'next/link';
-import { leadsAPI, regionAPI, propertiesAPI, brokerAPI } from '@/services/api';
+import { leadsAPI, regionAPI, propertiesAPI, brokerAPI, notificationsAPI } from '@/services/api';
 
 // Helper function to format time ago
 const formatTimeAgo = (dateString: string): string => {
@@ -66,6 +66,12 @@ export default function Dashboard() {
     time: string;
   }>>([]);
   const [isLoadingNewProperties, setIsLoadingNewProperties] = useState(false);
+  const [recentActivities, setRecentActivities] = useState<Array<{
+    id: string;
+    action: string;
+    time: string;
+  }>>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   const [chartData] = useState([
     { month: 'Jan', leads: 110, brokers: 45, properties: 85 },
     { month: 'Feb', leads: 135, brokers: 52, properties: 98 },
@@ -126,14 +132,6 @@ export default function Dashboard() {
     },
   ];
 
-  const recentActivities = [
-    { id: 1, action: 'Property Created: 2bhk', time: '6 minutes ago' },
-    { id: 2, action: 'Property Approved: NX ONe', time: '39 minutes ago' },
-    { id: 3, action: 'Property Updated: Spacious 3BHK Apartment in Sector 62', time: '18 hours ago' },
-    { id: 4, action: 'Property Updated: Spacious 3BHK Apartment in Sector 62', time: '18 hours ago' },
-    { id: 5, action: 'Property Created: NX ONe', time: '18 hours ago' },
-    { id: 6, action: 'Property Created: dfgbf', time: '18 hours ago' },
-  ];
 
 
 
@@ -402,6 +400,83 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Fetch recent activities (notifications) for dashboard
+  const fetchRecentActivities = useCallback(async () => {
+    try {
+      setIsLoadingActivities(true);
+      const response = await notificationsAPI.getAllNotifications();
+      
+      console.log('🔔 Notifications API Response:', response);
+      
+      // Extract notifications from API response - check multiple possible structures
+      const notifications = response.data?.notifications ||
+                          response.data?.items ||
+                          response.notifications ||
+                          response.data ||
+                          (Array.isArray(response) ? response : []);
+      
+      console.log('🔔 Extracted notifications:', notifications);
+      console.log('🔔 Notifications count:', Array.isArray(notifications) ? notifications.length : 0);
+      
+      // Ensure notifications is an array
+      if (!Array.isArray(notifications)) {
+        console.error('🔔 Notifications is not an array:', typeof notifications, notifications);
+        setRecentActivities([]);
+        setIsLoadingActivities(false);
+        return;
+      }
+      
+      // Format notifications data for the activity list - get latest 5
+      const formattedActivities = notifications.slice(0, 5).map((notification: {
+        _id?: string;
+        id?: string;
+        message?: string;
+        title?: string;
+        description?: string;
+        type?: string;
+        createdAt?: string;
+        created_at?: string;
+        timestamp?: string;
+      }) => {
+        console.log('🔔 Processing notification:', notification);
+        
+        // Handle action/message text - prioritize title over message
+        let action = '-';
+        if (notification.title) {
+          action = notification.title;
+          if (notification.description) {
+            action = `${notification.title}: ${notification.description}`;
+          }
+        } else if (notification.message) {
+          action = notification.message;
+        } else if (notification.description) {
+          action = notification.description;
+        }
+        
+        // Handle time
+        const timeString = notification.createdAt || 
+                          notification.created_at || 
+                          notification.timestamp || 
+                          new Date().toISOString();
+        
+        return {
+          id: notification._id || notification.id || '',
+          action: action,
+          time: formatTimeAgo(timeString),
+        };
+      });
+      
+      console.log('🔔 Formatted activities:', formattedActivities);
+      setRecentActivities(formattedActivities);
+    } catch (error) {
+      console.error('Failed to fetch recent activities:', error);
+      // Keep empty array on error
+      setRecentActivities([]);
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  }, []);
+
   // Fetch new leads for dashboard
   const fetchNewLeads = useCallback(async () => {
     try {
@@ -510,7 +585,8 @@ export default function Dashboard() {
     fetchNewBrokers();
     fetchNewLeads();
     fetchNewProperties();
-  }, [fetchLeadsMetrics, fetchRegionsStats, fetchBrokersStats, fetchPropertiesMetrics, fetchNewBrokers, fetchNewLeads, fetchNewProperties]);
+    fetchRecentActivities();
+  }, [fetchLeadsMetrics, fetchRegionsStats, fetchBrokersStats, fetchPropertiesMetrics, fetchNewBrokers, fetchNewLeads, fetchNewProperties, fetchRecentActivities]);
 
 
   return (
@@ -906,19 +982,32 @@ export default function Dashboard() {
                 </a>
               </div>
                 <div className="divide-y divide-gray-200">
-                {recentActivities.map((activity) => (
-                    <div key={activity.id} className="flex items-start space-x-3 py-4 first:pt-0 last:pb-0">
-                      <div className="flex-shrink-0 mt-0.5">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
+                  {isLoadingActivities ? (
+                    <div className="py-8 text-center">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+                        <span className="ml-2 text-xs text-gray-500">Loading activities...</span>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                        <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                  ) : recentActivities.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-gray-500">
+                      No recent activities found
                     </div>
-                  </div>
-                ))}
+                  ) : (
+                    recentActivities.map((activity) => (
+                      <div key={activity.id} className="flex items-start space-x-3 py-4 first:pt-0 last:pb-0">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                          <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
             </div>
           </div>
         </div>
