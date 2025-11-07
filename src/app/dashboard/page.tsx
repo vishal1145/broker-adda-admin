@@ -27,6 +27,148 @@ const formatTimeAgo = (dateString: string): string => {
   }
 };
 
+// Skeleton Loader Components
+const Skeleton = ({ className = '', height = 'h-4', width = 'w-full', rounded = false }: { className?: string; height?: string; width?: string; rounded?: boolean }) => (
+  <div 
+    className={`bg-gray-200 animate-pulse ${height} ${width} ${rounded ? 'rounded-full' : 'rounded'} ${className}`}
+  />
+);
+
+const NewLeadsTableSkeleton = () => {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b-2 border-gray-200">
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">NAME</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PROPERTY</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <tr key={index}>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-24" />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-32" />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-20" />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-6" width="w-16" rounded />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-16" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const NewBrokersTableSkeleton = () => {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b-2 border-gray-200">
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">NAME</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">EMAIL</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <tr key={index}>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-24" />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-36" />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-20" />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-6" width="w-20" rounded />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-16" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const PropertiesTableSkeleton = () => {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b-2 border-gray-200">
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PROPERTY</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PRICE</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
+            <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <tr key={index}>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-32" />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-20" />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-16" />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-6" width="w-16" rounded />
+              </td>
+              <td className="py-4 px-2">
+                <Skeleton height="h-4" width="w-16" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const RecentActivitySkeleton = () => {
+  return (
+    <div className="divide-y divide-gray-200">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div key={index} className="flex items-start space-x-3 py-4 first:pt-0 last:pb-0">
+          <div className="flex-shrink-0 mt-0.5">
+            <Skeleton height="h-4" width="w-4" rounded />
+          </div>
+          <div className="flex-1 min-w-0 space-y-2">
+            <Skeleton height="h-4" width="w-full" />
+            <Skeleton height="h-3" width="w-24" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState('This Month');
   const [totalLeads, setTotalLeads] = useState('2,847');
@@ -789,55 +931,46 @@ export default function Dashboard() {
                 </svg>
               </Link>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-200">
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">NAME</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PROPERTY</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {(() => {
-                    console.log('📋 Render check - isLoadingNewLeads:', isLoadingNewLeads, 'newLeadsData.length:', newLeadsData.length, 'newLeadsData:', newLeadsData);
-                    return null;
-                  })()}
-                  {isLoadingNewLeads ? (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center">
-                        <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
-                          <span className="ml-2 text-xs text-gray-500">Loading leads...</span>
-                        </div>
-                      </td>
+            {isLoadingNewLeads ? (
+              <NewLeadsTableSkeleton />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">NAME</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PROPERTY</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
                     </tr>
-                  ) : newLeadsData.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
-                        No leads found
-                      </td>
-                    </tr>
-                  ) : (
-                    newLeadsData.map((lead) => (
-                      <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-4 px-2 text-xs font-semibold text-gray-900">{lead.name}</td>
-                        <td className="py-4 px-2 text-xs text-gray-700 font-medium">{lead.property}</td>
-                        <td className="py-4 px-2 text-xs text-gray-700 font-medium">{lead.location}</td>
-                        <td className="py-4 px-2">
-                          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                            {lead.status}
-                          </span>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {newLeadsData.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
+                          No leads found
                         </td>
-                        <td className="py-4 px-2 text-xs text-gray-500">{lead.time}</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : (
+                      newLeadsData.map((lead) => (
+                        <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-4 px-2 text-xs font-semibold text-gray-900">{lead.name}</td>
+                          <td className="py-4 px-2 text-xs text-gray-700 font-medium">{lead.property}</td>
+                          <td className="py-4 px-2 text-xs text-gray-700 font-medium">{lead.location}</td>
+                          <td className="py-4 px-2">
+                            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                              {lead.status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-2 text-xs text-gray-500">{lead.time}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* New Brokers Section */}
@@ -854,55 +987,50 @@ export default function Dashboard() {
                     </svg>
               </Link>
                 </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-gray-200">
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">NAME</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">EMAIL</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {isLoadingNewBrokers ? (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center">
-                        <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
-                          <span className="ml-2 text-xs text-gray-500">Loading brokers...</span>
-                        </div>
-                      </td>
+            {isLoadingNewBrokers ? (
+              <NewBrokersTableSkeleton />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">NAME</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">EMAIL</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
                     </tr>
-                  ) : newBrokersData.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
-                        No brokers found
-                      </td>
-                    </tr>
-                  ) : (
-                    newBrokersData.map((broker) => (
-                      <tr key={broker.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-4 px-2 text-xs font-semibold text-gray-900">{broker.name}</td>
-                        <td className="py-4 px-2 text-xs text-gray-700 font-medium">{broker.email}</td>
-                        <td className="py-4 px-2 text-xs text-gray-700 font-medium">{broker.location}</td>
-                        <td className="py-4 px-2">
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                            broker.status === 'Verified' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {broker.status}
-                          </span>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {newBrokersData.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
+                          No brokers found
                         </td>
-                        <td className="py-4 px-2 text-xs text-gray-500">{broker.time}</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-                </div>
+                    ) : (
+                      newBrokersData.map((broker) => (
+                        <tr key={broker.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-4 px-2 text-xs font-semibold text-gray-900">{broker.name}</td>
+                          <td className="py-4 px-2 text-xs text-gray-700 font-medium">{broker.email}</td>
+                          <td className="py-4 px-2 text-xs text-gray-700 font-medium">{broker.location}</td>
+                          <td className="py-4 px-2">
+                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                              broker.status === 'Verified' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {broker.status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-2 text-xs text-gray-500">{broker.time}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
               </div>
                 </div>
                 
@@ -922,79 +1050,72 @@ export default function Dashboard() {
                     </svg>
                   </Link>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b-2 border-gray-200">
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PROPERTY</th>
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PRICE</th>
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {isLoadingNewProperties ? (
-                        <tr>
-                          <td colSpan={5} className="py-8 text-center">
-                            <div className="flex items-center justify-center">
-                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
-                              <span className="ml-2 text-xs text-gray-500">Loading properties...</span>
-                            </div>
-                          </td>
+                {isLoadingNewProperties ? (
+                  <PropertiesTableSkeleton />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-gray-200">
+                          <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PROPERTY</th>
+                          <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
+                          <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PRICE</th>
+                          <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
+                          <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
                         </tr>
-                      ) : newPropertiesData.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
-                            No properties found
-                          </td>
-                        </tr>
-                      ) : (
-                        newPropertiesData.map((property) => (
-                          <tr key={property.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="py-4 px-2 text-xs font-semibold text-gray-900">{property.name}</td>
-                            <td className="py-4 px-2 text-xs text-gray-700 font-medium">{property.location}</td>
-                            <td className="py-4 px-2 text-xs text-gray-700 font-medium">{property.price}</td>
-                            <td className="py-4 px-2">
-                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                                property.status === 'Active' || property.status === 'Approved'
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {property.status}
-                              </span>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {newPropertiesData.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
+                              No properties found
                             </td>
-                            <td className="py-4 px-2 text-xs text-gray-500">{property.time}</td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-              </div>
+                        ) : (
+                          newPropertiesData.map((property) => (
+                            <tr key={property.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="py-4 px-2 text-xs font-semibold text-gray-900">{property.name}</td>
+                              <td className="py-4 px-2 text-xs text-gray-700 font-medium">{property.location}</td>
+                              <td className="py-4 px-2 text-xs text-gray-700 font-medium">{property.price}</td>
+                              <td className="py-4 px-2">
+                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                  property.status === 'Active' || property.status === 'Approved'
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {property.status}
+                                </span>
+                              </td>
+                              <td className="py-4 px-2 text-xs text-gray-500">{property.time}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
             </div>
 
             {/* Recent Activity */}
               <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-6 duration-200">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-                  <a href="#" className="text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors">
-                  View All 
-                </a>
+                  <Link href="/notifications" className="text-sm font-medium text-teal-600 hover:text-teal-700 flex items-center transition-colors">
+                    View All 
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
               </div>
-                <div className="divide-y divide-gray-200">
-                  {isLoadingActivities ? (
-                    <div className="py-8 text-center">
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
-                        <span className="ml-2 text-xs text-gray-500">Loading activities...</span>
-                      </div>
-                    </div>
-                  ) : recentActivities.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-gray-500">
-                      No recent activities found
-                    </div>
-                  ) : (
-                    recentActivities.map((activity) => (
+                {isLoadingActivities ? (
+                  <RecentActivitySkeleton />
+                ) : recentActivities.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-gray-500">
+                    No recent activities found
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200">
+                    {recentActivities.map((activity) => (
                       <div key={activity.id} className="flex items-start space-x-3 py-4 first:pt-0 last:pb-0">
                         <div className="flex-shrink-0 mt-0.5">
                           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1006,9 +1127,9 @@ export default function Dashboard() {
                           <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
                         </div>
                       </div>
-                    ))
-                  )}
-            </div>
+                    ))}
+                  </div>
+                )}
           </div>
         </div>
         </div>
