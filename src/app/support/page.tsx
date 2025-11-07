@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { contactAPI } from '@/services/api';
@@ -130,7 +128,6 @@ const SummaryCardsSkeleton = () => {
 };
 
 function SupportPageInner() {
-  const searchParams = useSearchParams();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -243,13 +240,6 @@ function SupportPageInner() {
     }
   }, [debouncedStatusFilter, debouncedSearchTerm]); // Removed currentPage dependency since we fetch all data
 
-  // Handle contact blocking confirmation
-  const handleBlockClick = (contactId: string, contactName: string) => {
-    setSelectedContactId(contactId);
-    setSelectedContactName(contactName);
-    setShowBlockConfirm(true);
-  };
-
   // Handle contact blocking
   const handleBlock = async () => {
     if (!selectedContactId) return;
@@ -284,30 +274,6 @@ function SupportPageInner() {
       setError(err instanceof Error ? err.message : 'Failed to block contact');
       toast.error(err instanceof Error ? err.message : 'Failed to block contact');
     }
-  };
-
-  // Get verification status for a contact (defaults to unverified)
-  const getVerificationStatus = (contact: Contact): 'verified' | 'unverified' => {
-    if (contact.verificationStatus === 'Verified' || contact.status === 'verified') {
-      return 'verified';
-    }
-    return 'unverified';
-  };
-
-  // Use image URL with proxy for external URLs to avoid CORS issues
-  const getContactImageUrl = (avatar: string | undefined) => {
-    if (!avatar) {
-      return "https://www.w3schools.com/howto/img_avatar.png";
-    }
-    
-    // If it's an external URL, use the proxy
-    if (avatar.includes('broker-adda-be.algofolks.com') || 
-        avatar.includes('https://') || 
-        (avatar.includes('http://') && !avatar.includes('localhost'))) {
-      return `/api/image-proxy?url=${encodeURIComponent(avatar)}`;
-    }
-    
-    return avatar;
   };
 
   // Extract column keys from contacts data (excluding name and email fields as they'll be first two columns)

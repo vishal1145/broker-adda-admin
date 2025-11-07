@@ -6,11 +6,29 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import Link from 'next/link';
 import { leadsAPI, regionAPI, propertiesAPI, brokerAPI } from '@/services/api';
-import { toast } from 'react-hot-toast';
+
+// Helper function to format time ago
+const formatTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return 'just now';
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60);
+    return `${minutes} min ago`;
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600);
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  } else {
+    const days = Math.floor(diffInSeconds / 86400);
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+  }
+};
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState('This Month');
-  const [activeTab, setActiveTab] = useState('Daily');
   const [totalLeads, setTotalLeads] = useState('2,847');
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
   const [totalRegions, setTotalRegions] = useState('47');
@@ -19,7 +37,36 @@ export default function Dashboard() {
   const [isLoadingBrokers, setIsLoadingBrokers] = useState(false);
   const [totalProperties, setTotalProperties] = useState('1,234');
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
-  const [chartData, setChartData] = useState([
+  const [newBrokersData, setNewBrokersData] = useState<Array<{
+    id: string;
+    name: string;
+    email: string;
+    location: string;
+    time: string;
+    status: string;
+    phone: string;
+  }>>([]);
+  const [isLoadingNewBrokers, setIsLoadingNewBrokers] = useState(false);
+  const [newLeadsData, setNewLeadsData] = useState<Array<{
+    id: string;
+    name: string;
+    property: string;
+    location: string;
+    time: string;
+    status: string;
+    phone: string;
+  }>>([]);
+  const [isLoadingNewLeads, setIsLoadingNewLeads] = useState(false);
+  const [newPropertiesData, setNewPropertiesData] = useState<Array<{
+    id: string;
+    name: string;
+    location: string;
+    price: string;
+    status: string;
+    time: string;
+  }>>([]);
+  const [isLoadingNewProperties, setIsLoadingNewProperties] = useState(false);
+  const [chartData] = useState([
     { month: 'Jan', leads: 110, brokers: 45, properties: 85 },
     { month: 'Feb', leads: 135, brokers: 52, properties: 98 },
     { month: 'Mar', leads: 160, brokers: 58, properties: 112 },
@@ -79,14 +126,6 @@ export default function Dashboard() {
     },
   ];
 
-  const regions = [
-    { name: 'Mumbai', location: 'Mumbai, Maharashtra', visitors: '856', brokers: '24', conversion: '18.2%' },
-    { name: 'Pune', location: 'Pune, Maharashtra', visitors: '642', brokers: '18', conversion: '22.5%' },
-    { name: 'Bangalore', location: 'Bangalore, Karnataka', visitors: '1,234', brokers: '32', conversion: '26.8%' },
-    { name: 'Delhi', location: 'Delhi, Delhi', visitors: '1,089', brokers: '28', conversion: '24.3%' },
-    { name: 'Hyderabad', location: 'Hyderabad, Telangana', visitors: '523', brokers: '15', conversion: '19.5%' },
-  ];
-
   const recentActivities = [
     { id: 1, action: 'Property Created: 2bhk', time: '6 minutes ago' },
     { id: 2, action: 'Property Approved: NX ONe', time: '39 minutes ago' },
@@ -96,26 +135,8 @@ export default function Dashboard() {
     { id: 6, action: 'Property Created: dfgbf', time: '18 hours ago' },
   ];
 
-  const newLeads = [
-    { id: 1, name: 'Rajesh Kumar', property: '2BHK Apartment', location: 'Mumbai', time: '5 min ago', status: 'New', phone: '+91 98765 43210' },
-    { id: 2, name: 'Priya Sharma', property: '3BHK Villa', location: 'Pune', time: '12 min ago', status: 'New', phone: '+91 98765 43211' },
-    { id: 3, name: 'Amit Patel', property: '1BHK Flat', location: 'Bangalore', time: '18 min ago', status: 'New', phone: '+91 98765 43212' },
-    { id: 4, name: 'Sneha Reddy', property: '4BHK Penthouse', location: 'Hyderabad', time: '25 min ago', status: 'New', phone: '+91 98765 43213' },
-  ];
 
-  const newBrokers = [
-    { id: 1, name: 'Rahul Sharma', email: 'rahul@example.com', location: 'Mumbai', time: '10 min ago', status: 'Pending', phone: '+91 98765 43220' },
-    { id: 2, name: 'Anjali Gupta', email: 'anjali@example.com', location: 'Delhi', time: '35 min ago', status: 'Pending', phone: '+91 98765 43221' },
-    { id: 3, name: 'Vikram Singh', email: 'vikram@example.com', location: 'Pune', time: '1 hour ago', status: 'Approved', phone: '+91 98765 43222' },
-    { id: 4, name: 'Kavita Desai', email: 'kavita@example.com', location: 'Bangalore', time: '2 hours ago', status: 'Pending', phone: '+91 98765 43223' },
-  ];
 
-  const newProperties = [
-    { id: 1, name: 'Luxury 3BHK Apartment', location: 'Mumbai', price: '₹2.5 Cr', status: 'Active', time: '15 min ago' },
-    { id: 2, name: 'Modern 2BHK Flat', location: 'Pune', price: '₹1.2 Cr', status: 'Active', time: '28 min ago' },
-    { id: 3, name: 'Spacious 4BHK Villa', location: 'Bangalore', price: '₹4.8 Cr', status: 'Pending', time: '45 min ago' },
-    { id: 4, name: 'Premium 1BHK Studio', location: 'Delhi', price: '₹85 L', status: 'Active', time: '1 hour ago' },
-  ];
 
   // Fetch leads metrics
   const fetchLeadsMetrics = useCallback(async () => {
@@ -215,12 +236,281 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Fetch new brokers for dashboard
+  const fetchNewBrokers = useCallback(async () => {
+    try {
+      setIsLoadingNewBrokers(true);
+      const response = await brokerAPI.getBrokers(1, 5);
+      
+      // Extract brokers from API response
+      const brokers = response.data?.brokers || response.brokers || response.data || [];
+      
+      // Format brokers data for the table - get latest 5
+      const formattedBrokers = brokers.slice(0, 5).map((broker: {
+        _id?: string;
+        id?: string;
+        name?: string;
+        email?: string;
+        region?: Array<{ name?: string; city?: string }> | { name?: string } | string;
+        regionId?: { name?: string } | string;
+        createdAt?: string;
+        created_at?: string;
+        verificationStatus?: string;
+        phone?: string;
+        phoneNumber?: string;
+      }) => {
+        // Handle region - it's an array like in brokers page
+        let region = '-';
+        
+        // Check if region is an array (as per brokers page structure)
+        if (broker.region && Array.isArray(broker.region) && broker.region.length > 0) {
+          // Region is an array, get the first one's name
+          region = broker.region[0].name || broker.region[0].city || '-';
+        } else if (broker.region && typeof broker.region === 'object' && !Array.isArray(broker.region) && 'name' in broker.region) {
+          // Region is a single object with name
+          region = (broker.region as { name?: string }).name || '-';
+        } else if (broker.region && typeof broker.region === 'string') {
+          // Region is just an ID string
+          region = broker.region;
+        }
+        
+        // Check regionId as fallback
+        if (region === '-' && broker.regionId) {
+          if (typeof broker.regionId === 'object' && !Array.isArray(broker.regionId) && 'name' in broker.regionId) {
+            region = (broker.regionId as { name?: string }).name || '-';
+          } else if (typeof broker.regionId === 'string') {
+            region = broker.regionId;
+          }
+        }
+        
+        return {
+          id: broker._id || broker.id || '',
+          name: broker.name || '-',
+          email: broker.email || '-',
+          location: region,
+          time: formatTimeAgo(broker.createdAt || broker.created_at || new Date().toISOString()),
+          status: broker.verificationStatus === 'Verified' ? 'Verified' : 'Unverified',
+          phone: broker.phone || broker.phoneNumber || '-',
+        };
+      });
+      
+      setNewBrokersData(formattedBrokers);
+    } catch (error) {
+      console.error('Failed to fetch new brokers:', error);
+      // Keep empty array on error
+      setNewBrokersData([]);
+    } finally {
+      setIsLoadingNewBrokers(false);
+    }
+  }, []);
+
+  // Fetch new properties for dashboard
+  const fetchNewProperties = useCallback(async () => {
+    try {
+      setIsLoadingNewProperties(true);
+      const response = await propertiesAPI.getProperties(1, 5);
+      
+      console.log('🏠 Properties API Response:', response);
+      
+      // Extract properties from API response - check multiple possible structures (matching properties page)
+      const properties = response.data?.properties ||
+                        response.properties ||
+                        response.data?.data?.properties ||
+                        response.data ||
+                        (Array.isArray(response) ? response : []);
+      
+      console.log('🏠 Extracted properties:', properties);
+      console.log('🏠 Properties count:', Array.isArray(properties) ? properties.length : 0);
+      
+      // Ensure properties is an array
+      if (!Array.isArray(properties)) {
+        console.error('🏠 Properties is not an array:', typeof properties, properties);
+        setNewPropertiesData([]);
+        setIsLoadingNewProperties(false);
+        return;
+      }
+      
+      // Format properties data for the table - get latest 5
+      const formattedProperties = properties.slice(0, 5).map((property: {
+        _id?: string;
+        id?: string;
+        title?: string;
+        name?: string;
+        region?: Array<{ name?: string; city?: string; region?: string }> | { name?: string; city?: string; region?: string } | string;
+        city?: string;
+        price?: number | string;
+        status?: string;
+        createdAt?: string;
+        created_at?: string;
+        listedDate?: string;
+      }) => {
+        console.log('🏠 Processing property:', property);
+        
+        // Handle region - check if it's an array or object
+        let region = '-';
+        if (property.region && Array.isArray(property.region) && property.region.length > 0) {
+          region = property.region[0].name || property.region[0].city || property.region[0].region || '-';
+        } else if (property.region && typeof property.region === 'object' && !Array.isArray(property.region) && 'name' in property.region) {
+          const regionObj = property.region as { name?: string; city?: string; region?: string };
+          region = regionObj.name || regionObj.city || regionObj.region || '-';
+        } else if (property.region && typeof property.region === 'string') {
+          region = property.region;
+        } else if (property.city) {
+          region = property.city;
+        }
+        
+        // Handle price
+        let price = '-';
+        if (property.price) {
+          const priceValue = typeof property.price === 'number' ? property.price : parseFloat(property.price);
+          
+          if (priceValue >= 10000000) {
+            // Convert to Crores
+            price = `${(priceValue / 10000000).toFixed(2)} Cr`;
+          } else if (priceValue >= 100000) {
+            // Convert to Lakhs
+            price = `${(priceValue / 100000).toFixed(2)} L`;
+          } else {
+            price = `${priceValue.toLocaleString('en-IN')}`;
+          }
+        }
+        
+        // Handle status
+        let status = 'Active';
+        if (property.status) {
+          status = property.status;
+        }
+        
+        return {
+          id: property._id || property.id || '',
+          name: property.title || property.name || '-',
+          location: region,
+          price: price,
+          status: status,
+          time: formatTimeAgo(property.createdAt || property.created_at || property.listedDate || new Date().toISOString()),
+        };
+      });
+      
+      console.log('🏠 Formatted properties:', formattedProperties);
+      setNewPropertiesData(formattedProperties);
+    } catch (error) {
+      console.error('Failed to fetch new properties:', error);
+      // Keep empty array on error
+      setNewPropertiesData([]);
+    } finally {
+      setIsLoadingNewProperties(false);
+    }
+  }, []);
+
+  // Fetch new leads for dashboard
+  const fetchNewLeads = useCallback(async () => {
+    try {
+      setIsLoadingNewLeads(true);
+      const response = await leadsAPI.getLeads(1, 5);
+      
+      console.log('📋 Leads API Response:', response);
+      
+      // Extract leads from API response - check multiple possible structures (matching leads page)
+      const leads = response.data?.items ||
+                    response.data?.leads || 
+                    response.data?.data?.leads ||
+                    response.leads || 
+                    response.data || 
+                    (Array.isArray(response) ? response : []);
+      
+      console.log('📋 Extracted leads:', leads);
+      console.log('📋 Leads count:', Array.isArray(leads) ? leads.length : 0);
+      console.log('📋 Is array:', Array.isArray(leads));
+      
+      // Ensure leads is an array
+      if (!Array.isArray(leads)) {
+        console.error('📋 Leads is not an array:', typeof leads, leads);
+        setNewLeadsData([]);
+        setIsLoadingNewLeads(false);
+        return;
+      }
+      
+      // Format leads data for the table - get latest 5
+      const formattedLeads = leads.slice(0, 5).map((lead: {
+        _id?: string;
+        id?: string;
+        name?: string;
+        customerName?: string;
+        region?: Array<{ name?: string; city?: string }> | { name?: string } | string;
+        regionId?: { name?: string } | string;
+        property?: { name?: string; title?: string; propertyType?: string } | string;
+        propertyType?: string;
+        requirement?: string;
+        status?: string;
+        verificationStatus?: string;
+        phone?: string;
+        phoneNumber?: string;
+        mobile?: string;
+        createdAt?: string;
+        created_at?: string;
+      }) => {
+        console.log('📋 Processing lead:', lead);
+        // Handle region - check if it's an array or object
+        let region = '-';
+        if (lead.region && Array.isArray(lead.region) && lead.region.length > 0) {
+          region = lead.region[0].name || lead.region[0].city || '-';
+        } else if (lead.region && typeof lead.region === 'object' && !Array.isArray(lead.region) && 'name' in lead.region) {
+          region = (lead.region as { name?: string }).name || '-';
+        } else if (lead.regionId && typeof lead.regionId === 'object' && !Array.isArray(lead.regionId) && 'name' in lead.regionId) {
+          region = (lead.regionId as { name?: string }).name || '-';
+        }
+        
+        // Handle property
+        let property = '-';
+        if (lead.property && typeof lead.property === 'object') {
+          property = lead.property.name || lead.property.title || lead.property.propertyType || '-';
+        } else if (lead.property && typeof lead.property === 'string') {
+          property = lead.property;
+        } else if (lead.propertyType) {
+          property = lead.propertyType;
+        } else if (lead.requirement) {
+          property = lead.requirement;
+        }
+        
+        // Handle status
+        let status = 'New';
+        if (lead.status) {
+          status = lead.status;
+        } else if (lead.verificationStatus) {
+          status = lead.verificationStatus;
+        }
+        
+        return {
+          id: lead._id || lead.id || '',
+          name: lead.name || lead.customerName || '-',
+          property: property,
+          location: region,
+          time: formatTimeAgo(lead.createdAt || lead.created_at || new Date().toISOString()),
+          status: status,
+          phone: lead.phone || lead.phoneNumber || lead.mobile || '-',
+        };
+      });
+      
+      console.log('📋 Formatted leads:', formattedLeads);
+      setNewLeadsData(formattedLeads);
+    } catch (error) {
+      console.error('Failed to fetch new leads:', error);
+      // Keep empty array on error
+      setNewLeadsData([]);
+    } finally {
+      setIsLoadingNewLeads(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchLeadsMetrics();
     fetchRegionsStats();
     fetchBrokersStats();
     fetchPropertiesMetrics();
-  }, [fetchLeadsMetrics, fetchRegionsStats, fetchBrokersStats, fetchPropertiesMetrics]);
+    fetchNewBrokers();
+    fetchNewLeads();
+    fetchNewProperties();
+  }, [fetchLeadsMetrics, fetchRegionsStats, fetchBrokersStats, fetchPropertiesMetrics, fetchNewBrokers, fetchNewLeads, fetchNewProperties]);
 
 
   return (
@@ -342,7 +632,7 @@ export default function Dashboard() {
             <div>
               <h3 className="text-[16px] font-semibold text-gray-900">Monthly Overview</h3>
               <p className="text-xs text-gray-500 mt-1">Leads, Brokers, and Properties by month</p>
-            </div>
+              </div>
             </div>
             
           {/* Grouped Bar Chart using Recharts */}
@@ -429,29 +719,46 @@ export default function Dashboard() {
                   <tr className="border-b-2 border-gray-200">
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">NAME</th>
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PROPERTY</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">LOCATION</th>
+                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {newLeads.map((lead) => (
-                    <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-2 text-xs font-semibold text-gray-900">{lead.name}</td>
-                      <td className="py-4 px-2 text-xs text-gray-700 font-medium">{lead.property}</td>
-                      <td className="py-4 px-2">
-                        <span className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                          {lead.location}
-                        </span>
+                  {(() => {
+                    console.log('📋 Render check - isLoadingNewLeads:', isLoadingNewLeads, 'newLeadsData.length:', newLeadsData.length, 'newLeadsData:', newLeadsData);
+                    return null;
+                  })()}
+                  {isLoadingNewLeads ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center">
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+                          <span className="ml-2 text-xs text-gray-500">Loading leads...</span>
+                        </div>
                       </td>
-                      <td className="py-4 px-2">
-                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                          {lead.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-2 text-xs text-gray-500">{lead.time}</td>
                     </tr>
-                  ))}
+                  ) : newLeadsData.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
+                        No leads found
+                      </td>
+                    </tr>
+                  ) : (
+                    newLeadsData.map((lead) => (
+                      <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="py-4 px-2 text-xs font-semibold text-gray-900">{lead.name}</td>
+                        <td className="py-4 px-2 text-xs text-gray-700 font-medium">{lead.property}</td>
+                        <td className="py-4 px-2 text-xs text-gray-700 font-medium">{lead.location}</td>
+                        <td className="py-4 px-2">
+                          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            {lead.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-2 text-xs text-gray-500">{lead.time}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -477,39 +784,52 @@ export default function Dashboard() {
                   <tr className="border-b-2 border-gray-200">
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">NAME</th>
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">EMAIL</th>
-                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">LOCATION</th>
+                    <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
                     <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {newBrokers.map((broker) => (
-                    <tr key={broker.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-2 text-xs font-semibold text-gray-900">{broker.name}</td>
-                      <td className="py-4 px-2 text-xs text-gray-700 font-medium">{broker.email}</td>
-                      <td className="py-4 px-2">
-                        <span className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                          {broker.location}
-                        </span>
+                  {isLoadingNewBrokers ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center">
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+                          <span className="ml-2 text-xs text-gray-500">Loading brokers...</span>
+                        </div>
                       </td>
-                      <td className="py-4 px-2">
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                          broker.status === 'Approved' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {broker.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-2 text-xs text-gray-500">{broker.time}</td>
                     </tr>
-                  ))}
+                  ) : newBrokersData.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
+                        No brokers found
+                      </td>
+                    </tr>
+                  ) : (
+                    newBrokersData.map((broker) => (
+                      <tr key={broker.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="py-4 px-2 text-xs font-semibold text-gray-900">{broker.name}</td>
+                        <td className="py-4 px-2 text-xs text-gray-700 font-medium">{broker.email}</td>
+                        <td className="py-4 px-2 text-xs text-gray-700 font-medium">{broker.location}</td>
+                        <td className="py-4 px-2">
+                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                            broker.status === 'Verified' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {broker.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-2 text-xs text-gray-500">{broker.time}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
                 </div>
               </div>
-            </div>
-
+                </div>
+                
             {/* Properties and Recent Activity Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Properties Section */}
@@ -531,64 +851,77 @@ export default function Dashboard() {
                     <thead>
                       <tr className="border-b-2 border-gray-200">
                         <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PROPERTY</th>
-                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">LOCATION</th>
+                        <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">REGION</th>
                         <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">PRICE</th>
                         <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">STATUS</th>
                         <th className="text-left py-3 px-2 font-semibold text-gray-700 text-sm uppercase tracking-wider">TIME</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {newProperties.map((property) => (
-                        <tr key={property.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-4 px-2 text-xs font-semibold text-gray-900">{property.name}</td>
-                          <td className="py-4 px-2">
-                            <span className="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                              {property.location}
-                            </span>
+                      {isLoadingNewProperties ? (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center">
+                            <div className="flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+                              <span className="ml-2 text-xs text-gray-500">Loading properties...</span>
+                            </div>
                           </td>
-                          <td className="py-4 px-2 text-xs text-gray-700 font-medium">{property.price}</td>
-                          <td className="py-4 px-2">
-                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                              property.status === 'Active' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {property.status}
-                            </span>
-                          </td>
-                          <td className="py-4 px-2 text-xs text-gray-500">{property.time}</td>
                         </tr>
-                      ))}
+                      ) : newPropertiesData.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
+                            No properties found
+                          </td>
+                        </tr>
+                      ) : (
+                        newPropertiesData.map((property) => (
+                          <tr key={property.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="py-4 px-2 text-xs font-semibold text-gray-900">{property.name}</td>
+                            <td className="py-4 px-2 text-xs text-gray-700 font-medium">{property.location}</td>
+                            <td className="py-4 px-2 text-xs text-gray-700 font-medium">{property.price}</td>
+                            <td className="py-4 px-2">
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                property.status === 'Active' || property.status === 'Approved'
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {property.status}
+                              </span>
+                            </td>
+                            <td className="py-4 px-2 text-xs text-gray-500">{property.time}</td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
-                </div>
               </div>
+            </div>
 
-              {/* Recent Activity */}
+            {/* Recent Activity */}
               <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-6 duration-200">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
                   <a href="#" className="text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors">
-                    View All 
-                  </a>
-                </div>
+                  View All 
+                </a>
+              </div>
                 <div className="divide-y divide-gray-200">
-                  {recentActivities.map((activity) => (
+                {recentActivities.map((activity) => (
                     <div key={activity.id} className="flex items-start space-x-3 py-4 first:pt-0 last:pb-0">
                       <div className="flex-shrink-0 mt-0.5">
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
+                    </div>
+                    <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900">{activity.action}</p>
                         <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                ))}
             </div>
+          </div>
+        </div>
         </div>
       </Layout>
     </ProtectedRoute>
