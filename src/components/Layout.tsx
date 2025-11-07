@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
+import NotificationDropdown from '@/components/NotificationDropdown';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -108,6 +109,9 @@ export default function Layout({ children }: LayoutProps) {
           {/* User Profile - Right side */}
           <div className="px-6 flex items-center">
             <div className="flex items-center space-x-4">
+              {/* Notification Dropdown */}
+              <NotificationDropdown />
+
               {/* User Profile */}
               <div className="flex items-center">
                 {/* Admin Profile Image */}

@@ -1072,4 +1072,144 @@ export const contactAPI = {
     
     return response.json();
   }
+};
+
+// Notifications API functions
+export const notificationsAPI = {
+  // Get all notifications with pagination and filters
+  getNotifications: async (page: number = 1, limit: number = 10, filter: string = 'all') => {
+    console.log('🔔 notificationsAPI.getNotifications called with:', { page, limit, filter });
+    
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    // Map filter values to API query parameters
+    const filterMap: Record<string, string> = {
+      'all': '',
+      'new_leads': 'lead',
+      'properties': 'property',
+      'broker': 'broker',
+      'unread': 'unread'
+    };
+
+    const apiFilter = filterMap[filter] || '';
+    
+    // Build URL with query parameters
+    let url = `${API_BASE_URL}/notifications/admin/all`;
+    const params = new URLSearchParams();
+    if (apiFilter) {
+      params.append('type', apiFilter);
+    }
+    // Add pagination parameters if provided
+    if (page && page > 0) {
+      params.append('page', page.toString());
+    }
+    if (limit && limit > 0) {
+      params.append('limit', limit.toString());
+    }
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    console.log('🔔 Making API call to:', url);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to fetch notifications';
+      if (response.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (response.status === 404) {
+        errorMessage = 'Notifications API endpoint not found.';
+      } else if (response.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+      
+      const errorText = await response.text().catch(() => '');
+      console.error('🔴 API Error:', response.status, errorText);
+      throw new Error(`${errorMessage} (Status: ${response.status})`);
+    }
+    
+    const result = await response.json();
+    console.log('🔔 API Response:', result);
+    return result;
+  },
+
+  // Mark notification as read
+  markAsRead: async (notificationId: string) => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/notifications/${notificationId}/read`;
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', errorText);
+      throw new Error('Failed to mark notification as read');
+    }
+    
+    return response.json();
+  },
+
+  // Get unread notification count
+  getUnreadCount: async () => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/notifications/unread/count`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      return { count: 0 };
+    }
+    
+    return response.json();
+  },
+
+  // Mark all notifications as read
+  markAllAsRead: async () => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/notifications/admin/read-all`;
+    console.log('🔔 Marking all notifications as read - URL:', url);
+    console.log('🔔 Method: PATCH');
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔴 API Error:', response.status, errorText);
+      throw new Error(`Failed to mark all notifications as read (Status: ${response.status})`);
+    }
+    
+    const result = await response.json();
+    console.log('✅ All notifications marked as read successfully');
+    return result;
+  }
 }
