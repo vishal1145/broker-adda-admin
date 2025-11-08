@@ -39,6 +39,7 @@ type Lead = {
   createdAt: string;
   // Optional verification status from API
   verificationStatus?: "Verified" | "Unverified";
+  transfers?: TransferRecord[]; // Transfer/share history
 };
 
 // API types to avoid 'any' usage
@@ -54,6 +55,9 @@ type BrokerRef = {
 type TransferRecord = {
   fromBroker?: BrokerRef | string;
   toBroker?: BrokerRef | string;
+  region?: string | { _id?: string; id?: string; name?: string };
+  shareType?: "all" | "region" | "individual";
+  createdAt?: string;
   _id?: string;
 };
 
@@ -548,6 +552,14 @@ function LeadsPageContent() {
           ? new Date(lead.createdAt).toISOString().split('T')[0]
           : new Date().toISOString().split('T')[0],
         verificationStatus: verificationStatus as "Verified" | "Unverified" | undefined,
+        transfers: Array.isArray(lead.transfers) ? lead.transfers.map((t: TransferRecord) => ({
+          fromBroker: t.fromBroker,
+          toBroker: t.toBroker,
+          region: t.region,
+          shareType: t.shareType,
+          createdAt: t.createdAt,
+          _id: t._id,
+        })) : undefined,
       };
     });
 
@@ -1598,38 +1610,130 @@ function LeadsPageContent() {
                               <div className="text-[10px] tracking-wide text-gray-500 uppercase">Shared With</div>
                               <div className="mt-2 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  {lead.sharedWith && lead.sharedWith.trim() ? (
-                                    <div className="flex -space-x-2">
-                                      {lead.sharedWith.split(',').slice(0, 2).map((name, idx) => {
-                                        const trimmedName = name.trim();
-                                        const candidate = lead.sharedWithImages && lead.sharedWithImages[idx];
-                                        const imgSrc = candidate && candidate.trim() ? candidate : DEFAULT_AVATAR;
-                                        return (
-                                          <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center overflow-hidden" title={trimmedName}>
-                                            <img 
-                                              src={imgSrc}
-                                              alt={trimmedName}
-                                              className="w-full h-full object-cover rounded-full"
-                                              onError={(e) => {
-                                                // Final fallback to default avatar
-                                                const target = e.target as HTMLImageElement;
-                                                if (target.src !== DEFAULT_AVATAR) {
-                                                  target.src = DEFAULT_AVATAR;
-                                                }
-                                              }}
-                                            />
+                                  {(() => {
+                                    // Check transfers array first
+                                    const transfers = Array.isArray(lead.transfers) ? lead.transfers : [];
+                                    
+                                    // Check for "all" share type
+                                    const allShare = transfers.find(t => 
+                                      t.shareType === "all" || (!t.shareType && !t.toBroker && !t.region)
+                                    );
+                                    
+                                    if (allShare) {
+                                      return (
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-7 h-7 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[10px] text-blue-800 font-semibold ring-2 ring-white">
+                                            All
                                           </div>
-                                        );
-                                      })}
-                                      {lead.sharedWith.split(',').length > 2 && (
-                                        <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={`+${lead.sharedWith.split(',').length - 2} more`}>
-                                          +{lead.sharedWith.split(',').length - 2}
+                                          <span className="text-xs text-gray-700 font-medium">All Brokers</span>
                                         </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="text-xs text-gray-400 italic">Not shared</div>
-                                  )}
+                                      );
+                                    }
+                                    
+                                    // Check for "region" share type
+                                    const regionShare = transfers.find(t => 
+                                      t.shareType === "region" || (!t.shareType && t.region && !t.toBroker)
+                                    );
+                                    
+                                    if (regionShare) {
+                                      const regionId = regionShare.region;
+                                      const regionName = typeof regionId === 'string' 
+                                        ? (regions.find(r => r.id === regionId)?.name || regionId)
+                                        : (typeof regionId === 'object' && regionId?.name ? regionId.name : 'Region');
+                                      return (
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-7 h-7 rounded-full bg-green-100 border border-green-200 flex items-center justify-center text-[10px] text-green-800 font-semibold ring-2 ring-white">
+                                            R
+                                          </div>
+                                          <span className="text-xs text-gray-700 font-medium">{regionName}</span>
+                                        </div>
+                                      );
+                                    }
+                                    
+                                    // Check for individual transfers
+                                    const individualTransfers = transfers.filter(t => 
+                                      t.shareType === "individual" || (!t.shareType && t.toBroker && !t.region)
+                                    );
+                                    
+                                    if (individualTransfers.length > 0) {
+                                      return (
+                                        <div className="flex -space-x-2">
+                                          {individualTransfers.slice(0, 2).map((t, idx) => {
+                                            const toBroker = t.toBroker;
+                                            let brokerName = '';
+                                            let brokerImage = DEFAULT_AVATAR;
+                                            
+                                            if (typeof toBroker === 'string') {
+                                              const foundBroker = allBrokers.find(b => b.id === toBroker);
+                                              brokerName = foundBroker?.name || toBroker;
+                                            } else if (toBroker && typeof toBroker === 'object') {
+                                              brokerName = toBroker.name || toBroker.firmName || toBroker.email || 'Unknown';
+                                              if (toBroker.brokerImage && typeof toBroker.brokerImage === 'string') {
+                                                brokerImage = toBroker.brokerImage;
+                                              }
+                                            }
+                                            
+                                            return (
+                                              <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center overflow-hidden" title={brokerName}>
+                                                <img 
+                                                  src={brokerImage}
+                                                  alt={brokerName}
+                                                  className="w-full h-full object-cover rounded-full"
+                                                  onError={(e) => {
+                                                    const target = e.target as HTMLImageElement;
+                                                    if (target.src !== DEFAULT_AVATAR) {
+                                                      target.src = DEFAULT_AVATAR;
+                                                    }
+                                                  }}
+                                                />
+                                              </div>
+                                            );
+                                          })}
+                                          {individualTransfers.length > 2 && (
+                                            <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={`+${individualTransfers.length - 2} more`}>
+                                              +{individualTransfers.length - 2}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    
+                                    // Fallback to old sharedWith logic
+                                    if (lead.sharedWith && lead.sharedWith.trim()) {
+                                      return (
+                                        <div className="flex -space-x-2">
+                                          {lead.sharedWith.split(',').slice(0, 2).map((name, idx) => {
+                                            const trimmedName = name.trim();
+                                            const candidate = lead.sharedWithImages && lead.sharedWithImages[idx];
+                                            const imgSrc = candidate && candidate.trim() ? candidate : DEFAULT_AVATAR;
+                                            return (
+                                              <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center overflow-hidden" title={trimmedName}>
+                                                <img 
+                                                  src={imgSrc}
+                                                  alt={trimmedName}
+                                                  className="w-full h-full object-cover rounded-full"
+                                                  onError={(e) => {
+                                                    // Final fallback to default avatar
+                                                    const target = e.target as HTMLImageElement;
+                                                    if (target.src !== DEFAULT_AVATAR) {
+                                                      target.src = DEFAULT_AVATAR;
+                                                    }
+                                                  }}
+                                                />
+                                              </div>
+                                            );
+                                          })}
+                                          {lead.sharedWith.split(',').length > 2 && (
+                                            <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={`+${lead.sharedWith.split(',').length - 2} more`}>
+                                              +{lead.sharedWith.split(',').length - 2}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    
+                                    return <div className="text-xs text-gray-400 italic">Not shared</div>;
+                                  })()}
                                 </div>
                                 <div className="flex items-center gap-6">
                                   <button onClick={() => { setSelectedLead(lead); setIsViewOpen(true); }} className="group flex flex-col items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors">
@@ -2125,56 +2229,235 @@ function LeadsPageContent() {
                       </div>
                       <div className="p-4">
                       {(() => {
-                        const toList = (selectedLead.sharedWithList && selectedLead.sharedWithList.length > 0)
-                          ? selectedLead.sharedWithList
-                          : (selectedLead.sharedWith && selectedLead.sharedWith.trim()
-                              ? selectedLead.sharedWith.split(',').map(s => s.trim()).filter(Boolean)
-                              : []);
-                        if (toList.length === 0) {
-                          return <div className="text-sm text-gray-500">Not shared</div>;
+                        // Helper function to get region name from region ID or object
+                        const getRegionName = (region: string | { _id?: string; id?: string; name?: string } | undefined): string => {
+                          if (!region) return '';
+                          if (typeof region === 'string') {
+                            const foundRegion = regions.find(r => r.id === region || r.name === region);
+                            return foundRegion?.name || region;
+                          }
+                          if (typeof region === 'object') {
+                            if (region.name) return region.name;
+                            const foundRegion = regions.find(r => r.id === region._id || r.id === region.id);
+                            return foundRegion?.name || '';
+                          }
+                          return '';
+                        };
+
+                        // Helper function to get broker name from broker ref
+                        const getBrokerName = (broker: BrokerRef | string | undefined): string => {
+                          if (!broker) return 'Unknown broker';
+                          if (typeof broker === 'string') {
+                            const foundBroker = allBrokers.find(b => b.id === broker);
+                            return foundBroker?.name || broker;
+                          }
+                          return broker.name || broker.firmName || broker.email || 'Unknown broker';
+                        };
+
+                        // Check if we have transfers array from API
+                        const transfers = Array.isArray(selectedLead.transfers) ? selectedLead.transfers : [];
+                        
+                        // Fallback to old sharedWith logic if no transfers
+                        if (transfers.length === 0) {
+                          const toList = (selectedLead.sharedWithList && selectedLead.sharedWithList.length > 0)
+                            ? selectedLead.sharedWithList
+                            : (selectedLead.sharedWith && selectedLead.sharedWith.trim()
+                                ? selectedLead.sharedWith.split(',').map(s => s.trim()).filter(Boolean)
+                                : []);
+                          if (toList.length === 0) {
+                            return <div className="text-sm text-gray-500">Not shared yet.</div>;
+                          }
+                          const fromName = selectedLead.brokerName || '-';
+                          const primaryRegion = selectedLead.region || '-';
+                          const secondaryRegion = selectedLead.secondaryRegion || '-';
+                          const imageList = Array.isArray(selectedLead.sharedWithImages) ? selectedLead.sharedWithImages : [];
+                          return (
+                            <div className="space-y-1">
+                              {toList.map((toName, idx) => (
+                                <div key={`${toName}-${idx}`} className="flex items-center justify-between rounded-lg px-3 py-2">
+                                  <div className="flex items-start gap-3">
+                                    {(() => {
+                                      const img = imageList[idx];
+                                      const src = img && String(img).trim() ? String(img) : DEFAULT_AVATAR;
+                                      return (
+                                        <img
+                                          src={src}
+                                          alt={toName}
+                                          className="w-8 h-8 rounded-full border border-gray-200 object-cover shrink-0"
+                                          onError={(e) => {
+                                            const t = e.target as HTMLImageElement;
+                                            if (t.src !== DEFAULT_AVATAR) t.src = DEFAULT_AVATAR;
+                                          }}
+                                        />
+                                      );
+                                    })()}
+                                    <div>
+                                      <div className="text-sm text-gray-900">
+                                        <span className="font-medium">{fromName}</span>
+                                        <span className="mx-2 text-gray-400">→</span>
+                                        <span className="font-medium">{toName}</span>
+                                      </div>
+                                      <div className="text-[11px] text-gray-500 mt-0.5">
+                                        <span>{primaryRegion}</span>
+                                        <span className="mx-2 text-gray-400">→</span>
+                                        <span>{secondaryRegion || '-'}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
                         }
-                        const fromName = selectedLead.brokerName || '-';
-                        const primaryRegion = selectedLead.region || '-';
-                        const secondaryRegion = selectedLead.secondaryRegion || '-';
-                        const imageList = Array.isArray(selectedLead.sharedWithImages) ? selectedLead.sharedWithImages : [];
+
+                        // Group transfers by shareType
+                        const allTransfers = transfers.filter(t => 
+                          t.shareType === "all" || (!t.shareType && !t.toBroker && !t.region)
+                        );
+                        const regionTransfers = transfers.filter(t => 
+                          t.shareType === "region" || (!t.shareType && t.region && !t.toBroker)
+                        );
+                        const individualTransfers = transfers.filter(t => 
+                          t.shareType === "individual" || (!t.shareType && t.toBroker && !t.region)
+                        );
+
+                        if (allTransfers.length === 0 && regionTransfers.length === 0 && individualTransfers.length === 0) {
+                          return <div className="text-sm text-gray-500">Not shared yet.</div>;
+                        }
+
                         return (
-                          <div className="space-y-1">
-                            {toList.map((toName, idx) => (
-                              <div key={`${toName}-${idx}`} className="flex items-center justify-between rounded-lg px-3 py-2">
-                                <div className="flex items-start gap-3">
-                                  {/* Avatar: show image if present, else default avatar */}
-                                  {(() => {
-                                    const img = imageList[idx];
-                                    const src = img && String(img).trim() ? String(img) : DEFAULT_AVATAR;
-                                    return (
+                          <ul className="text-sm text-gray-700 space-y-3">
+                            {/* Display All transfers */}
+                            {allTransfers.map((t, i) => {
+                              const fromB = t && typeof t.fromBroker === "object" && t.fromBroker !== null
+                                ? t.fromBroker
+                                : (typeof t.fromBroker === "string" 
+                                    ? allBrokers.find(b => b.id === t.fromBroker) 
+                                    : null) || {};
+                              const fromName = getBrokerName(t.fromBroker);
+                              const when = t?.createdAt
+                                ? new Date(t.createdAt).toLocaleString()
+                                : "";
+                              const keyFrom = (typeof t?.fromBroker === "object"
+                                ? t?.fromBroker?._id
+                                : t?.fromBroker) || `all-from-${i}`;
+                              
+                              return (
+                                <li
+                                  key={`all-${keyFrom}-${t?._id || i}`}
+                                  className="flex items-center gap-3"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-blue-100 overflow-hidden ring-2 ring-white flex items-center justify-center text-[10px] text-blue-800 font-semibold">
+                                      All
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-900 truncate">
+                                      {fromName} → All Brokers
+                                    </div>
+                                    {when && (
+                                      <div className="text-[11px] text-gray-400">
+                                        Shared on {when}
+                                      </div>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
+
+                            {/* Display Region transfers */}
+                            {regionTransfers.map((t, i) => {
+                              const fromName = getBrokerName(t.fromBroker);
+                              const regionId = t?.region;
+                              const regionName = getRegionName(regionId) || (typeof regionId === 'string' ? regionId : 'Unknown Region');
+                              const when = t?.createdAt
+                                ? new Date(t.createdAt).toLocaleString()
+                                : "";
+                              const keyFrom = (typeof t?.fromBroker === "object"
+                                ? t?.fromBroker?._id
+                                : t?.fromBroker) || `region-from-${i}`;
+                              
+                              return (
+                                <li
+                                  key={`region-${keyFrom}-${t?._id || i}`}
+                                  className="flex items-center gap-3"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-green-100 overflow-hidden ring-2 ring-white flex items-center justify-center text-[10px] text-green-800 font-semibold">
+                                      R
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-900 truncate">
+                                      {fromName} → {regionName}
+                                    </div>
+                                    {when && (
+                                      <div className="text-[11px] text-gray-400">
+                                        Shared on {when}
+                                      </div>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
+
+                            {/* Display Individual transfers */}
+                            {individualTransfers.map((t, i) => {
+                              const toB = t && typeof t.toBroker === "object" && t.toBroker !== null
+                                ? t.toBroker
+                                : (typeof t.toBroker === "string"
+                                    ? allBrokers.find(b => b.id === t.toBroker)
+                                    : null);
+                              const fromName = getBrokerName(t.fromBroker);
+                              const toName = getBrokerName(t.toBroker);
+                              const toAvatar = (toB && typeof toB === "object" && 'brokerImage' in toB && toB.brokerImage && typeof toB.brokerImage === 'string') 
+                                ? toB.brokerImage 
+                                : DEFAULT_AVATAR;
+                              const when = t?.createdAt
+                                ? new Date(t.createdAt).toLocaleString()
+                                : "";
+                              const keyFrom = (typeof t?.fromBroker === "object"
+                                ? t?.fromBroker?._id
+                                : t?.fromBroker) || "from";
+                              const keyTo = (typeof t?.toBroker === "object"
+                                ? t?.toBroker?._id
+                                : t?.toBroker) || "to";
+                              
+                              return (
+                                <li
+                                  key={`${keyFrom}-${keyTo}-${t?._id || i}`}
+                                  className="flex items-center gap-3"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-gray-200 overflow-hidden ring-2 ring-white flex items-center justify-center">
                                       <img
-                                        src={src}
+                                        src={toAvatar}
                                         alt={toName}
-                                        className="w-8 h-8 rounded-full border border-gray-200 object-cover shrink-0"
+                                        className="w-full h-full object-cover"
                                         onError={(e) => {
                                           const t = e.target as HTMLImageElement;
                                           if (t.src !== DEFAULT_AVATAR) t.src = DEFAULT_AVATAR;
                                         }}
                                       />
-                                    );
-                                  })()}
-                                  <div>
-                                    <div className="text-sm text-gray-900">
-                                      <span className="font-medium">{fromName}</span>
-                                      <span className="mx-2 text-gray-400">→</span>
-                                      <span className="font-medium">{toName}</span>
-                                    </div>
-                                    <div className="text-[11px] text-gray-500 mt-0.5">
-                                      <span>{primaryRegion}</span>
-                                      <span className="mx-2 text-gray-400">→</span>
-                                      <span>{secondaryRegion || '-'}</span>
                                     </div>
                                   </div>
-                                </div>
-                               
-                              </div>
-                            ))}
-                          </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-900 truncate">
+                                      {fromName}
+                                      <span className="mx-1 text-gray-400">→</span>
+                                      {toName}
+                                    </div>
+                                    {when && (
+                                      <div className="text-[11px] text-gray-400">
+                                        Shared on {when}
+                                      </div>
+                                    )}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
                         );
                       })()}
                       </div>
