@@ -415,6 +415,49 @@ export const brokerAPI = {
     const result = await response.json();
     console.log('🔵 API Response:', result);
     return result;
+  },
+
+  // Get broker ratings
+  getBrokerRatings: async (brokerId: string, page: number = 1, limit: number = 10) => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString()
+    });
+
+    const response = await fetch(`${API_BASE_URL}/broker-ratings/broker/${brokerId}?${params}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication failed. Please login again.');
+      }
+      if (response.status === 404) {
+        // Return empty ratings if not found
+        return {
+          success: true,
+          data: {
+            ratings: [],
+            pagination: { page: 1, limit: 10, total: 0, pages: 0 },
+            stats: {
+              averageRating: 0,
+              totalRatings: 0,
+              distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+              isDefaultRating: true
+            }
+          }
+        };
+      }
+      throw new Error(`Failed to fetch broker ratings: ${response.status}`);
+    }
+    
+    return response.json();
   }
 };
 
@@ -1164,25 +1207,63 @@ export const notificationsAPI = {
     return response.json();
   },
 
-  // Get unread notification count
+  // Get unread notification count - uses notifications API instead of separate endpoint
   getUnreadCount: async () => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) throw new Error('No authentication token found');
+    try {
+      const token = localStorage.getItem('adminToken');
+      if (!token) throw new Error('No authentication token found');
 
-    const url = `${API_BASE_URL}/notifications/unread/count`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+      // Fetch notifications with unread filter to get count
+      let url = `${API_BASE_URL}/notifications/admin/all`;
+      const params = new URLSearchParams();
+      params.append('type', 'unread');
+      params.append('page', '1');
+      params.append('limit', '1');
+      url += `?${params.toString()}`;
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        return { count: 0 };
       }
-    });
-
-    if (!response.ok) {
+      
+      const result = await response.json();
+      
+      // Extract count from pagination if available
+      let count = 0;
+      if (result?.pagination?.totalNotifications !== undefined) {
+        count = result.pagination.totalNotifications;
+      } else if (result?.data?.pagination?.totalNotifications !== undefined) {
+        count = result.data.pagination.totalNotifications;
+      } else {
+        // Fallback: count unread notifications from response
+        let list: unknown[] = [];
+        if (Array.isArray(result)) {
+          list = result;
+        } else if (Array.isArray(result?.data)) {
+          list = result.data;
+        } else if (Array.isArray(result?.data?.notifications)) {
+          list = result.data.notifications;
+        } else if (Array.isArray(result?.notifications)) {
+          list = result.notifications;
+        }
+        count = list.filter((item: unknown) => {
+          const notification = item as { read?: boolean };
+          return !notification.read;
+        }).length;
+      }
+      
+      return { count };
+    } catch (error) {
+      console.error('Failed to get unread count:', error);
       return { count: 0 };
     }
-    
-    return response.json();
   },
 
   // Mark all notifications as read

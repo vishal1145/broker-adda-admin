@@ -22,11 +22,11 @@ export default function NotificationDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Fetch recent notifications (only 3 for dropdown)
+  // Fetch recent notifications (only 3 for dropdown) and calculate unread count
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const response = await notificationsAPI.getNotifications(1, 3, 'all');
+      const response = await notificationsAPI.getNotifications(1, 50, 'all');
       
       // Extract notifications from different possible API response structures
       let list: Notification[] = [];
@@ -40,41 +40,27 @@ export default function NotificationDropdown() {
         list = response.notifications;
       }
       
-      // Ensure we only show 3 notifications
+      // Calculate unread count - check pagination first, then count from list
+      let count = 0;
+      // Check if pagination info is available with total unread count
+      const pagination = response?.pagination || response?.data?.pagination;
+      if (pagination?.totalUnread !== undefined) {
+        count = pagination.totalUnread;
+      } else {
+        // Fallback: count unread notifications from the fetched list
+        const unreadNotifications = list.filter((notification) => !notification.read);
+        count = unreadNotifications.length;
+      }
+      setUnreadCount(count);
+      
+      // Ensure we only show 3 notifications for dropdown
       setNotifications(list.slice(0, 3));
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
       setNotifications([]);
+      setUnreadCount(0);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Fetch unread notification count
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await notificationsAPI.getUnreadCount();
-      console.log('🔔 Unread count API response:', response);
-      
-      // Handle different response structures
-      let count = 0;
-      if (typeof response === 'number') {
-        count = response;
-      } else if (response?.count !== undefined) {
-        count = response.count;
-      } else if (response?.unreadCount !== undefined) {
-        count = response.unreadCount;
-      } else if (response?.data?.count !== undefined) {
-        count = response.data.count;
-      } else if (response?.data?.unreadCount !== undefined) {
-        count = response.data.unreadCount;
-      }
-      
-      console.log('🔔 Extracted unread count:', count);
-      setUnreadCount(count);
-    } catch (error) {
-      console.error('Failed to fetch unread count:', error);
-      setUnreadCount(0);
     }
   };
 
@@ -128,18 +114,18 @@ export default function NotificationDropdown() {
     }
   };
 
-  // Fetch unread count on mount and periodically
+  // Fetch notifications and unread count on mount and periodically
   useEffect(() => {
-    fetchUnreadCount();
-    // Refresh unread count every 30 seconds
+    fetchNotifications(); // This also calculates unread count
+    // Refresh notifications (and count) every 30 seconds
     const interval = setInterval(() => {
-      fetchUnreadCount();
+      fetchNotifications();
     }, 30000);
     
-    // Refresh unread count when page becomes visible (user returns from notifications page)
+    // Refresh when page becomes visible (user returns from notifications page)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchUnreadCount();
+        fetchNotifications();
       }
     };
     
@@ -154,8 +140,7 @@ export default function NotificationDropdown() {
   // Fetch notifications when dropdown opens
   useEffect(() => {
     if (isOpen) {
-      fetchNotifications();
-      fetchUnreadCount(); // Refresh count when opening
+      fetchNotifications(); // This also refreshes the count
     }
   }, [isOpen]);
 

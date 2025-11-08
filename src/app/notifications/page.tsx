@@ -239,14 +239,14 @@ export default function NotificationsPage() {
               <div className="flex items-center space-x-2">
                 <span className="text-sm font-medium text-gray-700">Filter by:</span>
                 <div className="flex items-center space-x-2">
-                  {['all', 'new_leads', 'properties', 'broker', 'unread'].map((filterOption) => {
+                  {['all', 'new_leads', 'properties', 'broker',].map((filterOption) => {
                     const isActive = filter === filterOption;
                     const labels: Record<string, string> = {
                       all: 'All',
                       new_leads: 'New Leads',
                       properties: 'Properties',
                       broker: 'Broker',
-                      unread: 'Unread'
+                      // unread: 'Unread'
                     };
                     
                     return (

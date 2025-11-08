@@ -130,6 +130,28 @@ export default function BrokerDetailsPage() {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showUnblockConfirm, setShowUnblockConfirm] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [ratings, setRatings] = useState<{
+    ratings: Array<{
+      _id: string;
+      userId: {
+        _id: string;
+        name: string;
+        email: string;
+        phone: string;
+      };
+      rating: number;
+      review: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    stats: {
+      averageRating: number;
+      totalRatings: number;
+      distribution: { 1: number; 2: number; 3: number; 4: number; 5: number };
+      isDefaultRating: boolean;
+    };
+  } | null>(null);
+  const [ratingsLoading, setRatingsLoading] = useState(false);
 
 
   useEffect(() => {
@@ -165,6 +187,51 @@ export default function BrokerDetailsPage() {
       fetchBrokerDetails();
     }
   }, [params.id, token]);
+
+  // Fetch broker ratings
+  useEffect(() => {
+    const fetchBrokerRatings = async () => {
+      if (!broker?._id || !token) return;
+
+      try {
+        setRatingsLoading(true);
+        console.log('⭐ Fetching broker ratings for ID:', broker._id);
+        const response = await brokerAPI.getBrokerRatings(broker._id);
+        
+        console.log('⭐ Ratings API Response:', response);
+        
+        if (response.success && response.data) {
+          setRatings({
+            ratings: response.data.ratings || [],
+            stats: response.data.stats || {
+              averageRating: 0,
+              totalRatings: 0,
+              distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+              isDefaultRating: true
+            }
+          });
+        }
+      } catch (err) {
+        console.error('❌ Error fetching broker ratings:', err);
+        // Set empty ratings on error
+        setRatings({
+          ratings: [],
+          stats: {
+            averageRating: 0,
+            totalRatings: 0,
+            distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+            isDefaultRating: true
+          }
+        });
+      } finally {
+        setRatingsLoading(false);
+      }
+    };
+
+    if (broker?._id) {
+      fetchBrokerRatings();
+    }
+  }, [broker?._id, token]);
 
   // Removed unused getStatusColor
 
@@ -410,7 +477,7 @@ export default function BrokerDetailsPage() {
         <title>Broker Details - Broker Adda Admin</title>
       </Head>
       <Layout>
-        <div className="space-y-6 px-6 sm:px-8 lg:px-14">
+        <div className="space-y-6 ">
         {/* Page Header */}
         {/* <div className="mb-6">
           <div className="flex items-center">
@@ -634,74 +701,104 @@ export default function BrokerDetailsPage() {
 
 
               {/* Contact Details & Active Leads Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Contact Details */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Contact Details</h2>
-                  
-                  <div className="space-y-5">
-                    <div className="flex items-start space-x-3">
-                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-500">Mobile</p>
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-semibold text-teal-600">{broker.phone || '-'}</p>
-                          {broker.phone && (
+              {(() => {
+                // Calculate if Contact Details section has data
+                const hasContactDetails = broker.phone || broker.whatsappNumber || broker.email || broker.address || broker.website || broker.socialMedia?.linkedin || broker.socialMedia?.twitter || broker.socialMedia?.instagram || broker.socialMedia?.facebook;
+                
+                // Calculate if Documents section has data
+                const documents = [
+                  { name: 'Aadhar Card', url: broker.kycDocs?.aadhar },
+                  { name: 'PAN Card', url: broker.kycDocs?.pan },
+                  { name: 'GST Certificate', url: broker.kycDocs?.gst },
+                  { name: 'Broker License', url: broker.kycDocs?.brokerLicense },
+                  { name: 'Company ID', url: broker.kycDocs?.companyId }
+                ].filter((doc) => doc.url && doc.url.trim() !== '');
+                const hasDocuments = documents.length > 0;
+                
+                // Only render if at least one section has data
+                if (!hasContactDetails && !hasDocuments) {
+                  return null;
+                }
+                
+                // Set grid class: 2 columns if both have data, 1 column (full width) if only one has data
+                const gridClass = hasContactDetails && hasDocuments 
+                  ? 'grid grid-cols-1 lg:grid-cols-2 gap-6'
+                  : 'grid grid-cols-1 gap-6';
+                
+                return (
+                  <div className={gridClass}>
+                    {/* Contact Details - Only show if at least one contact field has data */}
+                    {hasContactDetails && (
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Contact Details</h2>
+                    
+                    <div className="space-y-5">
+                    {broker.phone && (
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-500">Mobile</p>
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm font-semibold text-teal-600">{broker.phone}</p>
                             <svg className="w-3 h-3 text-teal-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
-                          )}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                     
-                    <div className="flex items-start space-x-3">
-                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">WhatsApp</p>
-                        <p className="text-sm font-semibold text-teal-600">{broker.whatsappNumber || broker.phone || '-'}</p>
+                    {(broker.whatsappNumber || broker.phone) && (
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">WhatsApp</p>
+                          <p className="text-sm font-semibold text-teal-600">{broker.whatsappNumber || broker.phone}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                     
-                    <div className="flex items-start space-x-3">
-                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-500">Email</p>
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-semibold text-teal-600">{broker.email || '-'}</p>
-                          {broker.email && (
+                    {broker.email && (
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-500">Email</p>
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm font-semibold text-teal-600">{broker.email}</p>
                             <svg className="w-3 h-3 text-teal-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
-                          )}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="flex items-start space-x-3">
-                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Office Address</p>
-                        <p className="text-sm font-semibold text-gray-900">{broker.address || '-'}</p>
+                    {broker.address && (
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Office Address</p>
+                          <p className="text-sm font-semibold text-gray-900">{broker.address}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                     
-                    <div className="flex items-start space-x-3">
-                      <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
-                      </svg>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Website</p>
-                        {broker.website ? (
+                    {broker.website && (
+                      <div className="flex items-start space-x-3">
+                        <svg className="w-4 h-4 text-gray-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Website</p>
                           <a 
                             href={broker.website.startsWith('http') ? broker.website : `https://${broker.website}`} 
                             className="text-sm font-semibold text-teal-600 hover:underline" 
@@ -710,84 +807,77 @@ export default function BrokerDetailsPage() {
                           >
                             {broker.website}
                           </a>
-                        ) : (
-                          <p className="text-sm font-semibold text-gray-900">-</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Social Media Section - Only show if at least one social media link exists */}
+                  {(broker.socialMedia?.linkedin || broker.socialMedia?.twitter || broker.socialMedia?.instagram || broker.socialMedia?.facebook) && (
+                    <div className="mt-6">
+                      <p className="text-sm font-medium text-gray-500 mb-3">Social Media</p>
+                      <div className="flex items-center space-x-4">
+                        {broker.socialMedia?.linkedin && (
+                          <a 
+                            href={broker.socialMedia.linkedin} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-gray-500 hover:text-blue-600 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                          </a>
+                        )}
+                        {broker.socialMedia?.twitter && (
+                          <a 
+                            href={broker.socialMedia.twitter} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-gray-500 hover:text-blue-400 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                            </svg>
+                          </a>
+                        )}
+                        {broker.socialMedia?.instagram && (
+                          <a 
+                            href={broker.socialMedia.instagram} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-gray-500 hover:text-pink-500 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987s11.987-5.367 11.987-11.987C24.014 5.367 18.647.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323c-.875.807-2.026 1.297-3.323 1.297zm7.718-1.297c-.875.807-2.026 1.297-3.323 1.297s-2.448-.49-3.323-1.297c-.807-.875-1.297-2.026-1.297-3.323s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323z"/>
+                            </svg>
+                          </a>
+                        )}
+                        {broker.socialMedia?.facebook && (
+                          <a 
+                            href={broker.socialMedia.facebook} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-gray-500 hover:text-blue-600 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                          </a>
                         )}
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Social Media Section */}
-                  <div className="mt-6">
-                    <p className="text-sm font-medium text-gray-500 mb-3">Social Media</p>
-                    <div className="flex items-center space-x-4">
-                      {broker.socialMedia?.linkedin && (
-                        <a 
-                          href={broker.socialMedia.linkedin} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-gray-500 hover:text-blue-600 transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                          </svg>
-                        </a>
-                      )}
-                      {broker.socialMedia?.twitter && (
-                        <a 
-                          href={broker.socialMedia.twitter} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-gray-500 hover:text-blue-400 transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                          </svg>
-                        </a>
-                      )}
-                      {broker.socialMedia?.instagram && (
-                        <a 
-                          href={broker.socialMedia.instagram} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-gray-500 hover:text-pink-500 transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987s11.987-5.367 11.987-11.987C24.014 5.367 18.647.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323c-.875.807-2.026 1.297-3.323 1.297zm7.718-1.297c-.875.807-2.026 1.297-3.323 1.297s-2.448-.49-3.323-1.297c-.807-.875-1.297-2.026-1.297-3.323s.49-2.448 1.297-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.807.875 1.297 2.026 1.297 3.323s-.49 2.448-1.297 3.323z"/>
-                          </svg>
-                        </a>
-                      )}
-                      {broker.socialMedia?.facebook && (
-                        <a 
-                          href={broker.socialMedia.facebook} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-gray-500 hover:text-blue-600 transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                          </svg>
-                        </a>
-                      )}
-                      {(!broker.socialMedia?.linkedin && !broker.socialMedia?.twitter && !broker.socialMedia?.instagram && !broker.socialMedia?.facebook) && (
-                        <span className="text-gray-400 text-sm">No social media links available</span>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
+                )}
 
-                {/* Documents */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Documents</h2>
-                  
-                  <div className="space-y-0">
-                    {[
-                      { name: 'Aadhar Card', url: broker.kycDocs?.aadhar },
-                      { name: 'PAN Card', url: broker.kycDocs?.pan },
-                      { name: 'GST Certificate', url: broker.kycDocs?.gst },
-                      { name: 'Broker License', url: broker.kycDocs?.brokerLicense },
-                      { name: 'Company ID', url: broker.kycDocs?.companyId }
-                    ].map((doc, index) => {
+                    {/* Documents - Only show if at least one document has a valid URL */}
+                    {hasDocuments && (
+                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Documents</h2>
+                        
+                        <div className="space-y-0">
+                          {documents.map((doc, index) => {
                       // Extract file extension from URL
                       const getFileExtension = (url: string | undefined) => {
                         if (!url) return '-';
@@ -799,7 +889,7 @@ export default function BrokerDetailsPage() {
                       const fileType = getFileExtension(doc.url);
                       
                       return (
-                      <div key={index} className={`flex items-center justify-between py-4 ${index !== 4 ? 'border-b border-gray-200' : ''}`}>
+                      <div key={index} className={`flex items-center justify-between py-4 ${index !== documents.length - 1 ? 'border-b border-gray-200' : ''}`}>
                         <div className="flex items-center space-x-4">
                           <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -933,9 +1023,12 @@ export default function BrokerDetailsPage() {
                       </div>
                       );
                     })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Subscription & Payment Details Section */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -1039,57 +1132,73 @@ export default function BrokerDetailsPage() {
                 )}
               </div>
 
-              {/* Reviews & Ratings and Performance Snapshot Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Active Leads */
+              {/* Active Leads & Performance Snapshot Section */}
+              {(() => {
+                // Calculate if Active Leads section has data
+                const hasActiveLeads = broker.leadsCreated?.items && broker.leadsCreated?.items?.length > 0;
+                
+                // Performance Snapshot always shows (has hardcoded data)
+                const hasPerformanceSnapshot = true;
+                
+                // Only render if at least one section should be visible
+                if (!hasActiveLeads && !hasPerformanceSnapshot) {
+                  return null;
                 }
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Active Leads</h2>
-                  
-                  <div className="space-y-3">
-                    {(broker.leadsCreated?.items && broker.leadsCreated.items.length > 0) ? (
-                      broker.leadsCreated.items.map((lead) => {
-                        const title = lead.customerName || lead.name || 'Lead';
-                        const inquiry = lead.inquiry || 'Inquiry';
-                        const requirement = lead.requirement || '';
-                        const propertyType = lead.propertyType || '';
-                        const property = lead.property || '';
-                        const status = (lead.status || '').trim() || 'New';
-                        return (
-                          <div key={lead._id || `${title}-${inquiry}`} 
-                          onClick={() => router.push(`/leads?brokerId=${broker?._id}`)}
-                          className="bg-white border border-gray-200 cursor-pointer rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <h3 className="text-sm font-semibold text-gray-900 mb-1">{title}</h3>
-                                <div className="space-y-0.5">
-                                  <p className="text-sm text-gray-600">
-                                    {inquiry}
-                                    {requirement ? ` • Requirement: ${requirement}` : ''}
-                                    {propertyType ? ` • Property Type: ${propertyType}` : ''}
-                                    {property ? ` • Property: ${property}` : ''}
-                                  </p>
+                
+                // Set grid class: 2 columns if both have data, 1 column (full width) if only one has data
+                const gridClass = hasActiveLeads && hasPerformanceSnapshot 
+                  ? 'grid grid-cols-1 lg:grid-cols-2 gap-6'
+                  : 'grid grid-cols-1 gap-6';
+                
+                return (
+                  <div className={gridClass}>
+                    {/* Active Leads - Only show if there are active leads */}
+                    {hasActiveLeads && (
+                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Active Leads</h2>
+                        
+                        <div className="space-y-3">
+                          {broker.leadsCreated?.items?.map((lead) => {
+                            const title = lead.customerName || lead.name || 'Lead';
+                            const inquiry = lead.inquiry || 'Inquiry';
+                            const requirement = lead.requirement || '';
+                            const propertyType = lead.propertyType || '';
+                            const property = lead.property || '';
+                            const status = (lead.status || '').trim() || 'New';
+                            return (
+                              <div key={lead._id || `${title}-${inquiry}`} 
+                              onClick={() => router.push(`/leads?brokerId=${broker?._id}`)}
+                              className="bg-white border border-gray-200 cursor-pointer rounded-lg p-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1">
+                                    <h3 className="text-sm font-semibold text-gray-900 mb-1">{title}</h3>
+                                    <div className="space-y-0.5">
+                                      <p className="text-sm text-gray-600">
+                                        {inquiry}
+                                        {requirement ? ` • Requirement: ${requirement}` : ''}
+                                        {propertyType ? ` • Property Type: ${propertyType}` : ''}
+                                        {property ? ` • Property: ${property}` : ''}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                                    status.toLowerCase() === 'qualified' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {status}
+                                  </span>
                                 </div>
                               </div>
-                              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                                status.toLowerCase() === 'qualified' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {status}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-sm text-gray-500">No active leads available.</div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
-                  </div>
-                </div>
 
-                {/* Performance Snapshot */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    {/* Performance Snapshot */}
+                    {hasPerformanceSnapshot && (
+                      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                   <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Performance Snapshot</h2>
                   
                   <div className="space-y-6">
@@ -1153,8 +1262,11 @@ export default function BrokerDetailsPage() {
                       </ul>
                     </div>
                   </div>
-                </div>
-              </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Property Listings Section */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -1237,30 +1349,80 @@ export default function BrokerDetailsPage() {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4 pb-4 border-b border-gray-200">Reviews & Ratings</h2>
                 
-                <div className="mb-6">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className="flex space-x-1">
-                      {[...Array(5)].map((_, i) => (
-                        <svg key={i} className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
+                {ratingsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+                    <p className="mt-2 text-sm text-gray-500">Loading ratings...</p>
+                  </div>
+                ) : ratings && ratings.stats.totalRatings > 0 ? (
+                  <>
+                    <div className="mb-6">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <div className="flex space-x-1">
+                          {[...Array(5)].map((_, i) => {
+                            const averageRating = ratings.stats.averageRating;
+                            const starValue = i + 1;
+                            // Fill star if it's less than or equal to the average rating
+                            // For partial stars, we'll use a simple approach
+                            const isFilled = starValue <= Math.floor(averageRating);
+                            const isHalfFilled = starValue === Math.ceil(averageRating) && averageRating % 1 >= 0.5;
+                            
+                            return (
+                              <svg key={i} className={`w-5 h-5 ${isFilled || isHalfFilled ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            );
+                          })}
+                        </div>
+                        <span className="text-2xl font-bold text-teal-600">
+                          {ratings.stats.averageRating.toFixed(1)}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          ({ratings.stats.totalRatings} {ratings.stats.totalRatings === 1 ? 'Review' : 'Reviews'})
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-2xl font-bold text-teal-600">4.9</span>
-                    <span className="text-sm text-gray-500">(185 Reviews)</span>
+                    
+                    <div className="space-y-4">
+                      {ratings.ratings.length > 0 ? (
+                        ratings.ratings.map((rating) => (
+                          <div key={rating._id} className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center space-x-2 mb-2">
+                                {[...Array(5)].map((_, i) => {
+                                  const isFilled = i + 1 <= rating.rating;
+                                  return (
+                                    <svg key={i} className={`w-4 h-4 ${isFilled ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            {rating.review && (
+                              <p className="text-sm text-gray-700 mb-2">&ldquo;{rating.review}&rdquo;</p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              - {rating.userId?.name || 'Anonymous'}, {formatDate(rating.createdAt)}
+                            </p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-4 text-sm text-gray-500">
+                          No reviews available yet.
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                    <p className="mt-2 text-sm text-gray-500">No ratings available yet</p>
+                    <p className="text-xs text-gray-400 mt-1">This broker hasn&apos;t received any reviews yet.</p>
                   </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-700 mb-2">&ldquo;Alexander made our home buying process incredibly smooth and stress-free. Highly recommend!&rdquo;</p>
-                    <p className="text-xs text-gray-500">- Sarah L., 2024-03-15</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-700 mb-2">&ldquo;Professional, knowledgeable, and always responsive. He found us the perfect commercial space.&rdquo;</p>
-                    <p className="text-xs text-gray-500">- Mark T., 2024-02-28</p>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Block Confirmation Dialog */}

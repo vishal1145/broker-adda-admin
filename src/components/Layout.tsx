@@ -30,7 +30,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow-sm border-b border-gray-200">
           {/* Logo - Left side */}
           <div className="flex items-center px-6">
-            <div className="flex items-center">
+            <Link href="/dashboard" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
                <Image
                 src="/images/logo.png"
                 alt="Broker Adda Logo"
@@ -39,7 +39,7 @@ export default function Layout({ children }: LayoutProps) {
                 className="mr-3"
               />
               <h1 className="text-xl font-bold text-gray-800">Broker Adda</h1>
-            </div>
+            </Link>
           </div>
 
           {/* Broker Region Menu - Centered */}
