@@ -244,6 +244,18 @@ export default function Dashboard() {
 
   const stats = [
     {
+      name: 'Total Regions',
+      value: totalRegions,
+      change: '+22.1%',
+      changeType: 'positive',
+      color: 'rose',
+      icon: (
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+      ),
+    },
+    {
       name: 'Total Brokers',
       value: totalBrokers,
       change: '+8.3%',
@@ -276,18 +288,6 @@ export default function Dashboard() {
       icon: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-        </svg>
-      ),
-    },
-    {
-      name: 'Total Regions',
-      value: totalRegions,
-      change: '+22.1%',
-      changeType: 'positive',
-      color: 'rose',
-      icon: (
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
         </svg>
       ),
     },
@@ -935,10 +935,10 @@ export default function Dashboard() {
             const colors = colorClasses[stat.color as keyof typeof colorClasses] || colorClasses.blue;
             
             // Check if this specific stat is loading
-            const isLoading = index === 0 ? isLoadingBrokers : 
-                            index === 1 ? isLoadingLeads : 
-                            index === 2 ? isLoadingProperties : 
-                            isLoadingRegions;
+            const isLoading = index === 0 ? isLoadingRegions : 
+                            index === 1 ? isLoadingBrokers : 
+                            index === 2 ? isLoadingLeads : 
+                            isLoadingProperties;
 
             // Map stat names to routes
             const getRoute = (name: string) => {
