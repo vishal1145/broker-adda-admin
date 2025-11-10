@@ -26,6 +26,33 @@ interface PaginationInfo {
   hasPrevPage: boolean;
 }
 
+// Skeleton Loader Component
+const NotificationSkeleton = () => (
+  <div className="px-6 py-4 animate-pulse">
+    <div className="flex items-start space-x-4">
+      {/* Icon Skeleton */}
+      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-200"></div>
+      
+      {/* Content Skeleton */}
+      <div className="flex-1 min-w-0 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="h-4 bg-gray-200 rounded w-48"></div>
+          <div className="h-3 bg-gray-200 rounded w-20"></div>
+        </div>
+        <div className="h-3 bg-gray-200 rounded w-full max-w-md"></div>
+      </div>
+    </div>
+  </div>
+);
+
+const NotificationsListSkeleton = () => (
+  <div className="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-200">
+    {Array.from({ length: 5 }).map((_, index) => (
+      <NotificationSkeleton key={index} />
+    ))}
+  </div>
+);
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -326,10 +353,7 @@ export default function NotificationsPage() {
 
           {/* Notifications List */}
           {loading ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
-              <p className="text-gray-500 mt-4">Loading notifications...</p>
-            </div>
+            <NotificationsListSkeleton />
           ) : filteredNotifications.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
               <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

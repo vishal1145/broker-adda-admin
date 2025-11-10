@@ -430,7 +430,6 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                       { label: 'Address', value: data.address || '-' },
                       { label: 'City', value: data.city || '-' },
                       { label: 'Region', value: data.region || '-' },
-                      { label: 'Coordinates', value: data.coordinates ? `${data.coordinates.lat}, ${data.coordinates.lng}` : '-' },
                       { label: 'Bedrooms', value: data.bedrooms?.toString() || '-' },
                       { label: 'Bathrooms', value: data.bathrooms?.toString() || '-' },
                       { label: 'Furnishing', value: data.furnishing || '-' },
