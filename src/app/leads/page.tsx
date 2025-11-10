@@ -68,7 +68,8 @@ type ApiLead = {
   secondaryRegion?: string | { name?: string }; optionalRegion?: string | { name?: string };
   region2?: string | { name?: string };
   secondaryCity?: string;
-  createdBy?: { name?: string } | BrokerRef; brokerName?: string; broker?: { name?: string } | BrokerRef;
+  createdBy?: { name?: string; role?: string } | BrokerRef; brokerName?: string; broker?: { name?: string } | BrokerRef;
+  adminName?: string; admin?: { name?: string }; createdByAdmin?: { name?: string };
   sharedWith?: string | Array<string | { name?: string }>;
   assignedTo?: string;
   collaborators?: Array<string | { name?: string }>;
@@ -475,7 +476,24 @@ function LeadsPageContent() {
             : (lead.region2 as { name?: string } | undefined)?.name) ||
           lead.secondaryCity ||
           undefined,
-        brokerName: lead.createdBy?.name || lead.brokerName || lead.broker?.name || 'Unknown Broker',
+        brokerName: (() => {
+          // Check if lead is from admin - prioritize admin name
+          if (lead.adminName) {
+            return lead.adminName;
+          }
+          if (lead.admin?.name) {
+            return lead.admin.name;
+          }
+          if (lead.createdByAdmin?.name) {
+            return lead.createdByAdmin.name;
+          }
+          // Check if createdBy has role 'admin'
+          if (lead.createdBy && typeof lead.createdBy === 'object' && 'role' in lead.createdBy && lead.createdBy.role === 'admin') {
+            return lead.createdBy.name || '';
+          }
+          // Fallback to broker name
+          return lead.createdBy?.name || lead.brokerName || lead.broker?.name || 'Unknown Broker';
+        })(),
         sharedWith:
           Array.isArray(lead.transfers) && lead.transfers.length > 0
             ? lead.transfers
