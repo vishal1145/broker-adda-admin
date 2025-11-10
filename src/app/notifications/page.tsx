@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { notificationsAPI } from '@/services/api';
@@ -32,6 +32,8 @@ export default function NotificationsPage() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
     currentPage: 1,
     totalPages: 1,
@@ -39,6 +41,30 @@ export default function NotificationsPage() {
     hasNextPage: false,
     hasPrevPage: false
   });
+
+  const filterLabels: Record<string, string> = {
+    all: 'All Notifications',
+    new_leads: 'New Leads',
+    properties: 'Properties',
+    broker: 'Broker',
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    };
+
+    if (isFilterOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isFilterOpen]);
 
   // Fetch notifications with pagination
   const fetchNotifications = useCallback(async () => {
@@ -228,53 +254,68 @@ export default function NotificationsPage() {
       <Layout>
         <div className="space-y-6">
           {/* Page Header */}
-          <div className="mb-6">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
             <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
             <p className="text-gray-500 mt-1 text-sm">View and manage all your notifications</p>
-          </div>
-
-          {/* Filter Bar */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            </div>
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">Filter by:</span>
-                <div className="flex items-center space-x-2">
-                  {['all', 'new_leads', 'properties', 'broker',].map((filterOption) => {
-                    const isActive = filter === filterOption;
-                    const labels: Record<string, string> = {
-                      all: 'All',
-                      new_leads: 'New Leads',
-                      properties: 'Properties',
-                      broker: 'Broker',
-                      // unread: 'Unread'
-                    };
-                    
-                    return (
-                      <button
-                        key={filterOption}
-                        onClick={() => setFilter(filterOption)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                          isActive
-                            ? 'bg-teal-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {isActive && (
-                          <svg className="w-4 h-4 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                        {labels[filterOption]}
-                      </button>
-                    );
-                  })}
+              <div className="flex items-center space-x-4">
+                {/* Filter Dropdown */}
+                <div className="relative" ref={filterDropdownRef}>
+                  <button
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    className="flex items-center justify-between w-48 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    <span>{filterLabels[filter] || 'All Notifications'}</span>
+                    <svg
+                      className={`w-4 h-4 text-gray-500 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Dropdown Menu */}
+                  {isFilterOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <div className="py-1">
+                        {Object.entries(filterLabels).map(([key, label]) => (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              setFilter(key);
+                              setIsFilterOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                              filter === key
+                                ? 'bg-teal-50 text-teal-600'
+                                : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>{label}</span>
+                              {filter === key && (
+                                <svg className="w-4 h-4 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="text-sm text-gray-600">
+              {/* <div className="text-sm text-gray-600">
                 {pagination.totalNotifications > 0 ? pagination.totalNotifications : filteredNotifications.length} notifications
-              </div>
+              </div> */}
             </div>
           </div>
+          
 
           {/* Error Message */}
           {error && !loading && (
@@ -312,17 +353,19 @@ export default function NotificationsPage() {
                     
                     {/* Content */}
                     <div className="flex-1 min-w-0">
+                      <div className='flex items-center justify-between'>
                       <h3 className="text-sm font-semibold text-gray-900">
                         {notification.title || 'Notification'}
                       </h3>
+                      <p className="text-xs text-gray-400 mt-2">
+                        {getTimeAgo(notification.createdAt)}
+                      </p>
+                      </div>
                       {(notification.message || notification.description) && (
                         <p className="text-sm text-gray-600 mt-1">
                           {notification.message || notification.description}
                         </p>
                       )}
-                      <p className="text-xs text-gray-400 mt-2">
-                        {getTimeAgo(notification.createdAt)}
-                      </p>
                     </div>
                   </div>
                 </div>

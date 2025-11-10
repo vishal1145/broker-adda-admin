@@ -226,12 +226,21 @@ export default function NotificationDropdown() {
                     key={notification._id}
                     className="px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
                   >
+                    <div className='flex items-center justify-between'>
                     <p className="text-sm font-medium text-gray-900">
-                      {notification.title || notification.message || 'Notification'}
+                      {notification.title}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
                       {getTimeAgo(notification.createdAt)}
                     </p>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+  {notification.message
+    .split(" ")
+    .slice(0, 6)
+    .join(" ")
+    + (notification.message.split(" ").length > 6 ? "..." : "")}
+</p>
                   </div>
                 ))}
               </div>
