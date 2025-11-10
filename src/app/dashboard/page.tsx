@@ -1017,7 +1017,7 @@ export default function Dashboard() {
           </div>
             
           {/* Grouped Bar Chart using Recharts */}
-          <div className="h-56">
+          <div className="h-56" tabIndex={-1}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart 
                 data={monthlyOverviewPeriod === 'Week' ? weekChartData : monthChartData} 

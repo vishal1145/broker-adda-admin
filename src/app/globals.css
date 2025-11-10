@@ -76,3 +76,19 @@ body {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Remove focus outline from chart SVG elements */
+.recharts-wrapper svg,
+.recharts-wrapper svg:focus,
+.recharts-wrapper svg *:focus {
+  outline: none !important;
+  border: none !important;
+}
+
+.recharts-wrapper {
+  outline: none !important;
+}
+
+.recharts-wrapper:focus {
+  outline: none !important;
+}
