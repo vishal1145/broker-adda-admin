@@ -1339,3 +1339,49 @@ export const notificationsAPI = {
     return result;
   }
 };
+
+// Dashboard API functions
+export const dashboardAPI = {
+  // Get dashboard stats with period (month or week)
+  getDashboardStats: async (period: 'month' | 'week' = 'month') => {
+    console.log('📊 dashboardAPI.getDashboardStats called with period:', period);
+    
+    const token = localStorage.getItem('adminToken');
+    console.log('📊 Token found:', token ? 'Yes' : 'No');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/admin/dashboard/stats?period=${period}`;
+    console.log('📊 Making API call to:', url);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('📊 Response status:', response.status);
+    console.log('📊 Response ok:', response.ok);
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to fetch dashboard stats';
+      if (response.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (response.status === 404) {
+        errorMessage = 'Dashboard stats API endpoint not found.';
+      } else if (response.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+      
+      const errorText = await response.text().catch(() => '');
+      console.error('🔴 API Error:', response.status, errorText);
+      throw new Error(`${errorMessage} (Status: ${response.status})`);
+    }
+    
+    const result = await response.json();
+    console.log('📊 API Response:', result);
+    return result;
+  }
+};

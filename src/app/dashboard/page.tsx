@@ -5,7 +5,7 @@ import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import Link from 'next/link';
-import { leadsAPI, regionAPI, propertiesAPI, brokerAPI, notificationsAPI } from '@/services/api';
+import { leadsAPI, regionAPI, propertiesAPI, brokerAPI, notificationsAPI, dashboardAPI } from '@/services/api';
 
 // Helper function to format time ago
 const formatTimeAgo = (dateString: string): string => {
@@ -170,7 +170,7 @@ const RecentActivitySkeleton = () => {
 };
 
 export default function Dashboard() {
-  const [timeRange, setTimeRange] = useState('This Month');
+  const [monthlyOverviewPeriod, setMonthlyOverviewPeriod] = useState<'Week' | 'Month'>('Month');
   const [totalLeads, setTotalLeads] = useState('2,847');
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
   const [totalRegions, setTotalRegions] = useState('47');
@@ -214,14 +214,33 @@ export default function Dashboard() {
     time: string;
   }>>([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
-  const [chartData] = useState([
-    { month: 'Jan', leads: 110, brokers: 45, properties: 85 },
-    { month: 'Feb', leads: 135, brokers: 52, properties: 98 },
-    { month: 'Mar', leads: 160, brokers: 58, properties: 112 },
-    { month: 'Apr', leads: 175, brokers: 65, properties: 125 },
-    { month: 'May', leads: 145, brokers: 60, properties: 108 },
-    { month: 'Jun', leads: 190, brokers: 72, properties: 140 },
+  // Chart data states
+  const [monthChartData, setMonthChartData] = useState([
+    { month: 'Jan', leads: 0, brokers: 0, properties: 0 },
+    { month: 'Feb', leads: 0, brokers: 0, properties: 0 },
+    { month: 'Mar', leads: 0, brokers: 0, properties: 0 },
+    { month: 'Apr', leads: 0, brokers: 0, properties: 0 },
+    { month: 'May', leads: 0, brokers: 0, properties: 0 },
+    { month: 'Jun', leads: 0, brokers: 0, properties: 0 },
+    { month: 'Jul', leads: 0, brokers: 0, properties: 0 },
+    { month: 'Aug', leads: 0, brokers: 0, properties: 0 },
+    { month: 'Sep', leads: 0, brokers: 0, properties: 0 },
+    { month: 'Oct', leads: 0, brokers: 0, properties: 0 },
+    { month: 'Nov', leads: 0, brokers: 0, properties: 0 },
+    { month: 'Dec', leads: 0, brokers: 0, properties: 0 },
   ]);
+
+  const [weekChartData, setWeekChartData] = useState([
+    { week: 'Sun', leads: 0, brokers: 0, properties: 0 },
+    { week: 'Mon', leads: 0, brokers: 0, properties: 0 },
+    { week: 'Tue', leads: 0, brokers: 0, properties: 0 },
+    { week: 'Wed', leads: 0, brokers: 0, properties: 0 },
+    { week: 'Thu', leads: 0, brokers: 0, properties: 0 },
+    { week: 'Fri', leads: 0, brokers: 0, properties: 0 },
+    { week: 'Sat', leads: 0, brokers: 0, properties: 0 },
+  ]);
+
+  const [, setIsLoadingChartData] = useState(false);
 
   const stats = [
     {
@@ -719,6 +738,123 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Fetch dashboard chart stats
+  const fetchDashboardChartStats = useCallback(async (period: 'month' | 'week') => {
+    try {
+      setIsLoadingChartData(true);
+      const response = await dashboardAPI.getDashboardStats(period);
+      
+      console.log('📊 Dashboard Stats API Response:', response);
+      
+      if (period === 'month') {
+        // Extract byPeriod data from API response
+        const byPeriod = response?.data?.byPeriod;
+        
+        if (byPeriod && byPeriod.brokers && byPeriod.leads && byPeriod.properties) {
+          const brokersData = byPeriod.brokers;
+          const leadsData = byPeriod.leads;
+          const propertiesData = byPeriod.properties;
+          
+          // Type for month data items
+          type MonthDataItem = {
+            month: number;
+            count?: number;
+          };
+          
+          // Create a map of month number to data for easier lookup
+          const brokersMap = new Map(brokersData.map((item: MonthDataItem) => [item.month, item.count || 0]));
+          const leadsMap = new Map(leadsData.map((item: MonthDataItem) => [item.month, item.count || 0]));
+          const propertiesMap = new Map(propertiesData.map((item: MonthDataItem) => [item.month, item.count || 0]));
+          
+          // Transform to chart format
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const transformedData = monthNames.map((shortMonth, index) => {
+            const monthNumber = index + 1;
+            return {
+              month: shortMonth,
+              leads: Number(leadsMap.get(monthNumber)) || 0,
+              brokers: Number(brokersMap.get(monthNumber)) || 0,
+              properties: Number(propertiesMap.get(monthNumber)) || 0,
+            };
+          });
+          
+          console.log('📊 Transformed Month Data:', transformedData);
+          setMonthChartData(transformedData);
+        } else {
+          console.warn('📊 byPeriod data not found in API response');
+        }
+      } else {
+        // Transform week data - API returns data by days of the week (Sunday-Saturday)
+        const byPeriod = response?.data?.byPeriod;
+        
+        if (byPeriod && byPeriod.brokers && byPeriod.leads && byPeriod.properties) {
+          const brokersData = byPeriod.brokers;
+          const leadsData = byPeriod.leads;
+          const propertiesData = byPeriod.properties;
+          
+          console.log('📊 Week API Data:', { brokersData, leadsData, propertiesData });
+          
+          // Map full day names to short names
+          const dayNameMap: Record<string, string> = {
+            'Sunday': 'Sun',
+            'Monday': 'Mon',
+            'Tuesday': 'Tue',
+            'Wednesday': 'Wed',
+            'Thursday': 'Thu',
+            'Friday': 'Fri',
+            'Saturday': 'Sat'
+          };
+          
+          // Type for week data items
+          type WeekDataItem = {
+            dayOfWeek: number;
+            dayName?: string;
+            count?: number;
+          };
+          
+          // Create maps using dayOfWeek (1-7) for lookup
+          // dayOfWeek: 1=Sunday, 2=Monday, ..., 7=Saturday
+          const brokersMap = new Map(brokersData.map((item: WeekDataItem) => [item.dayOfWeek, item.count || 0]));
+          const leadsMap = new Map(leadsData.map((item: WeekDataItem) => [item.dayOfWeek, item.count || 0]));
+          const propertiesMap = new Map(propertiesData.map((item: WeekDataItem) => [item.dayOfWeek, item.count || 0]));
+          
+          // Day order: Sunday (1), Monday (2), Tuesday (3), Wednesday (4), Thursday (5), Friday (6), Saturday (7)
+          const dayOrder = [1, 2, 3, 4, 5, 6, 7];
+          const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          
+          // Transform to chart format - use day names instead of "Week 1", "Week 2"
+          const transformedData = dayOrder.map((dayOfWeek, index) => {
+            // Get day name from API data or use default
+            const dayData = leadsData.find((item: WeekDataItem) => item.dayOfWeek === dayOfWeek) || 
+                          brokersData.find((item: WeekDataItem) => item.dayOfWeek === dayOfWeek) ||
+                          propertiesData.find((item: WeekDataItem) => item.dayOfWeek === dayOfWeek);
+            
+            const dayName = dayData?.dayName 
+              ? (dayNameMap[dayData.dayName] || dayData.dayName.substring(0, 3))
+              : dayNames[index];
+            
+            return {
+              week: dayName,
+              leads: Number(leadsMap.get(dayOfWeek)) || 0,
+              brokers: Number(brokersMap.get(dayOfWeek)) || 0,
+              properties: Number(propertiesMap.get(dayOfWeek)) || 0,
+            };
+          });
+          
+          console.log('📊 Transformed Week Data:', transformedData);
+          setWeekChartData(transformedData);
+        } else {
+          console.warn('📊 byPeriod data not found in API response for week');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard chart stats:', error);
+      // Keep default empty data on error
+    } finally {
+      setIsLoadingChartData(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchLeadsMetrics();
     fetchRegionsStats();
@@ -728,7 +864,10 @@ export default function Dashboard() {
     fetchNewLeads();
     fetchNewProperties();
     fetchRecentActivities();
-  }, [fetchLeadsMetrics, fetchRegionsStats, fetchBrokersStats, fetchPropertiesMetrics, fetchNewBrokers, fetchNewLeads, fetchNewProperties, fetchRecentActivities]);
+    // Fetch chart data for both periods on initial load
+    fetchDashboardChartStats('month');
+    fetchDashboardChartStats('week');
+  }, [fetchLeadsMetrics, fetchRegionsStats, fetchBrokersStats, fetchPropertiesMetrics, fetchNewBrokers, fetchNewLeads, fetchNewProperties, fetchRecentActivities, fetchDashboardChartStats]);
 
 
   return (
@@ -741,7 +880,7 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Dashboard Overview</h1>
             <p className="text-gray-600 text-sm">Real-time visitor management statistics and analytics</p>
           </div>
-          <div className="flex items-center space-x-3">
+          {/* <div className="flex items-center space-x-3">
             <select 
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value)}
@@ -752,7 +891,7 @@ export default function Dashboard() {
               <option>This Quarter</option>
               <option>This Year</option>
             </select>
-          </div>
+          </div> */}
         </div>
 
         {/* Stats Grid */}
@@ -849,16 +988,43 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4">
             <div>
               <h3 className="text-[16px] font-semibold text-gray-900">Monthly Overview</h3>
-              <p className="text-xs text-gray-500 mt-1">Leads, Brokers, and Properties by month</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {monthlyOverviewPeriod === 'Week' 
+                  ? 'Leads, Brokers, and Properties by week' 
+                  : 'Leads, Brokers, and Properties by month'}
+              </p>
+            </div>
+            <div className="relative">
+              <select 
+                value={monthlyOverviewPeriod}
+                onChange={(e) => {
+                  const newPeriod = e.target.value as 'Week' | 'Month';
+                  setMonthlyOverviewPeriod(newPeriod);
+                  // Fetch data when period changes
+                  fetchDashboardChartStats(newPeriod.toLowerCase() as 'month' | 'week');
+                }}
+                className="border border-gray-300 rounded-lg px-6 py-2 text-sm font-medium bg-white text-gray-700 shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors cursor-pointer appearance-none pr-8"
+              >
+                <option value="Week">Week</option>
+                <option value="Month">Month</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
+          </div>
             
           {/* Grouped Bar Chart using Recharts */}
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <BarChart 
+                data={monthlyOverviewPeriod === 'Week' ? weekChartData : monthChartData} 
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              >
                 <XAxis 
-                  dataKey="month" 
+                  dataKey={monthlyOverviewPeriod === 'Week' ? 'week' : 'month'} 
                   stroke="#6B7280"
                   fontSize={12}
                   tickLine={false}
@@ -873,9 +1039,10 @@ export default function Dashboard() {
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
+                      const label = monthlyOverviewPeriod === 'Week' ? data.week : data.month;
                       return (
                         <div className="bg-white rounded-lg shadow-xs px-2 py-1.5">
-                          <p className="text-[14px] font-medium text-gray-900 mb-1">{data.month}</p>
+                          <p className="text-[14px] font-medium text-gray-900 mb-1">{label}</p>
                           {payload.map((entry, index) => (
                             <p key={index} className={`text-xs font-medium ${
                               entry.dataKey === 'leads' ? 'text-blue-600' :
