@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { notificationsAPI } from '@/services/api';
 
@@ -22,47 +22,99 @@ export default function NotificationDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Helper function to extract notifications from API response
+  const extractNotifications = (response: unknown): Notification[] => {
+    if (Array.isArray(response)) {
+      return response;
+    } else if (response && typeof response === 'object') {
+      const resp = response as Record<string, unknown>;
+      if (Array.isArray(resp.data)) {
+        return resp.data;
+      } else if (resp.data && typeof resp.data === 'object' && !Array.isArray(resp.data)) {
+        const dataObj = resp.data as Record<string, unknown>;
+        if (Array.isArray(dataObj.notifications)) {
+          return dataObj.notifications as Notification[];
+        } else if (Array.isArray(dataObj.data)) {
+          return dataObj.data as Notification[];
+        }
+        // Try to find any array in the data object
+        const possibleArrays = Object.values(dataObj).filter(Array.isArray);
+        if (possibleArrays.length > 0) {
+          return (possibleArrays.reduce((prev, curr) => 
+            (curr as unknown[]).length > (prev as unknown[]).length ? curr : prev
+          ) as Notification[]);
+        }
+      }
+      if (Array.isArray(resp.notifications)) {
+        return resp.notifications;
+      } else if (Array.isArray(resp.results)) {
+        return resp.results;
+      } else if (Array.isArray(resp.items)) {
+        return resp.items;
+      }
+    }
+    return [];
+  };
+
   // Fetch recent notifications (only 3 for dropdown) and calculate unread count
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await notificationsAPI.getNotifications(1, 50, 'all');
       
-      // Extract notifications from different possible API response structures
-      let list: Notification[] = [];
-      if (Array.isArray(response)) {
-        list = response;
-      } else if (Array.isArray(response?.data)) {
-        list = response.data;
-      } else if (Array.isArray(response?.data?.notifications)) {
-        list = response.data.notifications;
-      } else if (Array.isArray(response?.notifications)) {
-        list = response.notifications;
-      }
+      // Fetch all notifications first to get accurate unread count
+      const allResponse = await notificationsAPI.getNotifications(1, 1000, 'all');
+      console.log('🔔 All notifications response:', allResponse);
       
-      // Calculate unread count - check pagination first, then count from list
+      // Extract all notifications
+      const allNotifications = extractNotifications(allResponse);
+      console.log('🔔 Extracted all notifications:', allNotifications.length);
+      
+      // Count unread notifications - check multiple field names
+      const unreadNotifications = allNotifications.filter((notification) => {
+        // Check different possible field names for read status
+        const isRead = notification.read === true || 
+                      (notification as { isRead?: boolean }).isRead === true ||
+                      (notification as { readStatus?: string }).readStatus === 'read';
+        
+        return !isRead; // Return true if NOT read (i.e., unread)
+      });
+      
+      console.log('🔔 Unread notifications count:', unreadNotifications.length);
+      console.log('🔔 Sample notification:', allNotifications[0]);
+      
+      // Also try to get count from pagination if available
+      const pagination = (allResponse as { pagination?: { totalUnread?: number; totalNotifications?: number } })?.pagination ||
+                        (allResponse as { data?: { pagination?: { totalUnread?: number; totalNotifications?: number } } })?.data?.pagination;
+      
       let count = 0;
-      // Check if pagination info is available with total unread count
-      const pagination = response?.pagination || response?.data?.pagination;
       if (pagination?.totalUnread !== undefined) {
         count = pagination.totalUnread;
-      } else {
-        // Fallback: count unread notifications from the fetched list
-        const unreadNotifications = list.filter((notification) => !notification.read);
+        console.log('🔔 Using totalUnread from pagination:', count);
+      } else if (pagination?.totalNotifications !== undefined && unreadNotifications.length > 0) {
+        // If we have unread notifications but no totalUnread, use the count we calculated
         count = unreadNotifications.length;
+        console.log('🔔 Using calculated unread count:', count);
+      } else {
+        count = unreadNotifications.length;
+        console.log('🔔 Using calculated unread count (fallback):', count);
       }
+      
+      console.log('🔔 Final unread count:', count);
       setUnreadCount(count);
       
-      // Ensure we only show 3 notifications for dropdown
-      setNotifications(list.slice(0, 3));
+      // Ensure we only show 3 recent notifications for dropdown
+      const recentNotifications = allNotifications.slice(0, 3);
+      setNotifications(recentNotifications);
+      console.log('🔔 Set notifications for dropdown:', recentNotifications.length);
+      
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      console.error('❌ Failed to fetch notifications:', error);
       setNotifications([]);
       setUnreadCount(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Format time ago
   const getTimeAgo = (dateString: string): string => {
@@ -84,43 +136,13 @@ export default function NotificationDropdown() {
     }
   };
 
-  // Get notification icon based on type
-  const getNotificationIcon = (type?: string) => {
-    switch (type) {
-      case 'property':
-        return (
-          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-        );
-      case 'lead':
-        return (
-          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        );
-      case 'broker':
-        return (
-          <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        );
-      default:
-        return (
-          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-        );
-    }
-  };
-
   // Fetch notifications and unread count on mount and periodically
   useEffect(() => {
     fetchNotifications(); // This also calculates unread count
-    // Refresh notifications (and count) every 30 seconds
+    // Refresh notifications (and count) every 10 seconds for faster updates
     const interval = setInterval(() => {
       fetchNotifications();
-    }, 30000);
+    }, 10000);
     
     // Refresh when page becomes visible (user returns from notifications page)
     const handleVisibilityChange = () => {
@@ -129,20 +151,35 @@ export default function NotificationDropdown() {
       }
     };
     
+    // Listen for custom event to refresh notifications (triggered after actions like creating leads)
+    const handleNotificationRefresh = () => {
+      console.log('🔔 Custom refresh event triggered');
+      fetchNotifications();
+    };
+    
+    // Listen for window focus to refresh notifications
+    const handleWindowFocus = () => {
+      fetchNotifications();
+    };
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('notification-refresh', handleNotificationRefresh);
+    window.addEventListener('focus', handleWindowFocus);
     
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('notification-refresh', handleNotificationRefresh);
+      window.removeEventListener('focus', handleWindowFocus);
     };
-  }, []);
+  }, [fetchNotifications]);
 
   // Fetch notifications when dropdown opens
   useEffect(() => {
     if (isOpen) {
       fetchNotifications(); // This also refreshes the count
     }
-  }, [isOpen]);
+  }, [isOpen, fetchNotifications]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -161,9 +198,24 @@ export default function NotificationDropdown() {
     };
   }, [isOpen]);
 
-  const handleViewAll = () => {
-    setIsOpen(false);
-    router.push('/notifications');
+  const handleViewAll = async () => {
+    try {
+      // Mark all notifications as read before navigating
+      await notificationsAPI.markAllAsRead();
+      console.log('✅ All notifications marked as read');
+      
+      // Reset unread count to 0
+      setUnreadCount(0);
+      
+      // Close dropdown and navigate
+      setIsOpen(false);
+      router.push('/notifications');
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      // Still navigate even if API call fails
+      setIsOpen(false);
+      router.push('/notifications');
+    }
   };
 
   return (
@@ -189,10 +241,16 @@ export default function NotificationDropdown() {
         </svg>
         {/* Unread count badge */}
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[11px] font-bold text-white bg-red-500 rounded-full border-2 border-white shadow-sm">
+          <span className="absolute top-0 right-0 flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[11px] font-bold text-white bg-red-500 rounded-full border-2 border-white shadow-sm z-10">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
+        {/* Debug: Show count even if 0 (remove in production) */}
+        {/* {process.env.NODE_ENV === 'development' && (
+          <span className="absolute -bottom-6 left-0 text-[10px] text-gray-500 whitespace-nowrap">
+            Count: {unreadCount}
+          </span>
+        )} */}
       </button>
 
       {/* Dropdown Menu */}
