@@ -45,6 +45,16 @@ const nextConfig: NextConfig = {
         hostname: 'broker-adda-be.algofolks.com',
         pathname: '/uploads/images/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'broker-adda.algofolks.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'broker-adda.algofolks.com',
+        pathname: '/**',
+      },
     ],
   },
 };
