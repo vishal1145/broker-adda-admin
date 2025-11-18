@@ -1,5 +1,6 @@
 // API Base Configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://broker-adda-be.algofolks.com/api';
+import { SharePropertyAPI } from '@/app/properties/page';
 
 // Debug: Log the API base URL on module load (only in development)
 if (typeof window !== 'undefined') {
@@ -1010,7 +1011,9 @@ export const propertiesAPI = {
     }
 },
 
-sharePropertyAPI: async (shareBody: any, sharePropertyId: string) => {
+
+
+sharePropertyAPI: async (shareBody: SharePropertyAPI, sharePropertyId: string) => {
   console.log('🏠 propertiesAPI.sharePropertyAPI called with:', shareBody);
 
   const token = localStorage.getItem('adminToken');

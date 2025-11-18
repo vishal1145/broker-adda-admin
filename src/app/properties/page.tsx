@@ -30,6 +30,11 @@ const Skeleton = ({
   />
 );
 
+export type SharePropertyAPI = {
+  transferType: 'all' | 'region' | 'selected';
+  ids: string[];
+};
+
 const SummaryCardsSkeleton = () => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
@@ -181,17 +186,17 @@ function PropertiesPageContent() {
     try {
       setShareLoading(true);
       
-      let ids = [];
-      if (shareOption === 'region') {
-        ids.push(...selectedRegions);
-      } else if (shareOption === 'selected') {
-        ids.push(...selectedBrokers);
-      }
+      const ids = shareOption === 'region' 
+        ? selectedRegions 
+        : shareOption === 'selected' 
+        ? selectedBrokers 
+        : [];
+      
 
-      const shareBody = {
-        transferType: shareOption,
-        ids: ids.length > 0 ? ids : 'all'
-      }
+      const shareBody: SharePropertyAPI = {
+        transferType: shareOption as 'all' | 'region' | 'selected',
+        ids: ids.length > 0 ? ids as string[] : []
+      };
 
       const response = await propertiesAPI.sharePropertyAPI(shareBody, sharePropertyId);
       console.log("Share Property API Response:", response);
@@ -360,8 +365,8 @@ function PropertiesPageContent() {
       console.log("Regions and Brokers API Response:", response);
       setRegionsList(response?.regions || []);
 
-      let filterBrokers = response?.brokers.filter((broker: any) => broker.role === 'broker')
-      setBrokersList(filterBrokers || []);
+      const filterBrokers = response?.brokers?.filter((broker: { role?: string; _id?: string; name?: string }) => broker.role === 'broker') || [];
+      setBrokersList(filterBrokers);
       console.log("Brokers list set:", filterBrokers?.length || 0, "brokers");
     } catch (err) {
       console.error("Error fetching regions and brokers:", err);
@@ -1266,9 +1271,8 @@ function PropertiesPageContent() {
                   ) : (
                     paginatedCards.map(
                       (property: PropertyCard, idx: number) => (
-                        <div className="relative">
+                        <div key={`${property._id}-${idx}`} className="relative">
                           <Link
-                          key={`${property._id}-${idx}`}
                           href={`/properties/${property._id}`}
                           className="overflow-hidden "
                         >
@@ -1630,7 +1634,7 @@ function PropertiesPageContent() {
                     name="shareOption"
                     value="all"
                     checked={shareOption === 'all'}
-                    onChange={(e) => setShareOption('all')}
+                    onChange={() => setShareOption('all')}
                     className="w-4 h-4 text-teal-600 focus:ring-teal-500 focus:ring-2"
                   />
                   <span className="text-sm font-medium text-gray-900">Share with all brokers</span>
@@ -1643,7 +1647,7 @@ function PropertiesPageContent() {
                     name="shareOption"
                     value="region"
                     checked={shareOption === 'region'}
-                    onChange={(e) => setShareOption('region')}
+                    onChange={() => setShareOption('region')}
                     className="w-4 h-4 text-teal-600 focus:ring-teal-500 focus:ring-2"
                   />
                   <span className="text-sm font-medium text-gray-900">Share with brokers of a region</span>
@@ -1658,7 +1662,7 @@ function PropertiesPageContent() {
                     name="shareOption"
                     value="selected"
                     checked={shareOption === 'selected'}
-                    onChange={(e) => setShareOption('selected')}
+                    onChange={() => setShareOption('selected')}
                     className="w-4 h-4 text-teal-600 focus:ring-teal-500 focus:ring-2"
                   />
                   <span className="text-sm font-medium text-gray-900">Share with selected brokers</span>
