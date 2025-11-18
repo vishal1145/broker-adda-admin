@@ -6,8 +6,10 @@ import Layout from "@/components/Layout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Link from "next/link";
 import Image from "next/image";
-import { propertiesAPI, regionAPI, brokerAPI } from "@/services/api";
+import { propertiesAPI, regionAPI, brokerAPI, dashboardAPI } from "@/services/api";
 import { useSearchParams } from "next/navigation";
+import Popup from "reactjs-popup";
+import toast from "react-hot-toast";
 
 // Skeleton Loader Components
 const Skeleton = ({
@@ -105,6 +107,11 @@ function PropertiesPageContent() {
     subType: string;
     status: string;
     isFeatured: boolean;
+    broker?: {
+      _id: string;
+      name: string;
+      role: string;
+    };
   };
   const [cards, setCards] = useState<PropertyCard[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -124,14 +131,242 @@ function PropertiesPageContent() {
   const [brokers, setBrokers] = useState<Array<{ id: string; name: string }>>([]);
   const [brokersLoading, setBrokersLoading] = useState(false);
 
+  // Share modal state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareOption, setShareOption] = useState<'all' | 'region' | 'selected'>('all');
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [selectedBrokers, setSelectedBrokers] = useState<string[]>([]);
+  const [shareNotes, setShareNotes] = useState('');
+  const [sharePropertyId, setSharePropertyId] = useState<string>('');
+  const [brokerSearchTerm, setBrokerSearchTerm] = useState('');
+  const [regionSearchTerm, setRegionSearchTerm] = useState('');
+  const [selectAllBrokers, setSelectAllBrokers] = useState(false);
+  const [selectAllRegions, setSelectAllRegions] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [regionsList, setRegionsList] = useState<Array<{ _id: string; name: string }>>([]);
+  const [brokersList, setBrokersList] = useState<Array<{ _id: string; name: string }>>([]);
+  const [transferMode, setTransferMode] = useState("all");
+
+
+  // Helper functions for share modal
+  const handleShareClick = (propertyId: string) => {
+    setSharePropertyId(propertyId);
+    setShowShareModal(true);
+    // Reset form when opening
+    setShareOption('all');
+    setSelectedRegions([]);
+    setSelectedBrokers([]);
+    setShareNotes('');
+    setBrokerSearchTerm('');
+    setRegionSearchTerm('');
+    setSelectAllBrokers(false);
+    setSelectAllRegions(false);
+  };
+
+  const handleCloseShareModal = () => {
+    setShowShareModal(false);
+    setSharePropertyId('');
+    setShareOption('all');
+    setSelectedRegions([]);
+    setSelectedBrokers([]);
+    setShareNotes('');
+    setBrokerSearchTerm('');
+    setRegionSearchTerm('');
+    setSelectAllBrokers(false);
+    setSelectAllRegions(false);
+    setShareLoading(false);
+  };
+
+  const handleShareSubmit = async () => {
+    try {
+      setShareLoading(true);
+      
+      let ids = [];
+      if (shareOption === 'region') {
+        ids.push(...selectedRegions);
+      } else if (shareOption === 'selected') {
+        ids.push(...selectedBrokers);
+      }
+
+      const shareBody = {
+        transferType: shareOption,
+        ids: ids.length > 0 ? ids : 'all'
+      }
+
+      const response = await propertiesAPI.sharePropertyAPI(shareBody, sharePropertyId);
+      console.log("Share Property API Response:", response);
+      
+      // Check if the API response indicates success or failure
+      if (response && response.success) {
+        toast.success(response.message || 'Property shared successfully!');
+        handleCloseShareModal();
+      } else {
+        // API returned success: false
+        const errorMessage = response?.message || response?.error || 'Failed to share property';
+        toast.error(errorMessage);
+      }
+    } catch (err) {
+      console.error('Error sharing property:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to share property';
+      toast.error(errorMessage);
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleBrokerToggle = (brokerId: string) => {
+    setSelectedBrokers(prev => 
+      prev.includes(brokerId) 
+        ? prev.filter(_id => _id !== brokerId)
+        : [...prev, brokerId]
+    );
+  };
+
+  const handleRegionToggle = (regionId: string) => {
+    setSelectedRegions(prev => 
+      prev.includes(regionId) 
+        ? prev.filter(_id => _id !== regionId)
+        : [...prev, regionId]
+    );
+  };
+
+  const handleSelectAllRegions = () => {
+    const filteredRegions = getFilteredRegions();
+    const filteredRegionIds = filteredRegions.map(r => r._id);
+    const allSelected = filteredRegionIds.every(_id => selectedRegions.includes(_id));
+    
+    if (allSelected) {
+      // Deselect all filtered regions
+      setSelectedRegions(prev => prev.filter(_id => !filteredRegionIds.includes(_id)));
+      setSelectAllRegions(false);
+    } else {
+      // Select all filtered regions
+      setSelectedRegions(prev => {
+        const newSelection = [...prev];
+        filteredRegionIds.forEach(_id => {
+          if (!newSelection.includes(_id)) {
+            newSelection.push(_id);
+          }
+        });
+        return newSelection;
+      });
+      setSelectAllRegions(true);
+    }
+  };
+
+  const getFilteredRegions = () => {
+    if (!regionsList || regionsList.length === 0) return [];
+    
+    if (!regionSearchTerm || regionSearchTerm.trim() === '') {
+      return regionsList;
+    }
+    
+    const searchTerm = regionSearchTerm.trim().toLowerCase();
+    return regionsList.filter(region => {
+      const name = region?.name || '';
+      return name.toLowerCase().includes(searchTerm);
+    });
+  };
+
+  const handleSelectAllBrokers = () => {
+    const filteredBrokers = getFilteredBrokers();
+    const filteredBrokerIds = filteredBrokers.map(b => b._id);
+    const allSelected = filteredBrokerIds.every(_id => selectedBrokers.includes(_id));
+    
+    if (allSelected) {
+      // Deselect all filtered brokers
+      setSelectedBrokers(prev => prev.filter(_id => !filteredBrokerIds.includes(_id)));
+      setSelectAllBrokers(false);
+    } else {
+      // Select all filtered brokers
+      setSelectedBrokers(prev => {
+        const newSelection = [...prev];
+        filteredBrokerIds.forEach(_id => {
+          if (!newSelection.includes(_id)) {
+            newSelection.push(_id);
+          }
+        });
+        return newSelection;
+      });
+      setSelectAllBrokers(true);
+    }
+  };
+
+  // Update selectAllBrokers when selectedBrokers or brokerSearchTerm changes
+  useEffect(() => {
+    if (shareOption === 'selected' && brokersList && brokersList.length > 0) {
+      const searchTerm = brokerSearchTerm?.trim().toLowerCase() || '';
+      const filteredBrokers = searchTerm 
+        ? brokersList.filter(broker => {
+            const name = broker?.name || '';
+            return name.toLowerCase().includes(searchTerm);
+          })
+        : brokersList;
+      
+      const filteredBrokerIds = filteredBrokers.map(b => b._id);
+      const allSelected = filteredBrokerIds.length > 0 && filteredBrokerIds.every(_id => selectedBrokers.includes(_id));
+      setSelectAllBrokers(allSelected);
+    } else {
+      setSelectAllBrokers(false);
+    }
+  }, [selectedBrokers, brokerSearchTerm, shareOption, brokersList]);
+
+  // Update selectAllRegions when selectedRegions or regionSearchTerm changes
+  useEffect(() => {
+    if (shareOption === 'region' && regionsList && regionsList.length > 0) {
+      const searchTerm = regionSearchTerm?.trim().toLowerCase() || '';
+      const filteredRegions = searchTerm 
+        ? regionsList.filter(region => {
+            const name = region?.name || '';
+            return name.toLowerCase().includes(searchTerm);
+          })
+        : regionsList;
+      
+      const filteredRegionIds = filteredRegions.map(r => r._id);
+      const allSelected = filteredRegionIds.length > 0 && filteredRegionIds.every(_id => selectedRegions.includes(_id));
+      setSelectAllRegions(allSelected);
+    } else {
+      setSelectAllRegions(false);
+    }
+  }, [selectedRegions, regionSearchTerm, shareOption, regionsList]);
+
+  const getFilteredBrokers = () => {
+    if (!brokersList || brokersList.length === 0) return [];
+    
+    if (!brokerSearchTerm || brokerSearchTerm.trim() === '') {
+      return brokersList;
+    }
+    
+    const searchTerm = brokerSearchTerm.trim().toLowerCase();
+    return brokersList.filter(broker => {
+      const name = broker?.name || '';
+      return name.toLowerCase().includes(searchTerm);
+    });
+  };
+
   // Debug: Log regions state changes
   useEffect(() => {
+    fetchRegionsAndBrokers();
     console.log("🔵 Regions state updated:", {
       count: regions.length,
       regions: regions,
       loading: regionsLoading
     });
   }, [regions, regionsLoading]);
+
+  const fetchRegionsAndBrokers = async () => {
+    try {
+      const response = await dashboardAPI.regionsAndBrokersListAPI();
+      console.log("Regions and Brokers API Response:", response);
+      setRegionsList(response?.regions || []);
+
+      let filterBrokers = response?.brokers.filter((broker: any) => broker.role === 'broker')
+      setBrokersList(filterBrokers || []);
+      console.log("Brokers list set:", filterBrokers?.length || 0, "brokers");
+    } catch (err) {
+      console.error("Error fetching regions and brokers:", err);
+    }
+  }
 
   // Load property metrics from API
   useEffect(() => {
@@ -282,26 +517,25 @@ function PropertiesPageContent() {
           _id?: string;
           id?: string;
           name?: string;
-          firmName?: string;
         };
         
         if (res && res.data && res.data.brokers && Array.isArray(res.data.brokers)) {
           console.log("🔷 Found brokers in response.data.brokers:", res.data.brokers.length);
           brokersList = res.data.brokers.map((broker: BrokerItem) => ({
             id: broker._id || broker.id || "",
-            name: broker.name || broker.firmName || ""
+            name: broker.name || broker.name || ""
           })).filter((b: { id: string; name: string }) => b.id && b.name);
         } else if (Array.isArray(res?.brokers)) {
           console.log("🔷 Found brokers in res.brokers:", res.brokers.length);
           brokersList = res.brokers.map((broker: BrokerItem) => ({
             id: broker._id || broker.id || "",
-            name: broker.name || broker.firmName || ""
+            name: broker.name || broker.name || ""
           })).filter((b: { id: string; name: string }) => b.id && b.name);
         } else if (Array.isArray(res?.data)) {
           console.log("🔷 Found brokers in res.data array:", res.data.length);
           brokersList = res.data.map((broker: BrokerItem) => ({
             id: broker._id || broker.id || "",
-            name: broker.name || broker.firmName || ""
+            name: broker.name || broker.name || ""
           })).filter((b: { id: string; name: string }) => b.id && b.name);
         } else {
           console.warn("🔷 Unexpected brokers API response structure:", res);
@@ -460,6 +694,11 @@ function PropertiesPageContent() {
           address?: string;
           city?: string;
           region?: string | RegionsApiItem;
+          broker?: {
+            _id: string;
+            name: string;
+            role: string;
+          };
         };
 
         const processedProperties = Array.isArray(properties)
@@ -536,6 +775,11 @@ function PropertiesPageContent() {
                 subType: property.subType || "",
                 status: property.status || "",
                 isFeatured: Boolean(property.isFeatured),
+                broker: property.broker ? {
+                  _id: property.broker._id,
+                  name: property.broker.name,
+                  role: property.broker.role
+                } : undefined,
               };
 
               return normalized;
@@ -1022,10 +1266,11 @@ function PropertiesPageContent() {
                   ) : (
                     paginatedCards.map(
                       (property: PropertyCard, idx: number) => (
-                        <Link
+                        <div className="relative">
+                          <Link
                           key={`${property._id}-${idx}`}
                           href={`/properties/${property._id}`}
-                          className="bg-white rounded-xl border border-gray-200 overflow-hidden "
+                          className="overflow-hidden "
                         >
                           <div className="relative w-full h-48">
                             <Image
@@ -1164,8 +1409,38 @@ function PropertiesPageContent() {
                                 )}
                               </div>
                             </div>
+
+                            
+                            
                           </div>
                         </Link>
+                        {property?.broker?.role === "customer" && (
+                           <button
+                           onClick={(e) => {
+                             e.preventDefault();
+                             e.stopPropagation();
+                             handleShareClick(property._id);
+                           }}
+                           className="absolute top-[12px] bg-white right-[12px] flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 transition-colors"
+                           title="Share property"
+                         >
+                           <svg
+                             className="w-5 h-5 text-gray-600 hover:text-teal-600"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24"
+                           >
+                             <path
+                               strokeLinecap="round"
+                               strokeLinejoin="round"
+                               strokeWidth={2}
+                               d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                             />
+                           </svg>
+                         </button>
+                        )}
+                       
+                        </div>
                       )
                     )
                   )}
@@ -1307,6 +1582,280 @@ function PropertiesPageContent() {
               </div>
             )}
           </div>
+
+          {/* Share Lead Modal */}
+          <Popup
+            open={showShareModal}
+            closeOnDocumentClick
+            onClose={handleCloseShareModal}
+            modal
+            overlayStyle={{
+              background: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 9999
+            }}
+            contentStyle={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '0',
+              border: 'none',
+              width: '90%',
+              maxWidth: '500px',
+              maxHeight: '90vh',
+              margin: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              overflow: 'auto',
+            } as React.CSSProperties}
+          >
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Share Lead</h3>
+                <button
+                  onClick={handleCloseShareModal}
+                  disabled={shareLoading}
+                  className="text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Share Options */}
+              <div className="space-y-3 mb-6">
+                {/* Option 1: Share with all brokers */}
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="shareOption"
+                    value="all"
+                    checked={shareOption === 'all'}
+                    onChange={(e) => setShareOption('all')}
+                    className="w-4 h-4 text-teal-600 focus:ring-teal-500 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-gray-900">Share with all brokers</span>
+                </label>
+
+                {/* Option 2: Share with brokers of a region */}
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="shareOption"
+                    value="region"
+                    checked={shareOption === 'region'}
+                    onChange={(e) => setShareOption('region')}
+                    className="w-4 h-4 text-teal-600 focus:ring-teal-500 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-gray-900">Share with brokers of a region</span>
+                </label>
+
+               
+
+                {/* Option 3: Share with selected brokers */}
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="shareOption"
+                    value="selected"
+                    checked={shareOption === 'selected'}
+                    onChange={(e) => setShareOption('selected')}
+                    className="w-4 h-4 text-teal-600 focus:ring-teal-500 focus:ring-2"
+                  />
+                  <span className="text-sm font-medium text-gray-900">Share with selected brokers</span>
+                </label>
+
+                {/* Broker Selection - Show when selected brokers option is chosen */}
+                {shareOption === 'selected' && (
+                  <div className="mx-2 space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Broker(s)</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={brokerSearchTerm}
+                          onChange={(e) => setBrokerSearchTerm(e.target.value)}
+                          placeholder="Choose brokers..."
+                          className={`w-full px-3 py-2 pr-10 border rounded-md text-sm focus:outline-none focus:ring-2 ${
+                            shareOption === 'selected' 
+                              ? 'border-teal-500 focus:ring-teal-500 focus:border-teal-500' 
+                              : 'border-gray-300 focus:ring-gray-500'
+                          }`}
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Filtered Brokers List */}
+                    {getFilteredBrokers().length > 0 ? (
+                      <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
+                        <div className="p-2 border-b border-gray-200 bg-gray-50">
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectAllBrokers}
+                              onChange={handleSelectAllBrokers}
+                              className="w-4 h-4 text-teal-600 focus:ring-teal-500 focus:ring-2 rounded"
+                            />
+                            <span className="text-sm font-medium text-gray-700">Select all</span>
+                          </label>
+                        </div>
+                        <div className="divide-y divide-gray-200">
+                          {getFilteredBrokers().map((broker) => (
+                            <label
+                              key={broker._id}
+                              className={`flex items-center space-x-3 p-3 cursor-pointer hover:bg-gray-50 ${
+                                selectedBrokers.includes(broker._id) ? 'bg-teal-50' : ''
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedBrokers.includes(broker._id)}
+                                onChange={() => handleBrokerToggle(broker._id)}
+                                className="w-4 h-4 text-teal-600 focus:ring-teal-500 focus:ring-2 rounded"
+                              />
+                              <span className="text-sm text-gray-900">{broker?.name || 'Unknown'}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="border border-gray-200 rounded-md p-4 text-center">
+                        <p className="text-sm text-gray-500">
+                          {brokerSearchTerm 
+                            ? `No brokers found matching "${brokerSearchTerm}"` 
+                            : brokersList.length === 0 
+                            ? 'No brokers available' 
+                            : 'Start typing to search for brokers'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+               {/* Region Selection - Show when region option is selected */}
+               {shareOption === 'region' && (
+                  <div className="mx-2 space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Region(s)</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={regionSearchTerm}
+                          onChange={(e) => setRegionSearchTerm(e.target.value)}
+                          placeholder="Choose regions..."
+                          className={`w-full px-3 py-2 pr-10 border rounded-md text-sm focus:outline-none focus:ring-2 ${
+                            shareOption === 'region' 
+                              ? 'border-teal-500 focus:ring-teal-500 focus:border-teal-500' 
+                              : 'border-gray-300 focus:ring-gray-500'
+                          }`}
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Filtered Regions List */}
+                    {getFilteredRegions().length > 0 ? (
+                      <div className="border border-gray-200 rounded-md max-h-48 overflow-y-auto">
+                        <div className="p-2 border-b border-gray-200 bg-gray-50">
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectAllRegions}
+                              onChange={handleSelectAllRegions}
+                              className="w-4 h-4 text-teal-600 focus:ring-teal-500 focus:ring-2 rounded"
+                            />
+                            <span className="text-sm font-medium text-gray-700">Select all</span>
+                          </label>
+                        </div>
+                        <div className="divide-y divide-gray-200">
+                          {getFilteredRegions().map((region) => (
+                            <label
+                              key={region._id}
+                              className={`flex items-center space-x-3 p-3 cursor-pointer hover:bg-gray-50 ${
+                                selectedRegions.includes(region._id) ? 'bg-teal-50' : ''
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedRegions.includes(region._id)}
+                                onChange={() => handleRegionToggle(region._id)}
+                                className="w-4 h-4 text-teal-600 focus:ring-teal-500 focus:ring-2 rounded"
+                              />
+                              <span className="text-sm text-gray-900">{region?.name || 'Unknown'}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="border border-gray-200 rounded-md p-4 text-center">
+                        <p className="text-sm text-gray-500">
+                          {regionSearchTerm 
+                            ? `No regions found matching "${regionSearchTerm}"` 
+                            : regionsList.length === 0 
+                            ? 'No regions available' 
+                            : 'Start typing to search for regions'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {/* Share Notes */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Share Notes (Optional)
+                </label>
+                <textarea
+                  value={shareNotes}
+                  onChange={(e) => setShareNotes(e.target.value)}
+                  placeholder="Add any specific instructions or context..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-y"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  onClick={handleCloseShareModal}
+                  disabled={shareLoading}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleShareSubmit}
+                  disabled={
+                    shareLoading ||
+                    (shareOption === 'region' && selectedRegions.length === 0) ||
+                    (shareOption === 'selected' && selectedBrokers.length === 0)
+                  }
+                  className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+                >
+                  {shareLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Sharing...</span>
+                    </>
+                  ) : (
+                    <span>Share with broker</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </Popup>
       </Layout>
     </ProtectedRoute>
   );

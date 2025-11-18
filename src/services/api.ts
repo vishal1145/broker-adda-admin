@@ -1009,6 +1009,25 @@ export const propertiesAPI = {
       }
     }
 },
+
+sharePropertyAPI: async (shareBody: any, sharePropertyId: string) => {
+  console.log('🏠 propertiesAPI.sharePropertyAPI called with:', shareBody);
+
+  const token = localStorage.getItem('adminToken');
+  if (!token) throw new Error('No authentication token found');
+
+  const url = `${API_BASE_URL}/properties/${sharePropertyId}/transfer`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(shareBody)
+  });
+
+  return response.json();
+}
 };
 
 // Contact/Support API functions
@@ -1383,5 +1402,32 @@ export const dashboardAPI = {
     const result = await response.json();
     console.log('📊 API Response:', result);
     return result;
+  },
+
+  regionsAndBrokersListAPI: async () => {
+    const regionsUrl  = `${API_BASE_URL}/regions`;
+    const brokersUrl  = `${API_BASE_URL}/brokers`;
+    const token = localStorage.getItem('adminToken');
+
+    const regionsResponse = await fetch(regionsUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const brokersResponse = await fetch(brokersUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const regionsData = await regionsResponse.json();
+    const brokersData = await brokersResponse.json();
+
+    return { regions: regionsData.data.regions, brokers: brokersData.data.brokers };
   }
 };
