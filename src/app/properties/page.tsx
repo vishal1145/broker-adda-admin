@@ -82,6 +82,32 @@ const getSafeImageUrl = (images: string[] | undefined): string => {
   return validImage || defaultImage;
 };
 
+// Helper function to format price in Crores, Lakhs, Thousands, or Rupees
+const formatPrice = (price: number): string => {
+  if (!price || price === 0) return '₹0';
+  
+  // 1 Crore = 1,00,00,000
+  if (price >= 10000000) {
+    const crores = price / 10000000;
+    return `₹${crores.toFixed(2)} Cr`;
+  }
+  
+  // 1 Lakh = 1,00,000
+  if (price >= 100000) {
+    const lakhs = price / 100000;
+    return `₹${lakhs.toFixed(2)} L`;
+  }
+  
+  // 1 Thousand = 1,000
+  if (price >= 1000) {
+    const thousands = price / 1000;
+    return `₹${thousands.toFixed(2)} K`;
+  }
+  
+  // Less than 1000, show in rupees
+  return `₹${price.toLocaleString('en-IN')}`;
+};
+
 function PropertiesPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -1297,8 +1323,7 @@ function PropertiesPageContent() {
                               </div>
                             )}
                             <div className="text-gray-900 text-base font-bold mb-2">
-                              ₹{property.price.toLocaleString()}
-                              {property.priceUnit && ` ${property.priceUnit}`}
+                              {formatPrice(property.price)}
                             </div>
                             {/* City & Region plain with icons (no chips) */}
                             <div className="flex items-center gap-4 mb-2 text-xs text-gray-600">

@@ -129,6 +129,32 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
     return rawUrl;
   };
 
+  // Helper function to format price in Crores, Lakhs, Thousands, or Rupees
+  const formatPrice = (price: number | undefined): string => {
+    if (!price || price === 0) return '₹0';
+    
+    // 1 Crore = 1,00,00,000
+    if (price >= 10000000) {
+      const crores = price / 10000000;
+      return `₹${crores.toFixed(2)} Cr`;
+    }
+    
+    // 1 Lakh = 1,00,000
+    if (price >= 100000) {
+      const lakhs = price / 100000;
+      return `₹${lakhs.toFixed(2)} L`;
+    }
+    
+    // 1 Thousand = 1,000
+    if (price >= 1000) {
+      const thousands = price / 1000;
+      return `₹${thousands.toFixed(2)} K`;
+    }
+    
+    // Less than 1000, show in rupees
+    return `₹${price.toLocaleString('en-IN')}`;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -426,7 +452,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                       { label: 'Title', value: data.title || '-' },
                       { label: 'Property Type', value: data.propertyType || '-' },
                       { label: 'Sub Type', value: data.subType || '-' },
-                      { label: 'Price', value: `₹${data.price?.toLocaleString() || '0'} ${data.priceUnit || 'INR'}` },
+                      { label: 'Price', value: formatPrice(data.price) },
                       { label: 'Address', value: data.address || '-' },
                       { label: 'City', value: data.city || '-' },
                       { label: 'Region', value: data.region || '-' },
@@ -484,8 +510,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   <div className="h-8 bg-gradient-to-b from-gray-200/60 to-transparent"></div>
                   <div className="px-6 pt-2 pb-3">
-                    <div className="text-3xl font-bold text-gray-900">₹{data.price?.toLocaleString() || '—'}</div>
-                    <div className="text-[11px] text-gray-400">{data.priceUnit || 'INR'}</div>
+                    <div className="text-3xl font-bold text-gray-900">{formatPrice(data.price)}</div>
                   </div>
                   <div className="">
                     {[
@@ -668,7 +693,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                             />
 
                             <div className="flex-1 min-w-0">
-                              <div className="text-sky-600 font-semibold text-sm truncate">₹{data.price?.toLocaleString() || '—'}</div>
+                              <div className="text-sky-600 font-semibold text-sm truncate">{formatPrice(data.price)}</div>
                               <div className="text-gray-900 font-bold leading-tight truncate">{data.title}</div>
                               <p className="text-gray-500 text-xs mt-1 line-clamp-2">
                                 {data.description || data.notes || 'Property description not available.'}

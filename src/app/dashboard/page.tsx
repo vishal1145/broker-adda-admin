@@ -268,7 +268,7 @@ export default function Dashboard() {
       ),
     },
     {
-      name: 'Total Leads',
+      name: 'Total Enquiries',
       value: totalLeads,
       change: '+12.5%',
       changeType: 'positive',
@@ -944,7 +944,7 @@ export default function Dashboard() {
             const getRoute = (name: string) => {
               if (name.includes('Region')) return '/regions';
               if (name.includes('Broker')) return '/brokers';
-              if (name.includes('Lead')) return '/leads';
+              if (name.includes('Lead') || name.includes('Enquiries')) return '/leads';
               if (name.includes('Property')) return '/properties';
               return '#';
             };
@@ -990,8 +990,8 @@ export default function Dashboard() {
               <h3 className="text-[16px] font-semibold text-gray-900">Monthly Overview</h3>
               <p className="text-xs text-gray-500 mt-1">
                 {monthlyOverviewPeriod === 'Week' 
-                  ? 'Leads, Brokers, and Properties by week' 
-                  : 'Leads, Brokers, and Properties by month'}
+                  ? 'Enquiries, Brokers, and Properties by week' 
+                  : 'Enquiries, Brokers, and Properties by month'}
               </p>
             </div>
             <div className="relative">
@@ -1049,7 +1049,7 @@ export default function Dashboard() {
                               entry.dataKey === 'brokers' ? 'text-green-600' :
                               'text-yellow-600'
                             }`}>
-                              {entry.dataKey === 'leads' ? 'Leads' : entry.dataKey === 'brokers' ? 'Brokers' : 'Properties'}: {entry.value?.toLocaleString() || 0}
+                              {entry.dataKey === 'leads' ? 'Enquiries' : entry.dataKey === 'brokers' ? 'Brokers' : 'Properties'}: {entry.value?.toLocaleString() || 0}
                             </p>
                           ))}
             </div>
@@ -1061,18 +1061,21 @@ export default function Dashboard() {
                 <Legend />
                 <Bar 
                   dataKey="leads" 
+                  name="Enquiries"
                   fill="#3B82F6"
                   radius={[4, 4, 0, 0]}
                   barSize={28}
                 />
                 <Bar 
                   dataKey="brokers" 
+                  name="Brokers"
                   fill="#22C55E"
                   radius={[4, 4, 0, 0]}
                   barSize={28}
                 />
                 <Bar 
                   dataKey="properties" 
+                  name="Properties"
                   fill="#F59E0B"
                   radius={[4, 4, 0, 0]}
                   barSize={28}
@@ -1088,8 +1091,8 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl shadow-xs p-6 duration-200">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-[16px] font-semibold text-gray-900">New Leads</h3>
-                <p className="text-xs text-gray-500 mt-1">Recently created leads</p>
+                <h3 className="text-[16px] font-semibold text-gray-900">New Enquiries</h3>
+                <p className="text-xs text-gray-500 mt-1">Recently created Enquiries</p>
               </div>
               <Link href="/leads" className="text-sm font-medium text-teal-600 hover:text-teal-700 flex items-center transition-colors">
                 View All 
@@ -1116,7 +1119,7 @@ export default function Dashboard() {
                     {newLeadsData.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-8 text-center text-xs text-gray-500">
-                          No leads found
+                          No enquiries found
                         </td>
                       </tr>
                     ) : (

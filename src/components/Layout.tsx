@@ -82,7 +82,7 @@ export default function Layout({ children }: LayoutProps) {
                   : 'text-gray-700 hover:text-teal-600'
               }`}
             >
-           Leads
+     Enquiries
             </Link>
             <Link
               href="/properties"

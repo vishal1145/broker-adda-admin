@@ -1157,7 +1157,7 @@ function LeadsPageContent() {
               <div className="mb-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Leads & Visitors</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Enquiries</h1>
                     {brokerId ? (
                       <p className="text-gray-500 mt-1 text-sm">Viewing leads for selected broker</p>
                     ) : (
@@ -1192,7 +1192,7 @@ function LeadsPageContent() {
                   </div>
                   <input
                     type="text"
-                    placeholder="Search leads..."
+                    placeholder="Search enquiries..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
@@ -1318,12 +1318,12 @@ function LeadsPageContent() {
                     ) : statsError ? (
                       <>
                         <div className="text-2xl font-bold text-gray-900">--</div>
-                        <div className="text-[12px] font-medium text-gray-500 mt-1">Total Leads</div>
+                        <div className="text-[12px] font-medium text-gray-500 mt-1">Total Enquiries</div>
                         <div className="text-[11px] text-red-500 mt-1">Error loading data</div>
                       </>
                     ) : (
                       <>
-                        <div className="text-[12px] font-semibold text-blue-700">Total Leads</div>
+                        <div className="text-[12px] font-semibold text-blue-700">Total Enquiries</div>
                         <div className="mt-1 flex justify-between gap-2">
                           <div className="text-2xl font-extrabold text-blue-700">{leadsStats.totalLeads}</div>
                           <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600  ">
@@ -1346,12 +1346,12 @@ function LeadsPageContent() {
                     ) : statsError ? (
                       <>
                         <div className="text-2xl font-bold text-gray-900">--</div>
-                        <div className="text-[12px] font-medium text-gray-500 mt-1">New Leads Today</div>
+                        <div className="text-[12px] font-medium text-gray-500 mt-1">New Enquiries Today</div>
                         <div className="text-[11px] text-red-500 mt-1">Error loading data</div>
                       </>
                     ) : (
                       <>
-                        <div className="text-[12px] font-semibold text-green-700">New Leads Today</div>
+                        <div className="text-[12px] font-semibold text-green-700">New Enquiries Today</div>
                         <div className="mt-1 flex justify-between gap-2">
                           <div className="text-2xl font-extrabold text-green-700">{leadsStats.newLeadsToday}</div>
                           <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 text-green-600 ">

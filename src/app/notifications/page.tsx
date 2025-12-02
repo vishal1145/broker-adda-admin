@@ -71,7 +71,7 @@ export default function NotificationsPage() {
 
   const filterLabels: Record<string, string> = {
     all: 'All Notifications',
-    new_leads: 'New Leads',
+    new_leads: 'New Enquiries',
     properties: 'Properties',
     broker: 'Broker',
   };
