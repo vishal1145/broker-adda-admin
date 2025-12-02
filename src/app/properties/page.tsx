@@ -176,8 +176,6 @@ function PropertiesPageContent() {
   const [shareLoading, setShareLoading] = useState(false);
   const [regionsList, setRegionsList] = useState<Array<{ _id: string; name: string }>>([]);
   const [brokersList, setBrokersList] = useState<Array<{ _id: string; name: string }>>([]);
-  const [transferMode, setTransferMode] = useState("all");
-
 
   // Helper functions for share modal
   const handleShareClick = (propertyId: string) => {
