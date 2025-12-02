@@ -82,6 +82,32 @@ type ApiLead = {
 function LeadsPageContent() {
   const DEFAULT_AVATAR = 'https://www.w3schools.com/howto/img_avatar.png';
   const pageSize = 9;
+
+  // Helper function to format price in Crores, Lakhs, Thousands, or Rupees
+  const formatPrice = (price: number | undefined | null): string => {
+    if (!price || price === 0) return '₹0';
+    
+    // 1 Crore = 1,00,00,000
+    if (price >= 10000000) {
+      const crores = price / 10000000;
+      return `₹${crores.toFixed(2)} Cr`;
+    }
+    
+    // 1 Lakh = 1,00,000
+    if (price >= 100000) {
+      const lakhs = price / 100000;
+      return `₹${lakhs.toFixed(2)} L`;
+    }
+    
+    // 1 Thousand = 1,000
+    if (price >= 1000) {
+      const thousands = price / 1000;
+      return `₹${thousands.toFixed(2)} K`;
+    }
+    
+    // Less than 1000, show in rupees
+    return `₹${price.toLocaleString('en-IN')}`;
+  };
   const searchParams = useSearchParams();
   const brokerId = searchParams.get('brokerId');
   const [searchTerm, setSearchTerm] = useState('');
@@ -450,9 +476,9 @@ function LeadsPageContent() {
         propertyType: lead.propertyType || '',
         budget:
           lead.budget !== undefined && lead.budget !== null
-            ? `$${lead.budget.toLocaleString('en-US')}`
+            ? formatPrice(lead.budget)
             : lead.price !== undefined && lead.price !== null
-            ? `$${lead.price.toLocaleString('en-US')}`
+            ? formatPrice(lead.price)
             : 'Not specified',
         region:
           typeof lead.primaryRegion === 'string'
