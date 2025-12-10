@@ -1,13 +1,16 @@
 {
-  "/_not-found/page": "/_not-found",
   "/api/image-proxy/route": "/api/image-proxy",
-  "/brokers/[id]/page": "/brokers/[id]",
-  "/brokers/page": "/brokers",
-  "/dashboard/page": "/dashboard",
+  "/_not-found/page": "/_not-found",
   "/favicon.ico/route": "/favicon.ico",
-  "/login/page": "/login",
-  "/page": "/",
+  "/dashboard/page": "/dashboard",
+  "/brokers/page": "/brokers",
+  "/brokers/[id]/page": "/brokers/[id]",
+  "/leads/page": "/leads",
+  "/notifications/page": "/notifications",
   "/properties/[id]/page": "/properties/[id]",
   "/properties/page": "/properties",
-  "/regions/page": "/regions"
+  "/support/page": "/support",
+  "/page": "/",
+  "/regions/page": "/regions",
+  "/login/page": "/login"
 }
