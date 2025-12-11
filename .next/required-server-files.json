@@ -150,7 +150,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "C:\\Users\\ankur",
+    "outputFileTracingRoot": "C:\\Users\\Algofolks",
     "experimental": {
       "useSkewCookie": false,
       "cacheLife": {
@@ -339,11 +339,11 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
     "turbopack": {
-      "root": "C:\\Users\\ankur"
+      "root": "C:\\Users\\Algofolks"
     }
   },
-  "appDir": "C:\\Users\\ankur\\Desktop\\Broker adda\\broker-adda-admin",
-  "relativeAppDir": "Desktop\\Broker adda\\broker-adda-admin",
+  "appDir": "C:\\Users\\Algofolks\\Desktop\\algo-pro\\broker-adda-admin",
+  "relativeAppDir": "Desktop\\algo-pro\\broker-adda-admin",
   "files": [
     ".next\\routes-manifest.json",
     ".next\\server\\pages-manifest.json",

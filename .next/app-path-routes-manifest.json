@@ -2,15 +2,15 @@
   "/api/image-proxy/route": "/api/image-proxy",
   "/_not-found/page": "/_not-found",
   "/favicon.ico/route": "/favicon.ico",
-  "/leads/page": "/leads",
-  "/notifications/page": "/notifications",
+  "/brokers/page": "/brokers",
+  "/brokers/[id]/page": "/brokers/[id]",
   "/dashboard/page": "/dashboard",
+  "/leads/page": "/leads",
+  "/login/page": "/login",
+  "/notifications/page": "/notifications",
+  "/regions/page": "/regions",
   "/properties/[id]/page": "/properties/[id]",
   "/properties/page": "/properties",
-  "/brokers/[id]/page": "/brokers/[id]",
-  "/brokers/page": "/brokers",
   "/support/page": "/support",
-  "/regions/page": "/regions",
-  "/page": "/",
-  "/login/page": "/login"
+  "/page": "/"
 }

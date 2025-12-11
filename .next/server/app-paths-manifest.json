@@ -2,15 +2,15 @@
   "/api/image-proxy/route": "app/api/image-proxy/route.js",
   "/_not-found/page": "app/_not-found/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/leads/page": "app/leads/page.js",
-  "/notifications/page": "app/notifications/page.js",
+  "/brokers/page": "app/brokers/page.js",
+  "/brokers/[id]/page": "app/brokers/[id]/page.js",
   "/dashboard/page": "app/dashboard/page.js",
+  "/leads/page": "app/leads/page.js",
+  "/login/page": "app/login/page.js",
+  "/notifications/page": "app/notifications/page.js",
+  "/regions/page": "app/regions/page.js",
   "/properties/[id]/page": "app/properties/[id]/page.js",
   "/properties/page": "app/properties/page.js",
-  "/brokers/[id]/page": "app/brokers/[id]/page.js",
-  "/brokers/page": "app/brokers/page.js",
   "/support/page": "app/support/page.js",
-  "/regions/page": "app/regions/page.js",
-  "/page": "app/page.js",
-  "/login/page": "app/login/page.js"
+  "/page": "app/page.js"
 }
