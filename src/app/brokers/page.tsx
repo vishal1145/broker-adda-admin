@@ -692,7 +692,7 @@ const router = useRouter();
             <h1 className="text-2xl font-bold text-gray-900">Brokers</h1>
             <button
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-white bg-teal-600 hover:bg-teal-700 text-sm shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-white bg-teal-600 hover:bg-teal-700 text-sm shadow-sm cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

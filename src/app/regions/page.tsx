@@ -669,7 +669,7 @@ export default function RegionsPage() {
                 }
                 setShowForm(!showForm);
               }}
-              className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors"
+              className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors cursor-pointer"
             >
               {showForm ? 'Cancel' : 'Add Region'}
             </button>
@@ -983,7 +983,7 @@ export default function RegionsPage() {
               </div>
 
               {/* Fixed bottom action buttons */}
-              <div className="flex space-x-3 pt-4 mt-6 pb-2">
+              <div className="flex space-x-3  pb-2">
                 <button
                   type="submit"
                   disabled={creating}
@@ -1406,7 +1406,7 @@ export default function RegionsPage() {
                 <button
                   type="submit"
                   disabled={updating}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+                className="flex-1 bg-teal-700 text-white px-4 py-2 rounded-lg hover:bg-teal-700 disabled:hover:bg-teal-600 disabled:opacity-50 cursor-pointer transition-colors flex items-center justify-center space-x-2"
                 >
                   {updating ? (
                     <>

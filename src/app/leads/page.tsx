@@ -191,7 +191,7 @@ function LeadsPageContent() {
 
   // Debounce search term to limit API calls while typing
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 800);
+    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm), 2000);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
