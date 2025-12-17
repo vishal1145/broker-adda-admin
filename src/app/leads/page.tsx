@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { leadsAPI, regionAPI } from '@/services/api';
+import { leadsAPI, regionAPI, brokerAPI } from '@/services/api';
 import { toast } from 'react-hot-toast';
 
 // Types
@@ -289,30 +289,37 @@ function LeadsPageContent() {
         setIsLoadingBrokers(true);
         setBrokersError(null);
         
-        // Check if token exists before making API call
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-          throw new Error('No authentication token found. Please login again.');
-        }
+        // Fetch brokers in batches (API limit is 100 per page)
+        const limit = 100; // Maximum allowed by API
+        const allBrokersData: Array<{
+          _id?: string; id?: string; name?: string; brokerName?: string; firmName?: string;
+        }> = [];
         
-        const response = await fetch('https://broker-adda-be.algofolks.com/api/brokers', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+        // Fetch first page to get pagination info
+        const firstResponse = await brokerAPI.getBrokers(1, limit, undefined, '', undefined);
+        const pagination = firstResponse?.data?.pagination || firstResponse?.pagination || {};
+        const totalPages = pagination.totalPages || 1;
+        
+        // Extract brokers from first page
+        const firstPageBrokers = firstResponse?.data?.brokers || firstResponse?.brokers || firstResponse?.data || [];
+        allBrokersData.push(...firstPageBrokers);
+        
+        // Fetch remaining pages if there are more
+        if (totalPages > 1) {
+          const pagePromises = [];
+          for (let page = 2; page <= totalPages; page++) {
+            pagePromises.push(brokerAPI.getBrokers(page, limit, undefined, '', undefined));
           }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          
+          const remainingResponses = await Promise.all(pagePromises);
+          remainingResponses.forEach((response) => {
+            const brokers = response?.data?.brokers || response?.brokers || response?.data || [];
+            allBrokersData.push(...brokers);
+          });
         }
-        
-        const data = await response.json();
         
         // Map API response to broker names array
-        const brokersData = data.data?.brokers || data.brokers || data.data || [];
-        
-        const brokerData = brokersData.map((broker: {
+        const brokerData = allBrokersData.map((broker: {
           _id?: string; id?: string; name?: string; brokerName?: string; firmName?: string;
         }) => ({
           id: broker._id || broker.id || '',
