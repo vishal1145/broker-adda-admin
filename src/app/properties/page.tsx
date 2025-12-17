@@ -951,7 +951,7 @@ function PropertiesPageContent() {
             {!brokerId && (
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 mb-6">
                 {/* Search Bar */}
-                <div className="flex-1 max-w-md">
+                <div className="w-full sm:w-64 md:w-72 lg:w-80 xl:w-[320px]">
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <svg
@@ -970,7 +970,7 @@ function PropertiesPageContent() {
                     </div>
                     <input
                       type="text"
-                      placeholder="Search by Property Name, Price, Region"
+                      placeholder="Search by Property Name, Region"
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
                       className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
@@ -1295,10 +1295,13 @@ function PropertiesPageContent() {
                   ) : (
                     paginatedCards.map(
                       (property: PropertyCard, idx: number) => (
-                        <div key={`${property._id}-${idx}`} className="relative">
+                        <div
+                          key={`${property._id}-${idx}`}
+                          className="relative bg-white rounded-lg border border-gray-200 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
+                        >
                           <Link
                           href={`/properties/${property._id}`}
-                          className="overflow-hidden "
+                            className="block overflow-hidden"
                         >
                           <div className="relative w-full h-48">
                             <Image
@@ -1320,7 +1323,7 @@ function PropertiesPageContent() {
                                 {property.description}
                               </div>
                             )}
-                            <div className="text-gray-900 text-base font-bold mb-2">
+                            <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 text-sm font-semibold mb-2">
                               {formatPrice(property.price)}
                             </div>
                             {/* City & Region plain with icons (no chips) */}
@@ -1488,8 +1491,7 @@ function PropertiesPageContent() {
                           )} of ${totalProperties} results`}
                     </div>
 
-                    {/* Pagination */}
-                    {totalPages > 1 && (
+                    {/* Pagination - always show when there are results */}
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => goToPage(safePage - 1)}
@@ -1497,7 +1499,7 @@ function PropertiesPageContent() {
                           className={`px-3 py-2 text-sm rounded-md border ${
                             safePage === 1
                               ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
-                              : "text-gray-700 bg-white border-gray-200 hover:bg-gray-50"
+                            : "text-gray-700 bg-white border-gray-200 hover:bg-gray-50 cursor-pointer"
                           }`}
                         >
                           Prev
@@ -1528,7 +1530,7 @@ function PropertiesPageContent() {
                               <button
                                 key="page-1"
                                 onClick={() => goToPage(1)}
-                                className="w-9 h-9 text-sm rounded-md border bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                                className="w-9 h-9 text-sm rounded-md border bg-white text-gray-700 border-gray-200 hover:bg-gray-50 cursor-pointer"
                               >
                                 1
                               </button>
@@ -1551,7 +1553,7 @@ function PropertiesPageContent() {
                               <button
                                 key={`page-${i}`}
                                 onClick={() => goToPage(i)}
-                                className={`w-9 h-9 text-sm rounded-md border ${
+                                className={`w-9 h-9 text-sm rounded-md border cursor-pointer ${
                                   i === safePage
                                     ? "bg-teal-600 text-white border-teal-600"
                                     : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
@@ -1578,7 +1580,7 @@ function PropertiesPageContent() {
                               <button
                                 key={`page-${totalPages}`}
                                 onClick={() => goToPage(totalPages)}
-                                className={`w-9 h-9 text-sm rounded-md border ${
+                                className={`w-9 h-9 text-sm rounded-md border cursor-pointer ${
                                   totalPages === safePage
                                     ? "bg-teal-600 text-white border-teal-600"
                                     : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
@@ -1597,13 +1599,12 @@ function PropertiesPageContent() {
                           className={`px-3 py-2 text-sm rounded-md border ${
                             safePage === totalPages
                               ? "text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed"
-                              : "text-gray-700 bg-white border-gray-200 hover:bg-gray-50"
+                              : "text-gray-700 bg-white border-gray-200 hover:bg-gray-50 cursor-pointer"
                           }`}
                         >
                           Next
                         </button>
                       </div>
-                    )}
                   </div>
                 )}
               </div>

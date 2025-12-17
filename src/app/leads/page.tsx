@@ -1207,10 +1207,10 @@ function LeadsPageContent() {
               </div>
 
               {/* Search and Filters - Under title/description */}
-              {!brokerId && (
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-                {/* Search Bar (left) */}
-                <div className="relative  w-[500px]">
+                {!brokerId && (
+                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                 {/* Search Bar (left) */}
+                 <div className="relative w-full sm:w-64 md:w-72 lg:w-80 xl:w-[320px]">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1307,7 +1307,7 @@ function LeadsPageContent() {
                 </div>
 
                   {/* Advanced Filters button */}
-                  <button onClick={() => setIsFiltersOpen(true)} className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  <button onClick={() => setIsFiltersOpen(true)} className={`px-4 py-2 text-sm font-medium rounded-md cursor-pointer transition-colors ${
                     isFilterApplied 
                       ? 'text-white bg-teal-600 border border-teal-600 hover:bg-teal-700' 
                       : 'text-teal-600 bg-white border border-teal-600 hover:bg-teal-50'
@@ -1583,7 +1583,7 @@ function LeadsPageContent() {
                                           e.stopPropagation();
                                           handleUnverifyClick(leadIdForApi, lead.name);
                                         }}
-                                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors text-xs flex-shrink-0"
+                                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors text-xs flex-shrink-0 cursor-pointer"
                                         title="Verified"
                                       >
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1599,7 +1599,7 @@ function LeadsPageContent() {
                                           e.stopPropagation();
                                           handleVerifyClick(leadIdForApi, lead.name);
                                         }}
-                                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded text-white bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-xs flex-shrink-0"
+                                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded text-white bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-xs flex-shrink-0 cursor-pointer"
                                         title="Unverified"
                                       >
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1780,7 +1780,7 @@ function LeadsPageContent() {
                                   })()}
                                 </div>
                                 <div className="flex items-center gap-6">
-                                  <button onClick={() => { setSelectedLead(lead); setIsViewOpen(true); }} className="group flex flex-col items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors">
+                                  <button onClick={() => { setSelectedLead(lead); setIsViewOpen(true); }} className="group flex flex-col items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer transition-colors">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -1799,7 +1799,8 @@ function LeadsPageContent() {
                 )}
               </div>
 
-              {/* Pagination - Below Grid */}
+              {/* Pagination - Below Grid (only show when we have at least one result) */}
+              {totalFilteredLeads > 0 && (
                 <div className="flex items-center justify-between mt-4">
                   {/* Range text */}
                   <div className="text-sm text-gray-700">
@@ -1815,7 +1816,7 @@ function LeadsPageContent() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1 || isLoadingLeads}
-                      className="px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
@@ -1855,12 +1856,13 @@ function LeadsPageContent() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalFilteredPages))}
                       disabled={currentPage === totalFilteredPages || isLoadingLeads}
-                      className="px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>
                   </div>
                 </div>
+              )}
             </div>
           </div>
 
@@ -2373,11 +2375,6 @@ function LeadsPageContent() {
                           <ul className="text-sm text-gray-700 space-y-3">
                             {/* Display All transfers */}
                             {allTransfers.map((t, i) => {
-                              const fromB = t && typeof t.fromBroker === "object" && t.fromBroker !== null
-                                ? t.fromBroker
-                                : (typeof t.fromBroker === "string" 
-                                    ? allBrokers.find(b => b.id === t.fromBroker) 
-                                    : null) || {};
                               const fromName = getBrokerName(t.fromBroker);
                               const when = t?.createdAt
                                 ? new Date(t.createdAt).toLocaleString()

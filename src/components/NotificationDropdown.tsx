@@ -116,33 +116,29 @@ export default function NotificationDropdown() {
     }
   }, []);
 
-  // Format time ago
+  // Format time ago with abbreviations
   const getTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
     if (diffInSeconds < 60) {
-      return `${diffInSeconds} seconds ago`;
+      return `${diffInSeconds}S`;
     } else if (diffInSeconds < 3600) {
       const minutes = Math.floor(diffInSeconds / 60);
-      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+      return `${minutes}M`;
     } else if (diffInSeconds < 86400) {
       const hours = Math.floor(diffInSeconds / 3600);
-      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+      return `${hours}H`;
     } else {
       const days = Math.floor(diffInSeconds / 86400);
-      return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+      return `${days}D`;
     }
   };
 
-  // Fetch notifications and unread count on mount and periodically
+  // Fetch notifications and unread count on mount only
   useEffect(() => {
     fetchNotifications(); // This also calculates unread count
-    // Refresh notifications (and count) every 10 seconds for faster updates
-    const interval = setInterval(() => {
-      fetchNotifications();
-    }, 10000);
     
     // Refresh when page becomes visible (user returns from notifications page)
     const handleVisibilityChange = () => {
@@ -167,7 +163,6 @@ export default function NotificationDropdown() {
     window.addEventListener('focus', handleWindowFocus);
     
     return () => {
-      clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('notification-refresh', handleNotificationRefresh);
       window.removeEventListener('focus', handleWindowFocus);

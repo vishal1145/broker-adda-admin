@@ -213,23 +213,23 @@ export default function NotificationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Format time ago
+  // Format time ago with abbreviations
   const getTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
     if (diffInSeconds < 60) {
-      return `${diffInSeconds} seconds ago`;
+      return `${diffInSeconds}S`;
     } else if (diffInSeconds < 3600) {
       const minutes = Math.floor(diffInSeconds / 60);
-      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+      return `${minutes}M`;
     } else if (diffInSeconds < 86400) {
       const hours = Math.floor(diffInSeconds / 3600);
-      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+      return `${hours}H`;
     } else {
       const days = Math.floor(diffInSeconds / 86400);
-      return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+      return `${days}D`;
     }
   };
 

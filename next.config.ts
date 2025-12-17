@@ -45,6 +45,17 @@ const nextConfig: NextConfig = {
         hostname: 'broker-adda-be.algofolks.com',
         pathname: '/uploads/images/**',
       },
+      // ✅ Allow images from Fly.io backend host used in properties (e.g. https://broker-adda-be.fly.dev/uploads/...)
+      {
+        protocol: 'https',
+        hostname: 'broker-adda-be.fly.dev',
+        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'broker-adda-be.fly.dev',
+        pathname: '/uploads/images/**',
+      },
       {
         protocol: 'https',
         hostname: 'broker-adda.algofolks.com',

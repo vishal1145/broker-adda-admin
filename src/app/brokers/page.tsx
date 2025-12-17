@@ -190,7 +190,8 @@ function BrokersPageInner() {
   const [brokerStats, setBrokerStats] = useState({
     total: 0,
     unblocked: 0,
-    blocked: 0
+    blocked: 0,
+    verified: 0
   });
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showUnblockConfirm, setShowUnblockConfirm] = useState(false);
@@ -276,13 +277,15 @@ function BrokersPageInner() {
       setTotalPages(pagination.totalPages || 1);
       setTotalBrokers(pagination.totalBrokers || (Array.isArray(list) ? list.length : 0));
       
-      // Update broker statistics from API response
+      // Update broker statistics from API response (total / blocked / unblocked)
       if (response.data.stats) {
-        setBrokerStats({
+        setBrokerStats(prev => ({
           total: response.data.stats.totalAllBrokers || 0,
           unblocked: response.data.stats.totalUnblockedBrokers || 0,
-          blocked: response.data.stats.totalBlockedBrokers || 0
-        });
+          blocked: response.data.stats.totalBlockedBrokers || 0,
+          // Preserve previously computed verified count (it is updated separately)
+          verified: prev.verified
+        }));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch brokers');
@@ -290,6 +293,71 @@ function BrokersPageInner() {
       setLoading(false);
     }
   }, [currentPage, debouncedStatusFilter, debouncedSearchTerm, regionFilter]);
+
+  // Fetch total verified brokers across ALL pages (independent of current pagination)
+  const fetchVerifiedBrokerCount = useCallback(async () => {
+    try {
+      // First page to get pagination info
+      const firstResponse = await brokerAPI.getBrokers(1, 50, undefined, '', undefined);
+      const pagination = firstResponse?.data?.pagination || firstResponse?.pagination || { totalPages: 1 };
+      const totalPagesForVerified = pagination.totalPages || 1;
+
+      const collectFromResponse = (resp: unknown): Broker[] => {
+        if (!resp || typeof resp !== 'object') return [];
+        const r = resp as 
+          | { data?: { brokers?: Broker[] }; brokers?: Broker[] }
+          | { brokers?: Broker[]; data?: Broker[] };
+        // Try different response structures
+        if ('data' in r && r.data && typeof r.data === 'object' && 'brokers' in r.data) {
+          return (r.data.brokers || []) as Broker[];
+        }
+        if ('brokers' in r && Array.isArray(r.brokers)) {
+          return r.brokers;
+        }
+        if ('data' in r && Array.isArray(r.data)) {
+          return r.data as Broker[];
+        }
+        return [];
+      };
+
+      const allBrokers: Broker[] = [];
+      allBrokers.push(...collectFromResponse(firstResponse));
+
+      // Fetch remaining pages (if any) sequentially to keep it simple and safe
+      for (let page = 2; page <= totalPagesForVerified; page++) {
+        const resp = await brokerAPI.getBrokers(page, 50, undefined, '', undefined);
+        allBrokers.push(...collectFromResponse(resp));
+      }
+
+      // Determine verified status robustly
+      const isBrokerVerified = (broker: Broker): boolean => {
+        const raw =
+          (broker.verificationStatus as unknown) ??
+          (broker as unknown as { verification_status?: unknown }).verification_status ??
+          (broker as unknown as { isVerified?: unknown }).isVerified;
+
+        if (typeof raw === 'string') {
+          return raw.toLowerCase() === 'verified';
+        }
+        if (typeof raw === 'boolean') {
+          return raw === true;
+        }
+        return false;
+      };
+
+      const verifiedCount = allBrokers.reduce(
+        (count, broker) => (isBrokerVerified(broker) ? count + 1 : count),
+        0
+      );
+
+      setBrokerStats(prev => ({
+        ...prev,
+        verified: verifiedCount
+      }));
+    } catch (err) {
+      console.error('Error fetching verified brokers count:', err);
+    }
+  }, []);
 
   // Fetch regions for filter dropdown
   const fetchRegions = useCallback(async () => {
@@ -439,6 +507,9 @@ function BrokersPageInner() {
         [selectedBrokerId]: 'verified'
       }));
       
+      // Refresh verified brokers stats so the card reflects all verified brokers
+      await fetchVerifiedBrokerCount();
+      
       // Also refresh from API to get any other updates
       await fetchBrokers();
       
@@ -471,6 +542,9 @@ function BrokersPageInner() {
         [selectedBrokerId]: 'unverified'
       }));
       
+      // Refresh verified brokers stats so the card reflects all verified brokers
+      await fetchVerifiedBrokerCount();
+      
       // Also refresh from API to get any other updates
       await fetchBrokers();
       
@@ -489,10 +563,30 @@ function BrokersPageInner() {
 
   // Client-side filter only for membership (region and search handled by backend)
   const filteredBrokers = brokers.filter(broker => {
-    return (
+    // Membership filter (client-side)
+    const membershipOk =
       membershipFilter === 'all' ||
-      (broker.subscription && broker?.subscription?.planType.toLowerCase() == membershipFilter.toLowerCase())
-    );
+      (broker.subscription &&
+        broker?.subscription?.planType.toLowerCase() === membershipFilter.toLowerCase());
+
+    // Approved (blocked/unblocked) filter - applies client-side as an extra safety
+    const approvedOk =
+      statusFilter === 'unblocked'
+        ? broker.approvedByAdmin === 'unblocked'
+        : statusFilter === 'blocked'
+        ? broker.approvedByAdmin === 'blocked'
+        : true;
+
+    // Verification filter (client-side only)
+    const verifyStatus = getVerificationStatus(broker._id);
+    const verificationOk =
+      statusFilter === 'verified'
+        ? verifyStatus === 'verified'
+        : statusFilter === 'unverified'
+        ? verifyStatus === 'unverified'
+        : true;
+
+    return membershipOk && approvedOk && verificationOk;
   });
 
 
@@ -500,7 +594,8 @@ function BrokersPageInner() {
   useEffect(() => {
     fetchBrokers();
     fetchRegions();
-  }, [fetchBrokers, fetchRegions]);
+    fetchVerifiedBrokerCount();
+  }, [fetchBrokers, fetchRegions, fetchVerifiedBrokerCount]);
 
   // Handle search and status filter changes with debouncing for API-backed filters
   useEffect(() => {
@@ -646,6 +741,8 @@ const router = useRouter();
                 <option value="all">All Brokers</option>
                 <option value="unblocked">Unblocked</option>
                 <option value="blocked">Blocked</option>
+                <option value="verified">Verified Brokers</option>
+                <option value="unverified">Unverified Brokers</option>
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -723,7 +820,7 @@ const router = useRouter();
         {loading ? (
           <SummaryCardsSkeleton />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {/* Total Brokers Card */}
             <div className="bg-teal-50 rounded-lg p-6 border border-teal-200">
               <div className="flex items-center justify-between">
@@ -749,6 +846,21 @@ const router = useRouter();
                 <div className="bg-green-100 rounded-lg p-2">
                   <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Verified Brokers Card */}
+            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-600 text-xs font-medium">Verified Brokers</p>
+                  <p className="text-xl font-bold text-blue-700">{brokerStats.verified}</p>
+                </div>
+                <div className="bg-blue-100 rounded-lg p-2">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m-3-6a9 9 0 100 18 9 9 0 000-18z" />
                   </svg>
                 </div>
               </div>
@@ -1001,7 +1113,7 @@ const router = useRouter();
                        <div className="text-sm space-y-1">
   {/* Leads count (clickable) */}
   <div
-    className="capitalize text-gray-500 cursor-pointer hover:text-gray-700"
+                            className="capitalize text-blue-500 cursor-pointer hover:text-blue-600 transition-colors"
     onClick={() => router.push(`/leads?brokerId=${broker?._id}`)}
   >
     {getLeadCount(broker)} leads
@@ -1009,7 +1121,7 @@ const router = useRouter();
 
   {/* Properties count (clickable) */}
   <div
-    className="text-gray-500 text-xs capitalize cursor-pointer hover:text-gray-700"
+                            className="text-blue-500 text-xs capitalize cursor-pointer hover:text-blue-600 transition-colors"
     onClick={() => router.push(`/properties?brokerId=${broker?._id}`)}
   >
     {broker?.propertyCount || broker?.propertiesCount || 0} properties

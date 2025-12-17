@@ -147,6 +147,19 @@ function SupportPageInner() {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [selectedContactName, setSelectedContactName] = useState<string>('');
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<string>('');
+
+  // Helper function to truncate message to 20 words
+  const truncateMessage = (message: string, maxWords: number = 20): { truncated: string; full: string; shouldTruncate: boolean } => {
+    if (!message || typeof message !== 'string') {
+      return { truncated: '-', full: '-', shouldTruncate: false };
+    }
+    const words = message.trim().split(/\s+/);
+    const shouldTruncate = words.length > maxWords;
+    const truncated = shouldTruncate ? words.slice(0, maxWords).join(' ') : message;
+    return { truncated, full: message, shouldTruncate };
+  };
 
   // Fetch contacts from API
   const fetchContacts = useCallback(async () => {
@@ -441,21 +454,21 @@ function SupportPageInner() {
 
             {/* Filter Buttons */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* Date Filter */}
-              <div className="relative">
+            
+              {/* <div className="relative">
                 <input
                   type="date"
                   onChange={(e) => {
-                    // You can add date filtering logic here
+                 
                     console.log('Date filter:', e.target.value);
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   placeholder="Filter by Date"
                 />
-              </div>
+              </div> */}
               
               {/* Status Filter */}
-              <div className="relative">
+              {/* <div className="relative">
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -470,7 +483,7 @@ function SupportPageInner() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
-              </div>
+              </div> */}
               
               {(searchTerm || statusFilter !== 'all') && (
                 <button
@@ -605,6 +618,32 @@ function SupportPageInner() {
                               // Determine text color based on column type
                               const textColorClass = isMessageOrBodyColumn ? 'text-gray-500' : 'text-gray-900';
                               
+                              // Handle message truncation
+                              if (isMessageOrBodyColumn && typeof formattedValue === 'string' && formattedValue !== '-') {
+                                const messageText = formattedValue;
+                                const { truncated, full, shouldTruncate } = truncateMessage(messageText);
+                                
+                                return (
+                                  <div key={column} className={`text-sm ${textColorClass}`}>
+                                    <span>{truncated}</span>
+                                    {shouldTruncate && (
+                                      <>
+                                        <span> </span>
+                                        <button
+                                          onClick={() => {
+                                            setSelectedMessage(full);
+                                            setShowMessageModal(true);
+                                          }}
+                                          className="text-blue-500 hover:text-blue-600 cursor-pointer underline"
+                                        >
+                                          Show more...
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              
                               return (
                                 <div key={column} className={`text-sm ${textColorClass}`}>
                                   {isStatusColumn && typeof formattedValue === 'string' && formattedValue.startsWith('__CHIP__') ? (
@@ -652,6 +691,44 @@ function SupportPageInner() {
                   disabledClassName="opacity-50 cursor-not-allowed"
                   renderOnZeroPageCount={null}
                 />
+              </div>
+            </div>
+          )}
+
+          {/* Message Modal */}
+          {showMessageModal && (
+            <div className="fixed inset-0 flex items-center justify-center z-50 bg-[rgba(0,0,0,0.8)]">
+              <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 shadow-2xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Full Message</h3>
+                  <button
+                    onClick={() => {
+                      setShowMessageModal(false);
+                      setSelectedMessage('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {selectedMessage}
+                  </p>
+                </div>
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={() => {
+                      setShowMessageModal(false);
+                      setSelectedMessage('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           )}

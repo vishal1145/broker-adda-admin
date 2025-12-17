@@ -604,7 +604,7 @@ export default function RegionsPage() {
 
   // No client-side filtering needed - using server-side filtering
 
-  // Fetch regions and statistics when component mounts
+  // Fetch regions (unfiltered) and statistics when component mounts
   useEffect(() => {
     console.log('🚀 RegionsPage component mounted');
     console.log('🚀 Checking for admin token...');
@@ -613,9 +613,10 @@ export default function RegionsPage() {
     if (token) {
       console.log('🚀 Token preview:', token.substring(0, 20) + '...');
     }
-    fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
+    // Initial load without any search/filter so we avoid duplicate calls
+    fetchRegions(1, itemsPerPage);
     fetchRegionStats();
-  }, [fetchRegions, fetchRegionStats, itemsPerPage, cityFilter, searchTerm, stateFilter]);
+  }, [fetchRegions, fetchRegionStats, itemsPerPage]);
 
   // Handle search and filter changes with debouncing
   useEffect(() => {
@@ -777,12 +778,12 @@ export default function RegionsPage() {
             maxHeight: '90vh',
             margin: 'auto',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            overflow: 'auto',
+            overflow: 'hidden',
             scrollbarWidth: 'none', /* Firefox */
             msOverflowStyle: 'none' /* Internet Explorer 10+ */
           } as React.CSSProperties}
         >
-          <div className="popup-content p-6">
+          <div className="popup-content p-6 max-h-[85vh] flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Add New Region</h3>
               <button
@@ -791,7 +792,7 @@ export default function RegionsPage() {
                   setShowForm(false);
                 }}
                 disabled={creating}
-                className="text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-gray-400 transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -799,7 +800,10 @@ export default function RegionsPage() {
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6 flex flex-col">
+
+              {/* Scrollable form content */}
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
 
               {/* State and City - Side by Side */}
               <div className="grid grid-cols-2 gap-4">
@@ -976,11 +980,14 @@ export default function RegionsPage() {
                   required
                 />
               </div>
-              <div className="flex space-x-3 pt-4">
+              </div>
+
+              {/* Fixed bottom action buttons */}
+              <div className="flex space-x-3 pt-4 mt-6 pb-2">
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 bg-[var(--color-teal-600)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-teal-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center space-x-2"
+                className="flex-1 bg-[var(--color-teal-600)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-teal-700)] disabled:hover:bg-[var(--color-teal-600)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
                 >
                   {creating ? (
                     <>
@@ -1001,7 +1008,7 @@ export default function RegionsPage() {
                     setShowForm(false);
                   }}
                   disabled={creating}
-                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Cancel
                 </button>
@@ -1040,7 +1047,7 @@ export default function RegionsPage() {
               <h3 className="text-lg font-semibold text-gray-900">Region Description</h3>
               <button
                 onClick={() => setShowDescriptionPopup(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 disabled:hover:text-gray-400 transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1139,7 +1146,7 @@ export default function RegionsPage() {
               <button
                 onClick={handleDeleteRegion}
                 disabled={deleting}
-                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center space-x-2"
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
               >
                 {deleting ? (
                   <>
@@ -1159,7 +1166,7 @@ export default function RegionsPage() {
                   setRegionToDelete(null);
                 }}
                 disabled={deleting}
-                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Cancel
               </button>
@@ -1190,12 +1197,12 @@ export default function RegionsPage() {
             maxHeight: '90vh',
             margin: 'auto',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            overflow: 'auto',
+            overflow: 'hidden',
             scrollbarWidth: 'none', /* Firefox */
             msOverflowStyle: 'none' /* Internet Explorer 10+ */
           } as React.CSSProperties}
         >
-          <div className="popup-content p-6">
+          <div className="popup-content p-6 max-h-[85vh] flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Edit Region</h3>
               <button
@@ -1203,7 +1210,7 @@ export default function RegionsPage() {
                   resetEditForm();
                   setShowEditForm(false);
                 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 disabled:hover:text-gray-400 transition-colors"
                 disabled={updating}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1212,7 +1219,10 @@ export default function RegionsPage() {
               </button>
             </div>
             
-            <form onSubmit={handleEditSubmit} className="space-y-6">
+            <form onSubmit={handleEditSubmit} className="space-y-6 flex flex-col">
+
+              {/* Scrollable form content */}
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
 
               {/* State and City - Side by Side */}
               <div className="grid grid-cols-2 gap-4">
@@ -1389,11 +1399,14 @@ export default function RegionsPage() {
                   required
                 />
               </div>
-              <div className="flex space-x-3 pt-4">
+              </div>
+
+              {/* Fixed bottom action buttons */}
+              <div className="flex space-x-3  pb-2">
                 <button
                   type="submit"
                   disabled={updating}
-                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center space-x-2"
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
                 >
                   {updating ? (
                     <>
@@ -1414,7 +1427,7 @@ export default function RegionsPage() {
                     setShowEditForm(false);
                   }}
                   disabled={updating}
-                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Cancel
                 </button>
@@ -1586,7 +1599,7 @@ export default function RegionsPage() {
                         <div className="text-sm">
                           <Link 
                             href={`/brokers?regionId=${region._id}`}
-                            className="font-semibold text-gray-900 cursor-pointer"
+                            className="font-semibold text-blue-500 hover:text-blue-600 cursor-pointer transition-colors"
                             title="View brokers in this region"
                           >
                             {region.brokerCount || 0} Brokers
@@ -1599,7 +1612,7 @@ export default function RegionsPage() {
                             <>
                               <button
                                 onClick={() => handleEditClick(region)}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors cursor-pointer"
                                 title="Edit"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1608,7 +1621,7 @@ export default function RegionsPage() {
                               </button>
                               <button
                                 onClick={() => handleDeleteClick(region)}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors cursor-pointer"
                                 title="Delete"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1648,10 +1661,11 @@ export default function RegionsPage() {
                 containerClassName="flex items-center space-x-1"
                 pageClassName="px-3 py-2 text-sm font-medium rounded-md cursor-pointer text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
                 activeClassName="!bg-teal-600 !text-white !border-teal-600"
-                previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
+                nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
                 breakClassName="px-3 py-2 text-sm font-medium text-gray-500"
-                disabledClassName="opacity-50 cursor-not-allowed"
+                disabledClassName="opacity-50 cursor-not-allowed pointer-events-none"
+                disabledLinkClassName="cursor-not-allowed pointer-events-none"
                 renderOnZeroPageCount={null}
               />
             </div>

@@ -7,23 +7,23 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } fro
 import Link from 'next/link';
 import { leadsAPI, regionAPI, propertiesAPI, brokerAPI, notificationsAPI, dashboardAPI } from '@/services/api';
 
-// Helper function to format time ago
+// Helper function to format time ago with abbreviations
 const formatTimeAgo = (dateString: string): string => {
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
   
   if (diffInSeconds < 60) {
-    return 'just now';
+    return `${diffInSeconds}S`;
   } else if (diffInSeconds < 3600) {
     const minutes = Math.floor(diffInSeconds / 60);
-    return `${minutes} min ago`;
+    return `${minutes}M`;
   } else if (diffInSeconds < 86400) {
     const hours = Math.floor(diffInSeconds / 3600);
-    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return `${hours}H`;
   } else {
     const days = Math.floor(diffInSeconds / 86400);
-    return `${days} day${days > 1 ? 's' : ''} ago`;
+    return `${days}D`;
   }
 };
 
