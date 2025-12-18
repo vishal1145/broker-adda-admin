@@ -738,7 +738,7 @@ function LeadsPageContent() {
     // Only refetch if filters actually changed
     fetchLeads();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm, statusFilter, brokerId]);
+  }, [debouncedSearchTerm, statusFilter, brokerId, filterRegion, filterBroker]);
 
 
   const closeView = () => {

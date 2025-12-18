@@ -230,6 +230,7 @@ function BrokersPageInner() {
 
       const approvedByAdmin = debouncedStatusFilter === 'unblocked' ? 'unblocked' : debouncedStatusFilter === 'blocked' ? 'blocked' : undefined;
       const regionIdForQuery = (regionFilter && regionFilter !== 'all') ? regionFilter : undefined;
+      const membershipForQuery = (membershipFilter && membershipFilter !== 'all') ? membershipFilter : undefined;
       
       // Single API call with limit=50
       const response = await brokerAPI.getBrokers(
@@ -237,7 +238,8 @@ function BrokersPageInner() {
         50,
         approvedByAdmin,
         debouncedSearchTerm || '',
-        regionIdForQuery
+        regionIdForQuery,
+        membershipForQuery
       );
       
       // Extract list from API response
@@ -299,7 +301,7 @@ function BrokersPageInner() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedStatusFilter, debouncedSearchTerm, regionFilter]);
+  }, [debouncedStatusFilter, debouncedSearchTerm, regionFilter, membershipFilter]);
 
   // Get current page brokers (client-side pagination)
   const paginatedBrokers = useMemo(() => {
@@ -538,7 +540,7 @@ function BrokersPageInner() {
   });
 
   const hasFetched = useRef(false);
-  const prevFilters = useRef({ page: currentPage, search: debouncedSearchTerm, status: debouncedStatusFilter });
+  const prevFilters = useRef({ page: currentPage, search: debouncedSearchTerm, status: debouncedStatusFilter, region: regionFilter, membership: membershipFilter });
 
   // Fetch brokers when component mounts (only once)
   useEffect(() => {
@@ -567,13 +569,13 @@ function BrokersPageInner() {
   // Refetch when debounced filters change (skip if values haven't actually changed)
   useEffect(() => {
     const prev = prevFilters.current;
-    if (prev.page === currentPage && prev.search === debouncedSearchTerm && prev.status === debouncedStatusFilter) {
+    if (prev.page === currentPage && prev.search === debouncedSearchTerm && prev.status === debouncedStatusFilter && prev.region === regionFilter && prev.membership === membershipFilter) {
       return;
     }
-    prevFilters.current = { page: currentPage, search: debouncedSearchTerm, status: debouncedStatusFilter };
+    prevFilters.current = { page: currentPage, search: debouncedSearchTerm, status: debouncedStatusFilter, region: regionFilter, membership: membershipFilter };
     fetchBrokers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, debouncedSearchTerm, debouncedStatusFilter]);
+  }, [currentPage, debouncedSearchTerm, debouncedStatusFilter, regionFilter, membershipFilter]);
 
   // Helper functions
 
