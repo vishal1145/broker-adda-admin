@@ -135,6 +135,7 @@ function SupportPageInner() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [debouncedStatusFilter, setDebouncedStatusFilter] = useState('all');
+  const [isSearching, setIsSearching] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [totalPages, setTotalPages] = useState(1);
@@ -396,13 +397,16 @@ function SupportPageInner() {
 
   // Handle search and status filter changes with debouncing
   useEffect(() => {
+    setIsSearching(true);
     const timeoutId = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
       setDebouncedStatusFilter(statusFilter);
       setCurrentPage(1);
+      setIsSearching(false);
     }, 500);
     return () => {
       clearTimeout(timeoutId);
+      setIsSearching(false);
     };
   }, [searchTerm, statusFilter]);
 
@@ -438,9 +442,15 @@ function SupportPageInner() {
             <div className="flex-1 max-w-md">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                  {isSearching ? (
+                    <svg className="h-5 w-5 text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  )}
                 </div>
                 <input
                   type="text"
@@ -634,9 +644,9 @@ function SupportPageInner() {
                                             setSelectedMessage(full);
                                             setShowMessageModal(true);
                                           }}
-                                          className="text-blue-500 hover:text-blue-600 cursor-pointer underline"
+                                          className="text-blue-500 hover:text-blue-600 cursor-pointer "
                                         >
-                                          Show more...
+                                              Show more
                                         </button>
                                       </>
                                     )}

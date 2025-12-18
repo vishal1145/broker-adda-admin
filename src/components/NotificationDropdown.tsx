@@ -123,16 +123,16 @@ export default function NotificationDropdown() {
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
     if (diffInSeconds < 60) {
-      return `${diffInSeconds}S`;
+      return `${diffInSeconds}s`;
     } else if (diffInSeconds < 3600) {
       const minutes = Math.floor(diffInSeconds / 60);
-      return `${minutes}M`;
+      return `${minutes}m`;
     } else if (diffInSeconds < 86400) {
       const hours = Math.floor(diffInSeconds / 3600);
-      return `${hours}H`;
+      return `${hours}h`;
     } else {
       const days = Math.floor(diffInSeconds / 86400);
-      return `${days}D`;
+      return `${days}d`;
     }
   };
 

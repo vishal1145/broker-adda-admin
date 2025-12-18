@@ -621,11 +621,16 @@ export default function RegionsPage() {
 
   // Debounce search term - only update debouncedSearchTerm after user stops typing
   useEffect(() => {
+    setIsSearching(true);
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-    }, 3000); // 500ms delay
+      setIsSearching(false);
+    }, 500); // 500ms delay
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      setIsSearching(false);
+    };
   }, [searchTerm]);
 
   // Fetch regions when debounced search term or filters change
@@ -635,10 +640,8 @@ export default function RegionsPage() {
       return;
     }
     
-    setIsSearching(true);
     setCurrentPage(1);
     fetchRegions(1, itemsPerPage, debouncedSearchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
-    setIsSearching(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, stateFilter, cityFilter]);
 
