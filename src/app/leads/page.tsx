@@ -720,9 +720,6 @@ function LeadsPageContent() {
     setCurrentPage(1);
   }, [brokerId]);
 
-  // Track if this is the initial mount
-  const isInitialMount = useRef(true);
-
   // Fetch leads when key inputs change (debounced)
   useEffect(() => {
     if (!hasFetchedLeads.current) {
@@ -730,15 +727,10 @@ function LeadsPageContent() {
       fetchLeads();
       return;
     }
-    // Skip if this is still the initial mount phase (React Strict Mode double render)
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    // Only refetch if filters actually changed
+    // Refetch when filters change
     fetchLeads();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm, statusFilter, brokerId, filterRegion, filterBroker]);
+  }, [debouncedSearchTerm, statusFilter, brokerId, filterRegion, filterBroker, appliedFilters, isFilterApplied]);
 
 
   const closeView = () => {
@@ -983,14 +975,11 @@ function LeadsPageContent() {
     setAppliedFilters(snapshot);
     setIsFilterApplied(true);
     setIsFiltersOpen(false);
-    
-    // Trigger API call with filters
-    console.log('🚀 Triggering API call with filters...');
-    await fetchLeads();
+    // API call will be triggered by useEffect when appliedFilters changes
   };
 
   // Clear Advanced Filters
-  const clearFilters = async () => {
+  const clearFilters = () => {
     console.log('🧹 Clearing all filters...');
     setFilterRegion('');
     setFilterBroker('');
@@ -1000,10 +989,7 @@ function LeadsPageContent() {
     setIsFilterApplied(false);
     setAppliedFilters(undefined);
     setIsFiltersOpen(false);
-    
-    // Trigger API call without filters
-    console.log('🚀 Triggering API call without filters...');
-    await fetchLeads();
+    // API call will be triggered by useEffect when appliedFilters changes
   };
 
   // Apply client-side filtering as fallback when server-side filtering doesn't work properly
