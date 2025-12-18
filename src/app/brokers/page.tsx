@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense, useRef } from 'react';
+import { useState, useEffect, useCallback, Suspense, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -218,51 +218,41 @@ function BrokersPageInner() {
   const showPhoneError = (newBroker.phone || '').length > 0 && (!isPhoneValid || isPhoneDuplicate);
   const isFormValid = isNameValid && isEmailValid && isPhoneValid && !isPhoneDuplicate && !isEmailDuplicate;
 
-  // Fetch brokers from API (backend pagination; backend region and search when provided)
+  // Store all brokers for client-side pagination
+  const [allBrokersData, setAllBrokersData] = useState<Broker[]>([]);
+  const itemsPerPage = 10;
+
+  // Fetch all brokers from API (single call with limit=50, client-side pagination)
   const fetchBrokers = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      const effectivePage = currentPage;
-      const effectiveLimit = 10;
       const approvedByAdmin = debouncedStatusFilter === 'unblocked' ? 'unblocked' : debouncedStatusFilter === 'blocked' ? 'blocked' : undefined;
-
-      // Choose endpoint based on region filter
       const regionIdForQuery = (regionFilter && regionFilter !== 'all') ? regionFilter : undefined;
+      
+      // Single API call with limit=50
       const response = await brokerAPI.getBrokers(
-        effectivePage,
-        effectiveLimit,
+        1,
+        50,
         approvedByAdmin,
         debouncedSearchTerm || '',
         regionIdForQuery
       );
       
-      console.log('📊 API Response:', response); // Debug log
-      console.log('📊 Brokers data:', response.data.brokers);
-      
-      // Debug each broker's approvedByAdmin value
-      if (response.data.brokers) {
-        response.data.brokers.forEach((broker: Broker, index: number) => {
-          console.log(`📊 Broker ${index + 1}:`, {
-            _id: broker._id,
-            name: broker.name,
-            approvedByAdmin: broker.approvedByAdmin,
-            type: typeof broker.approvedByAdmin
-          });
-        });
-      }
-      
-      // Extract list from either API shape and preserve membership if provided
+      // Extract list from API response
       const list = response?.data?.brokers || response?.brokers || response?.data || [];
-      // const brokersWithMembership = (list as Broker[]).map((broker: Broker, index: number) => ({
-      //   ...broker,
-      //   membership: broker.membership || (['basic', 'standard', 'premium'][index % 3] as 'basic' | 'standard' | 'premium')
-      // }));
       
-      setBrokers(list);
+      // Store all brokers for client-side pagination
+      setAllBrokersData(list);
       
-      // Initialize verification status from API response if available
+      // Calculate total pages for client-side pagination (10 items per page)
+      const totalItems = list.length;
+      const calculatedTotalPages = Math.ceil(totalItems / itemsPerPage);
+      setTotalPages(calculatedTotalPages || 1);
+      setTotalBrokers(totalItems);
+      
+      // Initialize verification status from API response
       const verificationStatusMap: Record<string, 'verified' | 'unverified'> = {};
       list.forEach((broker: Broker) => {
         if (broker.verificationStatus) {
@@ -272,92 +262,56 @@ function BrokersPageInner() {
       if (Object.keys(verificationStatusMap).length > 0) {
         setVerificationStatus(prev => ({ ...prev, ...verificationStatusMap }));
       }
-
-      const pagination = response?.data?.pagination || response?.pagination || {};
-      setTotalPages(pagination.totalPages || 1);
-      setTotalBrokers(pagination.totalBrokers || (Array.isArray(list) ? list.length : 0));
       
-      // Update broker statistics from API response (total / blocked / unblocked)
+      // Update broker statistics from API response
       if (response.data.stats) {
         setBrokerStats(prev => ({
           total: response.data.stats.totalAllBrokers || 0,
           unblocked: response.data.stats.totalUnblockedBrokers || 0,
           blocked: response.data.stats.totalBlockedBrokers || 0,
-          // Preserve previously computed verified count (it is updated separately)
           verified: prev.verified
         }));
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch brokers');
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, debouncedStatusFilter, debouncedSearchTerm, regionFilter]);
-
-  // Fetch total verified brokers across ALL pages (independent of current pagination)
-  const fetchVerifiedBrokerCount = useCallback(async () => {
-    try {
-      // First page to get pagination info
-      const firstResponse = await brokerAPI.getBrokers(1, 50, undefined, '', undefined);
-      const pagination = firstResponse?.data?.pagination || firstResponse?.pagination || { totalPages: 1 };
-      const totalPagesForVerified = pagination.totalPages || 1;
-
-      const collectFromResponse = (resp: unknown): Broker[] => {
-        if (!resp || typeof resp !== 'object') return [];
-        const r = resp as 
-          | { data?: { brokers?: Broker[] }; brokers?: Broker[] }
-          | { brokers?: Broker[]; data?: Broker[] };
-        // Try different response structures
-        if ('data' in r && r.data && typeof r.data === 'object' && 'brokers' in r.data) {
-          return (r.data.brokers || []) as Broker[];
-        }
-        if ('brokers' in r && Array.isArray(r.brokers)) {
-          return r.brokers;
-        }
-        if ('data' in r && Array.isArray(r.data)) {
-          return r.data as Broker[];
-        }
-        return [];
-      };
-
-      const allBrokers: Broker[] = [];
-      allBrokers.push(...collectFromResponse(firstResponse));
-
-      // Fetch remaining pages (if any) sequentially to keep it simple and safe
-      for (let page = 2; page <= totalPagesForVerified; page++) {
-        const resp = await brokerAPI.getBrokers(page, 50, undefined, '', undefined);
-        allBrokers.push(...collectFromResponse(resp));
-      }
-
-      // Determine verified status robustly
+      
+      // Calculate verified count from all brokers
       const isBrokerVerified = (broker: Broker): boolean => {
         const raw =
           (broker.verificationStatus as unknown) ??
           (broker as unknown as { verification_status?: unknown }).verification_status ??
           (broker as unknown as { isVerified?: unknown }).isVerified;
-
-        if (typeof raw === 'string') {
-          return raw.toLowerCase() === 'verified';
-        }
-        if (typeof raw === 'boolean') {
-          return raw === true;
-        }
+        if (typeof raw === 'string') return raw.toLowerCase() === 'verified';
+        if (typeof raw === 'boolean') return raw === true;
         return false;
       };
-
-      const verifiedCount = allBrokers.reduce(
-        (count, broker) => (isBrokerVerified(broker) ? count + 1 : count),
+      
+      const verifiedCount = list.reduce(
+        (count: number, broker: Broker) => (isBrokerVerified(broker) ? count + 1 : count),
         0
       );
-
+      
       setBrokerStats(prev => ({
         ...prev,
         verified: verifiedCount
       }));
+      
     } catch (err) {
-      console.error('Error fetching verified brokers count:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch brokers');
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [debouncedStatusFilter, debouncedSearchTerm, regionFilter]);
+
+  // Get current page brokers (client-side pagination)
+  const paginatedBrokers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return allBrokersData.slice(startIndex, endIndex);
+  }, [allBrokersData, currentPage]);
+
+  // Update brokers state with paginated data
+  useEffect(() => {
+    setBrokers(paginatedBrokers);
+  }, [paginatedBrokers]);
 
   // Fetch regions for filter dropdown
   const fetchRegions = useCallback(async () => {
@@ -507,10 +461,7 @@ function BrokersPageInner() {
         [selectedBrokerId]: 'verified'
       }));
       
-      // Refresh verified brokers stats so the card reflects all verified brokers
-      await fetchVerifiedBrokerCount();
-      
-      // Also refresh from API to get any other updates
+      // Refresh from API to get updated data and stats
       await fetchBrokers();
       
       toast.success('Broker verified successfully');
@@ -542,10 +493,7 @@ function BrokersPageInner() {
         [selectedBrokerId]: 'unverified'
       }));
       
-      // Refresh verified brokers stats so the card reflects all verified brokers
-      await fetchVerifiedBrokerCount();
-      
-      // Also refresh from API to get any other updates
+      // Refresh from API to get updated data and stats
       await fetchBrokers();
       
       toast.success('Broker unverified successfully');
@@ -599,7 +547,6 @@ function BrokersPageInner() {
     
     fetchBrokers();
     fetchRegions();
-    fetchVerifiedBrokerCount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

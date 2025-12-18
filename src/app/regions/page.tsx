@@ -630,10 +630,14 @@ export default function RegionsPage() {
     };
   }, [searchTerm]);
 
+  // Track if filters have changed from initial state
+  const hasFiltersChanged = useRef(false);
+
   // Fetch regions when debounced search term or filters change
   useEffect(() => {
-    // Skip initial render - handled by initial load useEffect
-    if (debouncedSearchTerm === '' && stateFilter === 'all' && cityFilter === 'all') {
+    // Skip only the very first render (initial load is handled separately)
+    if (!hasFiltersChanged.current) {
+      hasFiltersChanged.current = true;
       return;
     }
     

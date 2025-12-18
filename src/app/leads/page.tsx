@@ -720,11 +720,19 @@ function LeadsPageContent() {
     setCurrentPage(1);
   }, [brokerId]);
 
+  // Track if this is the initial mount
+  const isInitialMount = useRef(true);
+
   // Fetch leads when key inputs change (debounced)
   useEffect(() => {
     if (!hasFetchedLeads.current) {
       hasFetchedLeads.current = true;
       fetchLeads();
+      return;
+    }
+    // Skip if this is still the initial mount phase (React Strict Mode double render)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
       return;
     }
     // Only refetch if filters actually changed

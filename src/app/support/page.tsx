@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { contactAPI } from '@/services/api';
@@ -391,7 +391,10 @@ function SupportPageInner() {
   };
 
   // Fetch contacts when component mounts (only once)
+  const hasFetched = useRef(false);
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
     fetchContacts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

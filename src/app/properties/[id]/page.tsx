@@ -364,7 +364,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
             {/* Two Column Layout - redesigned to match screenshot structure */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Row 1: Large hero (left) and 2x2 thumbnails (right) */}
-              <div className="lg:col-span-7">
+              <div className={thumbnails.length > 1 ? "lg:col-span-7" : "lg:col-span-12"}>
                 <div className="relative rounded-xl overflow-hidden border border-gray-200 h-[30rem]">
                   <Image src={mainImage} alt={data.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 58vw" />
                   {showCarouselControls && (
@@ -372,7 +372,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                       <button
                         aria-label="Previous image"
                         onClick={handlePrevImage}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/60"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/60 cursor-pointer"
                       >
                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M15 19l-7-7 7-7" />
@@ -381,7 +381,7 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                       <button
                         aria-label="Next image"
                         onClick={handleNextImage}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/60"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/60 cursor-pointer"
                       >
                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M9 5l7 7-7 7" />
@@ -399,31 +399,31 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                   )}
                 </div>
               </div>
-              <div className="lg:col-span-5">
-                <div className="grid grid-cols-2 gap-3">
-                  {thumbnails.slice(0, 4).map((img, idx) => (
-                    <button
-                      key={`thumb-grid-${idx}`}
-                      onClick={() => setSelectedImage(idx)}
-                      className={`relative rounded-xl overflow-hidden border ${selectedImage === idx ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'}`}
-                    >
-                      <Image src={img || ''} alt={`${data.title} thumb ${idx + 1}`} width={400} height={224} className="w-full h-[230px] object-cover" />
-                      {idx === 3 && thumbnails.length > 4 && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <span className="text-white text-xs bg-white/10 px-3 py-1 rounded-full border border-white/40 inline-flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h4l2-3h6l2 3h4v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                            </svg>
-                            Tampilkan Semua Foto
-                          </span>
-                        </div>
-                      )}
-                    </button>
-                  ))}
+              {thumbnails.length > 1 && (
+                <div className="lg:col-span-5">
+                  <div className={`grid gap-3 ${thumbnails.length === 2 ? 'grid-cols-1' : thumbnails.length === 3 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+                    {thumbnails.slice(0, 4).map((img, idx) => (
+                      <button
+                        key={`thumb-grid-${idx}`}
+                        onClick={() => setSelectedImage(idx)}
+                        className={`relative rounded-xl overflow-hidden border cursor-pointer ${selectedImage === idx ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'} ${thumbnails.length === 3 && idx === 2 ? 'col-span-2' : ''}`}
+                      >
+                        <Image src={img || ''} alt={`${data.title} thumb ${idx + 1}`} width={400} height={224} className={`w-full object-cover ${thumbnails.length === 2 ? 'h-[230px]' : 'h-[230px]'}`} />
+                        {idx === 3 && thumbnails.length > 4 && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <span className="text-white text-xs bg-white/10 px-3 py-1 rounded-full border border-white/40 inline-flex items-center gap-2">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h4l2-3h6l2 3h4v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                              </svg>
+                              Tampilkan Semua Foto
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                {/* Map Location - moved to right column below images */}
-              
-              </div>
+              )}
 
               {/* Row 2: Left content (labels, details) */}
               <div className="lg:col-span-7 space-y-6">

@@ -1308,7 +1308,7 @@ function PropertiesPageContent() {
                                 {property.description}
                               </div>
                             )}
-                            <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 text-sm font-semibold mb-2">
+                            <div className="inline-flex items-center px-0 py-1 rounded-md  text-emerald-700 text-sm font-semibold mb-2">
                               {formatPrice(property.price)}
                             </div>
                             {/* City & Region plain with icons (no chips) */}
