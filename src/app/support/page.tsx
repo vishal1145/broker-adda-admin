@@ -158,7 +158,7 @@ function SupportPageInner() {
     }
     const words = message.trim().split(/\s+/);
     const shouldTruncate = words.length > maxWords;
-    const truncated = shouldTruncate ? words.slice(0, maxWords).join(' ') : message;
+    const truncated = shouldTruncate ? words.slice(0, maxWords).join(' ') + '...' : message;
     return { truncated, full: message, shouldTruncate };
   };
 
@@ -437,8 +437,7 @@ function SupportPageInner() {
           {/* Search and Filter Bar */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 mb-6">
             {/* Search Bar */}
-            <div className="flex-1 max-w-md">
-              <div className="relative">
+            <div className="relative w-full sm:w-64 md:w-72 lg:w-80 xl:w-[320px]">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   {isSearching ? (
                     <svg className="h-5 w-5 text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -457,7 +456,6 @@ function SupportPageInner() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
                 />
-              </div>
             </div>
 
             {/* Filter Buttons */}
@@ -693,8 +691,9 @@ function SupportPageInner() {
                   containerClassName="flex items-center space-x-1"
                   pageClassName="px-3 py-2 text-sm font-medium rounded-md cursor-pointer text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
                   activeClassName="!bg-teal-600 !text-white !border-teal-600"
-                  previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                  nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  previousClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  nextClassName="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  disabledLinkClassName="!cursor-not-allowed !opacity-50"
                   breakClassName="px-3 py-2 text-sm font-medium text-gray-500"
                   disabledClassName="opacity-50 cursor-not-allowed"
                   renderOnZeroPageCount={null}
