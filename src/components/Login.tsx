@@ -184,11 +184,11 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary text-white py-3 px-4 rounded-lg hover:bg-hover focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 ease-out font-medium cursor-pointer hover:shadow-md hover:-translate-y-0.5"
+              className="w-full bg-primary text-white py-3 px-4 rounded-lg hover:bg-primary-light focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 font-medium cursor-pointer"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 hover:bg-primary-light hover:border-blue-900 border-white mr-2"></div>
                   Signing in...
                 </div>
               ) : (

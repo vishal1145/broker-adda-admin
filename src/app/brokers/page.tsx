@@ -623,26 +623,28 @@ function BrokersPageInner() {
 
 
 
+  // Check if broker has a valid custom image (not default avatar)
+  const hasValidBrokerImage = (brokerImage: string | undefined) => {
+    if (!brokerImage || !brokerImage.trim()) return false;
+    // Exclude default/placeholder avatars
+    if (brokerImage.includes('w3schools.com') || 
+        brokerImage.includes('img_avatar') ||
+        brokerImage.includes('placeholder') ||
+        brokerImage.includes('default')) return false;
+    return true;
+  };
+
   // Use image URL with proxy for external URLs to avoid CORS issues
   const getBrokerImageUrl = (brokerImage: string | undefined) => {
-    console.log('🖼️ getBrokerImageUrl called with:', brokerImage);
-    
-    if (!brokerImage) {
-      console.log('🖼️ No broker image, using fallback');
-      return "https://www.w3schools.com/howto/img_avatar.png";
-    }
+    if (!brokerImage) return null;
     
     // If it's an external URL (not localhost), use the proxy
     if (brokerImage.includes('broker-adda-be.algofolks.com') || 
         brokerImage.includes('https://') || 
         (brokerImage.includes('http://') && !brokerImage.includes('localhost'))) {
-      const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(brokerImage)}`;
-      console.log('🖼️ Using proxy URL:', proxyUrl);
-      return proxyUrl;
+      return `/api/image-proxy?url=${encodeURIComponent(brokerImage)}`;
     }
     
-    // For localhost URLs, return directly
-    console.log('🖼️ Using direct URL:', brokerImage);
     return brokerImage;
   };
 
@@ -1045,13 +1047,19 @@ const router = useRouter();
                         {/* Name Column */}
                         <div className="flex items-center space-x-3">
                           <Link href={`/brokers/${broker.userId}`} className="cursor-pointer">
-                            <Image
-                              className="h-10 w-10 rounded-full object-cover hover:opacity-80 transition-opacity"
-                              src={getBrokerImageUrl(broker.brokerImage)}
-                              alt={broker.name || 'Broker'}
-                              width={40}
-                              height={40}
-                            />
+                            {hasValidBrokerImage(broker.brokerImage) ? (
+                              <Image
+                                className="h-10 w-10 rounded-full object-cover hover:opacity-80 transition-opacity"
+                                src={getBrokerImageUrl(broker.brokerImage) || ''}
+                                alt={broker.name || 'Broker'}
+                                width={40}
+                                height={40}
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-semibold text-sm hover:opacity-80 transition-opacity">
+                                {broker.name ? broker.name.split(' ').filter(n => n).map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'BR'}
+                              </div>
+                            )}
                           </Link>
                           <div>
                             <Link 

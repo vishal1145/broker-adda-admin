@@ -116,6 +116,7 @@ export default function RegionsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
   const [formData, setFormData] = useState({
@@ -618,22 +619,28 @@ export default function RegionsPage() {
     fetchRegionStats();
   }, [fetchRegions, fetchRegionStats, itemsPerPage]);
 
-  // Handle search and filter changes with debouncing
+  // Debounce search term - only update debouncedSearchTerm after user stops typing
   useEffect(() => {
-    // Set searching state when filters change
-    setIsSearching(true);
-    
-    const timeoutId = setTimeout(() => {
-      setCurrentPage(1);
-      fetchRegions(1, itemsPerPage, searchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
-      setIsSearching(false);
-    }, 800); // 800ms debounce to avoid calling API on every keystroke
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 3000); // 500ms delay
 
-    return () => {
-      clearTimeout(timeoutId);
-      setIsSearching(false);
-    };
-  }, [searchTerm, stateFilter, cityFilter, fetchRegions, itemsPerPage]);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch regions when debounced search term or filters change
+  useEffect(() => {
+    // Skip initial render - handled by initial load useEffect
+    if (debouncedSearchTerm === '' && stateFilter === 'all' && cityFilter === 'all') {
+      return;
+    }
+    
+    setIsSearching(true);
+    setCurrentPage(1);
+    fetchRegions(1, itemsPerPage, debouncedSearchTerm, stateFilter !== 'all' ? stateFilter : '', cityFilter !== 'all' ? cityFilter : '');
+    setIsSearching(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchTerm, stateFilter, cityFilter]);
 
   // Handle page changes
   const handlePageChange = (page: number) => {
@@ -779,11 +786,9 @@ export default function RegionsPage() {
             margin: 'auto',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
             overflow: 'hidden',
-            scrollbarWidth: 'none', /* Firefox */
-            msOverflowStyle: 'none' /* Internet Explorer 10+ */
           } as React.CSSProperties}
         >
-          <div className="popup-content p-6 max-h-[85vh] flex flex-col">
+          <div className="p-6 max-h-[85vh] flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Add New Region</h3>
               <button
@@ -803,7 +808,7 @@ export default function RegionsPage() {
             <form onSubmit={handleSubmit} className="space-y-6 flex flex-col">
 
               {/* Scrollable form content */}
-              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 popup-content">
 
               {/* State and City - Side by Side */}
               <div className="grid grid-cols-2 gap-4">
@@ -1198,11 +1203,9 @@ export default function RegionsPage() {
             margin: 'auto',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
             overflow: 'hidden',
-            scrollbarWidth: 'none', /* Firefox */
-            msOverflowStyle: 'none' /* Internet Explorer 10+ */
           } as React.CSSProperties}
         >
-          <div className="popup-content p-6 max-h-[85vh] flex flex-col">
+          <div className="p-6 max-h-[85vh] flex flex-col">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Edit Region</h3>
               <button
@@ -1222,7 +1225,7 @@ export default function RegionsPage() {
             <form onSubmit={handleEditSubmit} className="space-y-6 flex flex-col">
 
               {/* Scrollable form content */}
-              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 popup-content">
 
               {/* State and City - Side by Side */}
               <div className="grid grid-cols-2 gap-4">

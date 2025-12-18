@@ -1535,7 +1535,7 @@ function LeadsPageContent() {
                     {paginatedFilteredLeads.map((lead) => (
                       <div
                         key={lead.id}
-                        className={`relative rounded-xl bg-white   shadow-md hover:shadow-lg transition-shadow ${statusStyles[lead.status]?.glow || ''}`}
+                        className={`relative rounded-xl bg-white shadow-md hover:shadow-lg transition-shadow flex flex-col ${statusStyles[lead.status]?.glow || ''}`}
                       >
                         {/* Status Ribbon - gradient horizontal with folded corner */}
                         <div className="absolute top-0 right-0 z-10">
@@ -1655,151 +1655,149 @@ function LeadsPageContent() {
                               </div>
                           </div>
 
-                            <div className="col-span-2 h-px bg-gray-100" />
+                          </div>
+                        </div>
 
-                            <div className="col-span-2">
-                              <div className="text-[10px] tracking-wide text-gray-500 uppercase">Shared With</div>
-                              <div className="mt-2 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  {(() => {
-                                    // Check transfers array first
-                                    const transfers = Array.isArray(lead.transfers) ? lead.transfers : [];
-                                    
-                                    // Check for "all" share type
-                                    const allShare = transfers.find(t => 
-                                      t.shareType === "all" || (!t.shareType && !t.toBroker && !t.region)
-                                    );
-                                    
-                                    if (allShare) {
-                                      return (
-                                        <div className="flex items-center gap-2">
-                                          <div className="w-7 h-7 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[10px] text-blue-800 font-semibold ring-2 ring-white">
-                                            All
+                        {/* Shared With Section - Fixed at bottom */}
+                        <div className="px-5 py-4 border-t border-gray-100 mt-auto">
+                          <div className="text-[10px] tracking-wide text-gray-500 uppercase">Shared With</div>
+                          <div className="mt-2 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {(() => {
+                                // Check transfers array first
+                                const transfers = Array.isArray(lead.transfers) ? lead.transfers : [];
+                                
+                                // Check for "all" share type
+                                const allShare = transfers.find(t => 
+                                  t.shareType === "all" || (!t.shareType && !t.toBroker && !t.region)
+                                );
+                                
+                                if (allShare) {
+                                  return (
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[10px] text-blue-800 font-semibold ring-2 ring-white">
+                                        All
+                                      </div>
+                                      <span className="text-xs text-gray-700 font-medium">All Brokers</span>
+                                    </div>
+                                  );
+                                }
+                                
+                                // Check for "region" share type
+                                const regionShare = transfers.find(t => 
+                                  t.shareType === "region" || (!t.shareType && t.region && !t.toBroker)
+                                );
+                                
+                                if (regionShare) {
+                                  const regionId = regionShare.region;
+                                  const regionName = typeof regionId === 'string' 
+                                    ? (regions.find(r => r.id === regionId)?.name || regionId)
+                                    : (typeof regionId === 'object' && regionId?.name ? regionId.name : 'Region');
+                                  return (
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-full bg-green-100 border border-green-200 flex items-center justify-center text-[10px] text-green-800 font-semibold ring-2 ring-white">
+                                        R
+                                      </div>
+                                      <span className="text-xs text-gray-700 font-medium">{regionName}</span>
+                                    </div>
+                                  );
+                                }
+                                
+                                // Check for individual transfers
+                                const individualTransfers = transfers.filter(t => 
+                                  t.shareType === "individual" || (!t.shareType && t.toBroker && !t.region)
+                                );
+                                
+                                if (individualTransfers.length > 0) {
+                                  return (
+                                    <div className="flex -space-x-2">
+                                      {individualTransfers.slice(0, 2).map((t, idx) => {
+                                        const toBroker = t.toBroker;
+                                        let brokerName = '';
+                                        let brokerImage = DEFAULT_AVATAR;
+                                        
+                                        if (typeof toBroker === 'string') {
+                                          const foundBroker = allBrokers.find(b => b.id === toBroker);
+                                          brokerName = foundBroker?.name || toBroker;
+                                        } else if (toBroker && typeof toBroker === 'object') {
+                                          brokerName = toBroker.name || toBroker.firmName || toBroker.email || 'Unknown';
+                                          if (toBroker.brokerImage && typeof toBroker.brokerImage === 'string') {
+                                            brokerImage = toBroker.brokerImage;
+                                          }
+                                        }
+                                        
+                                        return (
+                                          <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center overflow-hidden" title={brokerName}>
+                                            <img 
+                                              src={brokerImage}
+                                              alt={brokerName}
+                                              className="w-full h-full object-cover rounded-full"
+                                              onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                if (target.src !== DEFAULT_AVATAR) {
+                                                  target.src = DEFAULT_AVATAR;
+                                                }
+                                              }}
+                                            />
                                           </div>
-                                          <span className="text-xs text-gray-700 font-medium">All Brokers</span>
+                                        );
+                                      })}
+                                      {individualTransfers.length > 2 && (
+                                        <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={`+${individualTransfers.length - 2} more`}>
+                                          +{individualTransfers.length - 2}
                                         </div>
-                                      );
-                                    }
-                                    
-                                    // Check for "region" share type
-                                    const regionShare = transfers.find(t => 
-                                      t.shareType === "region" || (!t.shareType && t.region && !t.toBroker)
-                                    );
-                                    
-                                    if (regionShare) {
-                                      const regionId = regionShare.region;
-                                      const regionName = typeof regionId === 'string' 
-                                        ? (regions.find(r => r.id === regionId)?.name || regionId)
-                                        : (typeof regionId === 'object' && regionId?.name ? regionId.name : 'Region');
-                                      return (
-                                        <div className="flex items-center gap-2">
-                                          <div className="w-7 h-7 rounded-full bg-green-100 border border-green-200 flex items-center justify-center text-[10px] text-green-800 font-semibold ring-2 ring-white">
-                                            R
+                                      )}
+                                    </div>
+                                  );
+                                }
+                                
+                                // Fallback to old sharedWith logic
+                                if (lead.sharedWith && lead.sharedWith.trim()) {
+                                  return (
+                                    <div className="flex -space-x-2">
+                                      {lead.sharedWith.split(',').slice(0, 2).map((name, idx) => {
+                                        const trimmedName = name.trim();
+                                        const candidate = lead.sharedWithImages && lead.sharedWithImages[idx];
+                                        const imgSrc = candidate && candidate.trim() ? candidate : DEFAULT_AVATAR;
+                                        return (
+                                          <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center overflow-hidden" title={trimmedName}>
+                                            <img 
+                                              src={imgSrc}
+                                              alt={trimmedName}
+                                              className="w-full h-full object-cover rounded-full"
+                                              onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                if (target.src !== DEFAULT_AVATAR) {
+                                                  target.src = DEFAULT_AVATAR;
+                                                }
+                                              }}
+                                            />
                                           </div>
-                                          <span className="text-xs text-gray-700 font-medium">{regionName}</span>
+                                        );
+                                      })}
+                                      {lead.sharedWith.split(',').length > 2 && (
+                                        <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={`+${lead.sharedWith.split(',').length - 2} more`}>
+                                          +{lead.sharedWith.split(',').length - 2}
                                         </div>
-                                      );
-                                    }
-                                    
-                                    // Check for individual transfers
-                                    const individualTransfers = transfers.filter(t => 
-                                      t.shareType === "individual" || (!t.shareType && t.toBroker && !t.region)
-                                    );
-                                    
-                                    if (individualTransfers.length > 0) {
-                                      return (
-                                        <div className="flex -space-x-2">
-                                          {individualTransfers.slice(0, 2).map((t, idx) => {
-                                            const toBroker = t.toBroker;
-                                            let brokerName = '';
-                                            let brokerImage = DEFAULT_AVATAR;
-                                            
-                                            if (typeof toBroker === 'string') {
-                                              const foundBroker = allBrokers.find(b => b.id === toBroker);
-                                              brokerName = foundBroker?.name || toBroker;
-                                            } else if (toBroker && typeof toBroker === 'object') {
-                                              brokerName = toBroker.name || toBroker.firmName || toBroker.email || 'Unknown';
-                                              if (toBroker.brokerImage && typeof toBroker.brokerImage === 'string') {
-                                                brokerImage = toBroker.brokerImage;
-                                              }
-                                            }
-                                            
-                                            return (
-                                              <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center overflow-hidden" title={brokerName}>
-                                                <img 
-                                                  src={brokerImage}
-                                                  alt={brokerName}
-                                                  className="w-full h-full object-cover rounded-full"
-                                                  onError={(e) => {
-                                                    const target = e.target as HTMLImageElement;
-                                                    if (target.src !== DEFAULT_AVATAR) {
-                                                      target.src = DEFAULT_AVATAR;
-                                                    }
-                                                  }}
-                                                />
-                                              </div>
-                                            );
-                                          })}
-                                          {individualTransfers.length > 2 && (
-                                            <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={`+${individualTransfers.length - 2} more`}>
-                                              +{individualTransfers.length - 2}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    }
-                                    
-                                    // Fallback to old sharedWith logic
-                                    if (lead.sharedWith && lead.sharedWith.trim()) {
-                                      return (
-                                        <div className="flex -space-x-2">
-                                          {lead.sharedWith.split(',').slice(0, 2).map((name, idx) => {
-                                            const trimmedName = name.trim();
-                                            const candidate = lead.sharedWithImages && lead.sharedWithImages[idx];
-                                            const imgSrc = candidate && candidate.trim() ? candidate : DEFAULT_AVATAR;
-                                            return (
-                                              <div key={idx} className="w-7 h-7 rounded-full ring-2 ring-white bg-blue-100 border border-blue-200 flex items-center justify-center overflow-hidden" title={trimmedName}>
-                                                <img 
-                                                  src={imgSrc}
-                                                  alt={trimmedName}
-                                                  className="w-full h-full object-cover rounded-full"
-                                                  onError={(e) => {
-                                                    // Final fallback to default avatar
-                                                    const target = e.target as HTMLImageElement;
-                                                    if (target.src !== DEFAULT_AVATAR) {
-                                                      target.src = DEFAULT_AVATAR;
-                                                    }
-                                                  }}
-                                                />
-                                              </div>
-                                            );
-                                          })}
-                                          {lead.sharedWith.split(',').length > 2 && (
-                                            <div className="w-7 h-7 rounded-full ring-2 ring-white bg-yellow-400 text-black flex items-center justify-center text-[11px] font-semibold" title={`+${lead.sharedWith.split(',').length - 2} more`}>
-                                              +{lead.sharedWith.split(',').length - 2}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    }
-                                    
-                                    return <div className="text-xs text-gray-400 italic">Not shared</div>;
-                                  })()}
-                                </div>
-                                <div className="flex items-center gap-6">
-                                  <button onClick={() => { setSelectedLead(lead); setIsViewOpen(true); }} className="group flex flex-col items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer transition-colors">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                                    <span>View</span>
-                            </button>
-                                </div>
-                              </div>
+                                      )}
+                                    </div>
+                                  );
+                                }
+                                
+                                return <div className="text-xs text-gray-400 italic">Not shared</div>;
+                              })()}
+                            </div>
+                            <div className="flex items-center gap-6">
+                              <button onClick={() => { setSelectedLead(lead); setIsViewOpen(true); }} className="group flex flex-col items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <span>View</span>
+                              </button>
                             </div>
                           </div>
                         </div>
-                        {/* Footer removed since actions moved next to Shared With */}
                       </div>
                     ))}
                   </div>

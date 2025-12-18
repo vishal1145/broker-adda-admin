@@ -169,12 +169,6 @@ export default function NotificationDropdown() {
     };
   }, [fetchNotifications]);
 
-  // Fetch notifications when dropdown opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchNotifications(); // This also refreshes the count
-    }
-  }, [isOpen, fetchNotifications]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

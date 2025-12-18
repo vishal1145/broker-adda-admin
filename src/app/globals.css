@@ -7,6 +7,7 @@
   
   /* Main Colors */
   --primary: #3B82F6;
+  --primary-light: #60A5FA;
   --secondary: #0D9488;
   --hover: #1E40AF;
   
@@ -56,8 +57,10 @@ body {
 
 /* Utility Classes for CSS Variables */
 .bg-primary { background-color: var(--primary) !important; }
+.bg-primary-light { background-color: var(--primary-light) !important; }
 .bg-secondary { background-color: var(--secondary) !important; }
 .bg-hover { background-color: var(--hover) !important; }
+.hover\:bg-primary-light:hover { background-color: var(--primary-light) !important; }
 
 .text-primary { color: var(--primary) !important; }
 .text-secondary { color: var(--secondary) !important; }

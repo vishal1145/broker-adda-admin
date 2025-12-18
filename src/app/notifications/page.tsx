@@ -182,6 +182,7 @@ export default function NotificationsPage() {
     }
   }, [currentPage, filter]);
 
+  // Single useEffect for fetching notifications
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
@@ -191,26 +192,18 @@ export default function NotificationsPage() {
     setCurrentPage(1);
   }, [filter]);
 
-  // Mark all notifications as read when page loads
+  // Mark all notifications as read when page loads (only once)
   useEffect(() => {
     const markAllAsRead = async () => {
       try {
         await notificationsAPI.markAllAsRead();
         console.log('✅ All notifications marked as read');
-        // Refresh notifications to update read status
-        // Use setTimeout to ensure API call completes before fetching
-        setTimeout(() => {
-          fetchNotifications();
-        }, 500);
       } catch (error) {
         console.error('Failed to mark all notifications as read:', error);
-        toast.error('Failed to mark all notifications as read');
       }
     };
 
-    // Mark all as read when component mounts
     markAllAsRead();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Format time ago with abbreviations

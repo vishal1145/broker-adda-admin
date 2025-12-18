@@ -679,55 +679,55 @@ export default function PropertyDetailPage({ params }: { params: Promise<{ id: s
                       src="https://www.google.com/maps?q=28.6139,77.2090&z=14&output=embed"
                     />
 
-                    {/* Overlay card pinned over the map without changing its position */}
+                    {/* Overlay card pinned over the map - compact version */}
                     <div className="pointer-events-none absolute inset-0">
-                      <div className="pointer-events-auto absolute left-44 -translate-x-1/2 top-32 sm:translate-x-0">
-                        <div className="relative w-[240px] sm:w-[260px] rounded-lg bg-white/95 backdrop-blur-sm shadow-xl ring-1 ring-black/5 overflow-hidden">
-                          <div className="p-2.5 flex items-start gap-2">
+                      <div className="pointer-events-auto absolute left-[30%] top-[20%]">
+                        <div className="relative w-[180px] rounded-md bg-white/95 backdrop-blur-sm shadow-lg ring-1 ring-black/5 overflow-hidden">
+                          <div className="p-1.5 flex items-start gap-1.5">
                             <Image
                               src={mainImage}
                               alt={data.title}
-                              width={80}
-                              height={64}
-                              className="h-16 w-20 rounded-lg object-cover flex-shrink-0"
+                              width={48}
+                              height={40}
+                              className="h-10 w-12 rounded object-cover flex-shrink-0"
                             />
 
                             <div className="flex-1 min-w-0">
-                              <div className="text-emerald-600 font-semibold text-xs truncate">{formatPrice(data.price)}</div>
-                              <div className="text-gray-900 font-semibold text-xs leading-tight truncate">{data.title}</div>
-                              <p className="text-gray-500 text-[10px] mt-0.5 line-clamp-1">
-                                {data.description || data.notes || 'Property description not available.'}
+                              <div className="text-emerald-600 font-semibold text-[10px] truncate">{formatPrice(data.price)}</div>
+                              <div className="text-gray-900 font-medium text-[10px] leading-tight truncate">{data.title}</div>
+                              <p className="text-gray-500 text-[8px] mt-0.5 line-clamp-1">
+                                {data.description || data.notes || 'Property description not...'}
                               </p>
                             </div>
 
                             <button
                               type="button"
-                              className="absolute top-2 right-2 grid h-6 w-6 place-items-center rounded-full bg-sky-50 text-sky-600 hover:bg-sky-100 flex-shrink-0"
+                              className="absolute top-1 right-1 grid h-4 w-4 place-items-center rounded-full bg-sky-50 text-sky-600 hover:bg-sky-100 flex-shrink-0"
                               aria-label="Open on map"
                             >
-                              <svg viewBox="0 0 24 24" className="w-3 h-3" fill="currentColor">
+                              <svg viewBox="0 0 24 24" className="w-2 h-2" fill="currentColor">
                                 <path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"/>
                               </svg>
                             </button>
                           </div>
 
-                          <div className="border-t border-gray-100 px-2.5 py-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-gray-700">
-                            <span className="inline-flex items-center gap-0.5 bg-gray-100 px-1.5 py-0.5 rounded-full">
-                              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <div className="border-t border-gray-100 px-1.5 py-1 flex items-center gap-1 text-[8px] text-gray-700">
+                            <span className="inline-flex items-center gap-0.5 bg-gray-100 px-1 py-0.5 rounded-full">
+                              <svg className="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 12v6M21 12v6M3 12h18M7 12V9a2 2 0 1 1 4 0v3" />
                               </svg>
                               {data.bedrooms || 0}bd
                             </span>
 
-                            <span className="inline-flex items-center gap-0.5 bg-gray-100 px-1.5 py-0.5 rounded-full">
-                              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <span className="inline-flex items-center gap-0.5 bg-gray-100 px-1 py-0.5 rounded-full">
+                              <svg className="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 12h18M6 12V7a2 2 0 1 1 4 0v5M5 16h14l-1 3H6l-1-3z" />
                               </svg>
                               {data.bathrooms || 0}bt
                             </span>
 
-                            <span className="inline-flex items-center gap-0.5 bg-gray-100 px-1.5 py-0.5 rounded-full">
-                              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <span className="inline-flex items-center gap-0.5 bg-gray-100 px-1 py-0.5 rounded-full">
+                              <svg className="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 7h14M3 11h10M3 15h6M3 19h2M19 7v12" />
                               </svg>
                               {data.furnishing || '—'}
