@@ -20,6 +20,7 @@ export default function NotificationDropdown() {
   const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const hasFetched = useRef(false);
   const router = useRouter();
 
   // Helper function to extract notifications from API response
@@ -136,38 +137,13 @@ export default function NotificationDropdown() {
     }
   };
 
-  // Fetch notifications and unread count on mount only
+  // Fetch notifications and unread count on mount only (once)
   useEffect(() => {
-    fetchNotifications(); // This also calculates unread count
-    
-    // Refresh when page becomes visible (user returns from notifications page)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        fetchNotifications();
-      }
-    };
-    
-    // Listen for custom event to refresh notifications (triggered after actions like creating leads)
-    const handleNotificationRefresh = () => {
-      console.log('🔔 Custom refresh event triggered');
-      fetchNotifications();
-    };
-    
-    // Listen for window focus to refresh notifications
-    const handleWindowFocus = () => {
-      fetchNotifications();
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('notification-refresh', handleNotificationRefresh);
-    window.addEventListener('focus', handleWindowFocus);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('notification-refresh', handleNotificationRefresh);
-      window.removeEventListener('focus', handleWindowFocus);
-    };
-  }, [fetchNotifications]);
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    fetchNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   // Close dropdown when clicking outside
@@ -271,6 +247,7 @@ export default function NotificationDropdown() {
                 {notifications.map((notification) => (
                   <div
                     key={notification._id}
+                    onClick={handleViewAll}
                     className="px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
                   >
                     <div className='flex items-center justify-between'>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -604,20 +604,17 @@ export default function RegionsPage() {
 
 
   // No client-side filtering needed - using server-side filtering
+  const hasFetched = useRef(false);
 
-  // Fetch regions (unfiltered) and statistics when component mounts
+  // Fetch regions (unfiltered) and statistics when component mounts (only once)
   useEffect(() => {
-    console.log('🚀 RegionsPage component mounted');
-    console.log('🚀 Checking for admin token...');
-    const token = localStorage.getItem('adminToken');
-    console.log('🚀 Token exists:', token ? 'Yes' : 'No');
-    if (token) {
-      console.log('🚀 Token preview:', token.substring(0, 20) + '...');
-    }
-    // Initial load without any search/filter so we avoid duplicate calls
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    
     fetchRegions(1, itemsPerPage);
     fetchRegionStats();
-  }, [fetchRegions, fetchRegionStats, itemsPerPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Debounce search term - only update debouncedSearchTerm after user stops typing
   useEffect(() => {

@@ -134,7 +134,7 @@ export default function Layout({ children }: LayoutProps) {
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="ml-4 p-2 text-red-500 hover:text-red-700 transition-colors duration-200"
+                className="ml-4 p-2 text-red-500 hover:text-red-700 transition-colors duration-200 cursor-pointer"
                 title="Logout"
               >
                 <svg

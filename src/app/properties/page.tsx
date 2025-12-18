@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Layout from "@/components/Layout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Link from "next/link";
@@ -374,42 +374,41 @@ function PropertiesPageContent() {
     });
   };
 
-  // Debug: Log regions state changes
-  useEffect(() => {
-    fetchRegionsAndBrokers();
-    console.log("🔵 Regions state updated:", {
-      count: regions.length,
-      regions: regions,
-      loading: regionsLoading
-    });
-  }, [regions, regionsLoading]);
+  // Refs to prevent double API calls
+  const hasFetchedRegionsBrokers = useRef(false);
+  const hasFetchedMetrics = useRef(false);
+  const hasFetchedRegions = useRef(false);
+  const hasFetchedBrokers = useRef(false);
+  const hasFetchedProperties = useRef(false);
 
   const fetchRegionsAndBrokers = async () => {
     try {
       const response = await dashboardAPI.regionsAndBrokersListAPI();
-      console.log("Regions and Brokers API Response:", response);
       setRegionsList(response?.regions || []);
-
       const filterBrokers = response?.brokers?.filter((broker: { role?: string; _id?: string; name?: string }) => broker.role === 'broker') || [];
       setBrokersList(filterBrokers);
-      console.log("Brokers list set:", filterBrokers?.length || 0, "brokers");
     } catch (err) {
       console.error("Error fetching regions and brokers:", err);
     }
-  }
+  };
 
-  // Load property metrics from API
+  // Fetch regions and brokers for share modal (only once)
   useEffect(() => {
+    if (hasFetchedRegionsBrokers.current) return;
+    hasFetchedRegionsBrokers.current = true;
+    fetchRegionsAndBrokers();
+  }, []);
+
+  // Load property metrics from API (only once)
+  useEffect(() => {
+    if (hasFetchedMetrics.current) return;
+    hasFetchedMetrics.current = true;
+
     const loadMetrics = async () => {
       try {
         setMetricsLoading(true);
         const metricsResponse = await propertiesAPI.getMetrics();
-
-        console.log("Metrics API Response:", metricsResponse);
-
-        // Handle different possible response structures
         const metrics = metricsResponse.data || metricsResponse;
-
         setPropertyStats({
           total: metrics.total || 0,
           available: metrics.available || 0,
@@ -417,7 +416,6 @@ function PropertiesPageContent() {
         });
       } catch (err) {
         console.error("Error loading metrics:", err);
-        // Keep default values (0) if API fails
       } finally {
         setMetricsLoading(false);
       }
@@ -450,16 +448,16 @@ function PropertiesPageContent() {
   }, []);
 
 
-  // Load regions for filter
+  // Load regions for filter (only once)
   useEffect(() => {
+    if (hasFetchedRegions.current) return;
+    hasFetchedRegions.current = true;
+
     const loadRegions = async () => {
       try {
         setRegionsLoading(true);
         const res = await regionAPI.getRegions(1, 100);
         
-        console.log("🔵 Full regions API response:", res);
-        
-        // Handle the API response structure - same as regions page
         let regionsList: Array<{ id: string; name: string }> = [];
         
         type RegionItem = {
@@ -469,78 +467,53 @@ function PropertiesPageContent() {
         };
         
         if (res && res.success && res.data && res.data.regions && Array.isArray(res.data.regions)) {
-          // Standard API response: { success: true, data: { regions: [...] } }
-          console.log("🔵 Found regions in response.data.regions:", res.data.regions.length);
           regionsList = res.data.regions.map((region: RegionItem) => ({
             id: region._id || region.id || "",
             name: region.name || ""
           })).filter((r: { id: string; name: string }) => r.id && r.name);
         } else if (res?.data?.regions && Array.isArray(res.data.regions)) {
-          // Alternative: { data: { regions: [...] } }
-          console.log("🔵 Found regions in res.data.regions:", res.data.regions.length);
           regionsList = res.data.regions.map((region: RegionItem) => ({
             id: region._id || region.id || "",
             name: region.name || ""
           })).filter((r: { id: string; name: string }) => r.id && r.name);
         } else if (Array.isArray(res?.regions)) {
-          // Alternative: { regions: [...] }
-          console.log("🔵 Found regions in res.regions:", res.regions.length);
           regionsList = res.regions.map((region: RegionItem) => ({
             id: region._id || region.id || "",
             name: region.name || ""
           })).filter((r: { id: string; name: string }) => r.id && r.name);
         } else if (Array.isArray(res?.data)) {
-          // Alternative: { data: [...] }
-          console.log("🔵 Found regions in res.data array:", res.data.length);
           regionsList = res.data.map((region: RegionItem) => ({
             id: region._id || region.id || "",
             name: region.name || ""
           })).filter((r: { id: string; name: string }) => r.id && r.name);
-        } else {
-          console.warn("🔵 Unexpected API response structure:", res);
         }
         
-        console.log("🔵 Processed regions list:", regionsList);
-        console.log("🔵 Number of valid regions:", regionsList.length);
-        
-        // Remove duplicates by ID and sort by name
         const uniqueRegions = Array.from(
           new Map(regionsList.map(r => [r.id, r])).values()
         ).sort((a, b) => a.name.localeCompare(b.name));
         
-        console.log("🔵 Final unique regions:", uniqueRegions);
-        
-        // If no regions found, log a warning
-        if (uniqueRegions.length === 0) {
-          console.warn("⚠️ No regions extracted from API response. Response structure:", JSON.stringify(res, null, 2));
-        }
-        
         setRegions(uniqueRegions);
       } catch (err) {
         console.error("❌ Failed to load regions for filter:", err);
-        console.error("❌ Error details:", err instanceof Error ? err.message : String(err));
-        // keep regions empty → dropdown will still show "All Regions"
         setRegions([]);
       } finally {
         setRegionsLoading(false);
       }
     };
 
-    // Load regions for filter dropdown
     loadRegions();
-  }, [brokerId]);
+  }, []);
 
-  // Load brokers for filter
+  // Load brokers for filter (only once)
   useEffect(() => {
+    if (hasFetchedBrokers.current) return;
+    hasFetchedBrokers.current = true;
+
     const loadBrokers = async () => {
       try {
         setBrokersLoading(true);
-        // Fetch all brokers (page 1, limit 100 to get all)
         const res = await brokerAPI.getBrokers(1, 100);
         
-        console.log("🔷 Full brokers API response:", res);
-        
-        // Handle the API response structure
         let brokersList: Array<{ id: string; name: string }> = [];
         
         type BrokerItem = {
@@ -550,35 +523,26 @@ function PropertiesPageContent() {
         };
         
         if (res && res.data && res.data.brokers && Array.isArray(res.data.brokers)) {
-          console.log("🔷 Found brokers in response.data.brokers:", res.data.brokers.length);
           brokersList = res.data.brokers.map((broker: BrokerItem) => ({
             id: broker._id || broker.id || "",
-            name: broker.name || broker.name || ""
+            name: broker.name || ""
           })).filter((b: { id: string; name: string }) => b.id && b.name);
         } else if (Array.isArray(res?.brokers)) {
-          console.log("🔷 Found brokers in res.brokers:", res.brokers.length);
           brokersList = res.brokers.map((broker: BrokerItem) => ({
             id: broker._id || broker.id || "",
-            name: broker.name || broker.name || ""
+            name: broker.name || ""
           })).filter((b: { id: string; name: string }) => b.id && b.name);
         } else if (Array.isArray(res?.data)) {
-          console.log("🔷 Found brokers in res.data array:", res.data.length);
           brokersList = res.data.map((broker: BrokerItem) => ({
             id: broker._id || broker.id || "",
-            name: broker.name || broker.name || ""
+            name: broker.name || ""
           })).filter((b: { id: string; name: string }) => b.id && b.name);
-        } else {
-          console.warn("🔷 Unexpected brokers API response structure:", res);
         }
         
-        console.log("🔷 Processed brokers list:", brokersList);
-        
-        // Remove duplicates by ID and sort by name
         const uniqueBrokers = Array.from(
           new Map(brokersList.map(b => [b.id, b])).values()
         ).sort((a, b) => a.name.localeCompare(b.name));
         
-        console.log("🔷 Final unique brokers:", uniqueBrokers);
         setBrokers(uniqueBrokers);
       } catch (err) {
         console.error("❌ Failed to load brokers for filter:", err);
@@ -592,6 +556,9 @@ function PropertiesPageContent() {
   }, []);
 
 
+  // Track previous filter values to prevent duplicate calls
+  const prevFilters = useRef({ currentPage: 1, debouncedSearchTerm: '', typeFilter: 'all', statusFilter: 'all', regionFilter: 'all', brokerFilter: 'all', brokerId: '' });
+
   // Reset to page 1 when brokerId or filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -599,6 +566,15 @@ function PropertiesPageContent() {
 
   // Load properties from API
   useEffect(() => {
+    const currentFilters = { currentPage, debouncedSearchTerm, typeFilter, statusFilter, regionFilter, brokerFilter, brokerId: brokerId || '' };
+    
+    // Skip if this is initial mount and hasFetchedProperties is already set, or if filters haven't changed
+    if (hasFetchedProperties.current && JSON.stringify(currentFilters) === JSON.stringify(prevFilters.current)) {
+      return;
+    }
+    prevFilters.current = currentFilters;
+    hasFetchedProperties.current = true;
+
     const loadProperties = async () => {
       try {
         setLoading(true);
@@ -1310,9 +1286,9 @@ function PropertiesPageContent() {
                         >
                           <Link
                           href={`/properties/${property._id}`}
-                            className="block overflow-hidden"
+                            className="block overflow-hidden flex flex-col h-full"
                         >
-                          <div className="relative w-full h-48">
+                          <div className="relative w-full h-48 flex-shrink-0">
                             <Image
                               src={getSafeImageUrl(property.images)}
                               alt={property.title}
@@ -1321,7 +1297,7 @@ function PropertiesPageContent() {
                               sizes="(max-width: 1024px) 100vw, 25vw"
                             />
                           </div>
-                          <div className="p-3">
+                          <div className="p-3 flex flex-col flex-1">
                             {property.title && (
                               <div className="text-[13px] font-semibold text-gray-900 mb-1 line-clamp-1">
                                 {property.title}
@@ -1384,7 +1360,7 @@ function PropertiesPageContent() {
                             </div>
 
                             {/* Features section */}
-                            <div>
+                            <div className="mt-auto pt-3 border-t border-gray-100">
                               <div className="text-[11px] text-gray-500 mb-1">
                                 Features
                               </div>

@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { Suspense } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -210,17 +210,23 @@ function LeadsPageContent() {
     setCurrentPage(1);
   }, [filterBroker]);
 
+  // Refs to prevent double API calls in React Strict Mode
+  const hasFetchedMetrics = useRef(false);
+  const hasFetchedRegions = useRef(false);
+  const hasFetchedBrokers = useRef(false);
+  const hasFetchedLeads = useRef(false);
+
   // Fetch leads metrics on component mount
   useEffect(() => {
+    if (hasFetchedMetrics.current) return;
+    hasFetchedMetrics.current = true;
+
     const fetchLeadsMetrics = async () => {
       try {
         setIsLoadingStats(true);
         setStatsError(null);
         const response = await leadsAPI.getMetrics();
         
-        // Map API response to our stats format
-        // Assuming the API returns data in a specific format
-        // Adjust the mapping based on actual API response structure
         setLeadsStats({
           totalLeads: response.data?.totalLeads || response.totalLeads || 0,
           newLeadsToday: response.data?.newLeadsToday || response.newLeadsToday || 0,
@@ -229,7 +235,6 @@ function LeadsPageContent() {
       } catch (error) {
         console.error('Error fetching leads metrics:', error);
         setStatsError(error instanceof Error ? error.message : 'Failed to fetch leads metrics');
-        // Keep default values on error
         setLeadsStats({
           totalLeads: 0,
           newLeadsToday: 0,
@@ -245,14 +250,15 @@ function LeadsPageContent() {
 
   // Fetch regions on component mount
   useEffect(() => {
+    if (hasFetchedRegions.current) return;
+    hasFetchedRegions.current = true;
+
     const fetchRegions = async () => {
       try {
         setIsLoadingRegions(true);
         setRegionsError(null);
         
         const response = await regionAPI.getRegions();
-        
-        // Map API response to our regions format
         const regionsData = response.data?.regions || response.regions || response.data || [];
         
         const mappedRegions = regionsData.map((region: {
@@ -268,8 +274,6 @@ function LeadsPageContent() {
         setRegions(mappedRegions);
       } catch (error) {
         setRegionsError(error instanceof Error ? error.message : 'Failed to fetch regions');
-        
-        // Fallback to static regions if API fails
         const fallbackRegions = [
           { id: '1', name: 'Mumbai', city: 'Mumbai', state: 'Maharashtra', description: 'Financial capital of India' },
           { id: '2', name: 'Delhi', city: 'Delhi', state: 'Delhi', description: 'Capital of India' },
@@ -279,37 +283,36 @@ function LeadsPageContent() {
           { id: '6', name: 'Chennai', city: 'Chennai', state: 'Tamil Nadu', description: 'Gateway to South India' }
         ];
         setRegions(fallbackRegions);
-    } finally {
+      } finally {
         setIsLoadingRegions(false);
-    }
-  };
+      }
+    };
 
     fetchRegions();
   }, []);
 
   // Fetch brokers on component mount
   useEffect(() => {
+    if (hasFetchedBrokers.current) return;
+    hasFetchedBrokers.current = true;
+
     const fetchBrokers = async () => {
       try {
         setIsLoadingBrokers(true);
         setBrokersError(null);
         
-        // Fetch brokers in batches (API limit is 100 per page)
-        const limit = 100; // Maximum allowed by API
+        const limit = 100;
         const allBrokersData: Array<{
           _id?: string; id?: string; name?: string; brokerName?: string; firmName?: string;
         }> = [];
         
-        // Fetch first page to get pagination info
         const firstResponse = await brokerAPI.getBrokers(1, limit, undefined, '', undefined);
         const pagination = firstResponse?.data?.pagination || firstResponse?.pagination || {};
         const totalPages = pagination.totalPages || 1;
         
-        // Extract brokers from first page
         const firstPageBrokers = firstResponse?.data?.brokers || firstResponse?.brokers || firstResponse?.data || [];
         allBrokersData.push(...firstPageBrokers);
         
-        // Fetch remaining pages if there are more
         if (totalPages > 1) {
           const pagePromises = [];
           for (let page = 2; page <= totalPages; page++) {
@@ -323,7 +326,6 @@ function LeadsPageContent() {
           });
         }
         
-        // Map API response to broker names array
         const brokerData = allBrokersData.map((broker: {
           _id?: string; id?: string; name?: string; brokerName?: string; firmName?: string;
         }) => ({
@@ -331,7 +333,6 @@ function LeadsPageContent() {
           name: broker.name || broker.brokerName || broker.firmName || 'Unknown Broker'
         })).filter((broker: {id: string, name: string}) => broker.id && broker.name);
         
-        // Remove duplicates based on ID and sort alphabetically by name
         const brokerMap = new Map<string, {id: string, name: string}>();
         brokerData.forEach((broker: {id: string, name: string}) => {
           brokerMap.set(broker.id, broker);
@@ -341,8 +342,6 @@ function LeadsPageContent() {
         setAllBrokers(uniqueBrokers);
       } catch (error) {
         setBrokersError(error instanceof Error ? error.message : 'Failed to fetch brokers');
-        
-        // Fallback to static brokers if API fails
         const fallbackBrokers = [
           { id: '1', name: 'Amit Singh' },
           { id: '2', name: 'Suresh Patel' },
@@ -723,8 +722,15 @@ function LeadsPageContent() {
 
   // Fetch leads when key inputs change (debounced)
   useEffect(() => {
+    if (!hasFetchedLeads.current) {
+      hasFetchedLeads.current = true;
+      fetchLeads();
+      return;
+    }
+    // Only refetch if filters actually changed
     fetchLeads();
-  }, [fetchLeads, brokerId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchTerm, statusFilter, brokerId]);
 
 
   const closeView = () => {

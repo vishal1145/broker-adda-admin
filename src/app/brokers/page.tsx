@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -589,13 +589,19 @@ function BrokersPageInner() {
     return membershipOk && approvedOk && verificationOk;
   });
 
+  const hasFetched = useRef(false);
+  const prevFilters = useRef({ page: currentPage, search: debouncedSearchTerm, status: debouncedStatusFilter });
 
-  // Fetch brokers when component mounts
+  // Fetch brokers when component mounts (only once)
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    
     fetchBrokers();
     fetchRegions();
     fetchVerifiedBrokerCount();
-  }, [fetchBrokers, fetchRegions, fetchVerifiedBrokerCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle search and status filter changes with debouncing for API-backed filters
   useEffect(() => {
@@ -603,7 +609,6 @@ function BrokersPageInner() {
     const timeoutId = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
       setDebouncedStatusFilter(statusFilter);
-      // Reset page after filters settle; fetching runs via fetchBrokers deps
       setCurrentPage(1);
       setIsSearching(false);
     }, 500);
@@ -612,10 +617,16 @@ function BrokersPageInner() {
     };
   }, [searchTerm, statusFilter]);
 
-  // Refetch when page changes or debounced API filters change
+  // Refetch when debounced filters change (skip if values haven't actually changed)
   useEffect(() => {
+    const prev = prevFilters.current;
+    if (prev.page === currentPage && prev.search === debouncedSearchTerm && prev.status === debouncedStatusFilter) {
+      return;
+    }
+    prevFilters.current = { page: currentPage, search: debouncedSearchTerm, status: debouncedStatusFilter };
     fetchBrokers();
-  }, [currentPage, debouncedSearchTerm, debouncedStatusFilter, fetchBrokers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, debouncedSearchTerm, debouncedStatusFilter]);
 
   // Helper functions
 

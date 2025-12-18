@@ -390,10 +390,11 @@ function SupportPageInner() {
       .trim();
   };
 
-  // Fetch contacts when component mounts
+  // Fetch contacts when component mounts (only once)
   useEffect(() => {
     fetchContacts();
-  }, [fetchContacts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle search and status filter changes with debouncing
   useEffect(() => {
@@ -409,12 +410,6 @@ function SupportPageInner() {
       setIsSearching(false);
     };
   }, [searchTerm, statusFilter]);
-
-  // Refetch when debounced filters change (not on page change since we fetch all data)
-  useEffect(() => {
-    fetchContacts();
-    setCurrentPage(1); // Reset to page 1 when filters change
-  }, [debouncedSearchTerm, debouncedStatusFilter, fetchContacts]);
   
   // Get paginated contacts for current page
   const getPaginatedContacts = (): Contact[] => {
@@ -723,7 +718,7 @@ function SupportPageInner() {
                     </svg>
                   </button>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto popup-content">
                   <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {selectedMessage}
                   </p>

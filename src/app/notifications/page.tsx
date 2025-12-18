@@ -182,18 +182,38 @@ export default function NotificationsPage() {
     }
   }, [currentPage, filter]);
 
+  // Track previous values to prevent duplicate calls
+  const hasFetched = useRef(false);
+  const prevValues = useRef({ currentPage: 1, filter: 'all' });
+
   // Single useEffect for fetching notifications
   useEffect(() => {
+    const currentValues = { currentPage, filter };
+    
+    // Skip if values haven't changed (prevents double calls from React Strict Mode)
+    if (hasFetched.current && JSON.stringify(currentValues) === JSON.stringify(prevValues.current)) {
+      return;
+    }
+    prevValues.current = currentValues;
+    hasFetched.current = true;
+    
     fetchNotifications();
-  }, [fetchNotifications]);
+  }, [currentPage, filter, fetchNotifications]);
 
   // Reset to page 1 when filter changes
   useEffect(() => {
-    setCurrentPage(1);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   // Mark all notifications as read when page loads (only once)
+  const hasMarkedAsRead = useRef(false);
   useEffect(() => {
+    if (hasMarkedAsRead.current) return;
+    hasMarkedAsRead.current = true;
+
     const markAllAsRead = async () => {
       try {
         await notificationsAPI.markAllAsRead();
