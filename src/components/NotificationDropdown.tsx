@@ -64,11 +64,9 @@ export default function NotificationDropdown() {
       
       // Fetch all notifications first to get accurate unread count
       const allResponse = await notificationsAPI.getNotifications(1, 1000, 'all');
-      console.log('🔔 All notifications response:', allResponse);
       
       // Extract all notifications
       const allNotifications = extractNotifications(allResponse);
-      console.log('🔔 Extracted all notifications:', allNotifications.length);
       
       // Count unread notifications - check multiple field names
       const unreadNotifications = allNotifications.filter((notification) => {
@@ -80,9 +78,6 @@ export default function NotificationDropdown() {
         return !isRead; // Return true if NOT read (i.e., unread)
       });
       
-      console.log('🔔 Unread notifications count:', unreadNotifications.length);
-      console.log('🔔 Sample notification:', allNotifications[0]);
-      
       // Also try to get count from pagination if available
       const pagination = (allResponse as { pagination?: { totalUnread?: number; totalNotifications?: number } })?.pagination ||
                         (allResponse as { data?: { pagination?: { totalUnread?: number; totalNotifications?: number } } })?.data?.pagination;
@@ -90,26 +85,20 @@ export default function NotificationDropdown() {
       let count = 0;
       if (pagination?.totalUnread !== undefined) {
         count = pagination.totalUnread;
-        console.log('🔔 Using totalUnread from pagination:', count);
       } else if (pagination?.totalNotifications !== undefined && unreadNotifications.length > 0) {
         // If we have unread notifications but no totalUnread, use the count we calculated
         count = unreadNotifications.length;
-        console.log('🔔 Using calculated unread count:', count);
       } else {
         count = unreadNotifications.length;
-        console.log('🔔 Using calculated unread count (fallback):', count);
       }
       
-      console.log('🔔 Final unread count:', count);
       setUnreadCount(count);
       
       // Ensure we only show 3 recent notifications for dropdown
       const recentNotifications = allNotifications.slice(0, 3);
       setNotifications(recentNotifications);
-      console.log('🔔 Set notifications for dropdown:', recentNotifications.length);
       
-    } catch (error) {
-      console.error('❌ Failed to fetch notifications:', error);
+    } catch {
       setNotifications([]);
       setUnreadCount(0);
     } finally {
@@ -167,7 +156,6 @@ export default function NotificationDropdown() {
     try {
       // Mark all notifications as read before navigating
       await notificationsAPI.markAllAsRead();
-      console.log('✅ All notifications marked as read');
       
       // Reset unread count to 0
       setUnreadCount(0);
@@ -175,8 +163,7 @@ export default function NotificationDropdown() {
       // Close dropdown and navigate
       setIsOpen(false);
       router.push('/notifications');
-    } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
+    } catch {
       // Still navigate even if API call fails
       setIsOpen(false);
       router.push('/notifications');

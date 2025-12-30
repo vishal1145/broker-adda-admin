@@ -2,12 +2,6 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://broker-adda-be.algofolks.com/api';
 import { SharePropertyAPI } from '@/app/properties/page';
 
-// Debug: Log the API base URL on module load (only in development)
-if (typeof window !== 'undefined') {
-  console.log('🌐 API Base URL configured:', API_BASE_URL);
-  console.log('🌐 Environment variable:', process.env.NEXT_PUBLIC_API_BASE_URL || 'Using default');
-}
-
 // Leads API functions
 export const leadsAPI = {
   // Get leads metrics
@@ -1031,17 +1025,83 @@ sharePropertyAPI: async (shareBody: SharePropertyAPI, sharePropertyId: string) =
   });
 
   return response.json();
-}
+  }
+};
+
+// Import API functions
+export const importAPI = {
+  // Import brokers from CSV
+  importBrokers: async (file: File) => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) throw new Error('No authentication token found');
+
+    const formData = new FormData();
+    formData.append('csvFile', file);
+
+    const url = `${API_BASE_URL}/import/brokers`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.error || errorData.message || 'Failed to import brokers');
+      } catch {
+        throw new Error(errorText || 'Failed to import brokers');
+      }
+    }
+    
+    const result = await response.json();
+    return result;
+  },
+
+  // Bulk update brokers
+  bulkUpdateBrokers: async (brokerIds: string[], updates: {
+    verificationStatus?: 'Verified' | 'Unverified';
+    status?: string;
+    rating?: number;
+    approvedByAdmin?: 'unblocked' | 'blocked';
+  }) => {
+    
+    const token = localStorage.getItem('adminToken');
+    
+    if (!token) throw new Error('No authentication token found');
+
+    const url = `${API_BASE_URL}/import/brokers/bulk-update`;
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ brokerIds, updates })
+    });
+
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error('Failed to bulk update brokers');
+    }
+    
+    const result = await response.json();
+    return result;
+  }
 };
 
 // Contact/Support API functions
 export const contactAPI = {
   // Get all contact/support requests with pagination and filters
   getContacts: async (page: number = 1, limit: number = 10, search: string = '', status: string = '') => {
-    console.log('📞 contactAPI.getContacts called with:', { page, limit, search, status });
     
     const token = localStorage.getItem('adminToken');
-    console.log('📞 Token found:', token ? 'Yes' : 'No');
     
     if (!token) throw new Error('No authentication token found');
 
@@ -1053,7 +1113,6 @@ export const contactAPI = {
     });
 
     const url = `${API_BASE_URL}/contact?${params}`;
-    console.log('📞 Making API call to:', url);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -1063,8 +1122,7 @@ export const contactAPI = {
       }
     });
 
-    console.log('📞 Response status:', response.status);
-    console.log('📞 Response ok:', response.ok);
+  
 
     if (!response.ok) {
       let errorMessage = 'Failed to fetch contact requests';
@@ -1079,18 +1137,15 @@ export const contactAPI = {
       }
       
       const errorText = await response.text().catch(() => '');
-      console.error('🔴 API Error:', response.status, errorText);
       throw new Error(`${errorMessage} (Status: ${response.status})`);
     }
     
     const result = await response.json();
-    console.log('📞 API Response:', result);
     return result;
   },
 
   // Update contact request status
   updateContactStatus: async (contactId: string, status: string) => {
-    console.log('📞 contactAPI.updateContactStatus called with ID:', contactId, 'Status:', status);
     
     const token = localStorage.getItem('adminToken');
     if (!token) throw new Error('No authentication token found');
@@ -1107,7 +1162,6 @@ export const contactAPI = {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('🔴 API Error:', errorText);
       throw new Error('Failed to update contact status');
     }
     
@@ -1116,7 +1170,6 @@ export const contactAPI = {
 
   // Delete/Block a contact request
   deleteContact: async (contactId: string) => {
-    console.log('🔴 contactAPI.deleteContact called with ID:', contactId);
     
     const token = localStorage.getItem('adminToken');
     if (!token) throw new Error('No authentication token found');
@@ -1132,7 +1185,6 @@ export const contactAPI = {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('🔴 API Error:', errorText);
       throw new Error('Failed to delete contact request');
     }
     
@@ -1144,8 +1196,6 @@ export const contactAPI = {
 export const notificationsAPI = {
   // Get all notifications with pagination and filters
   getNotifications: async (page: number = 1, limit: number = 10, filter: string = 'all') => {
-    console.log('🔔 notificationsAPI.getNotifications called with:', { page, limit, filter });
-    
     const token = localStorage.getItem('adminToken');
     if (!token) throw new Error('No authentication token found');
 
@@ -1176,8 +1226,6 @@ export const notificationsAPI = {
     if (params.toString()) {
       url += `?${params.toString()}`;
     }
-    
-    console.log('🔔 Making API call to:', url);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -1197,13 +1245,10 @@ export const notificationsAPI = {
         errorMessage = 'Server error. Please try again later.';
       }
       
-      const errorText = await response.text().catch(() => '');
-      console.error('🔴 API Error:', response.status, errorText);
       throw new Error(`${errorMessage} (Status: ${response.status})`);
     }
     
     const result = await response.json();
-    console.log('🔔 API Response:', result);
     return result;
   },
 
@@ -1222,8 +1267,6 @@ export const notificationsAPI = {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('🔴 API Error:', errorText);
       throw new Error('Failed to mark notification as read');
     }
     
@@ -1283,8 +1326,7 @@ export const notificationsAPI = {
       }
       
       return { count };
-    } catch (error) {
-      console.error('Failed to get unread count:', error);
+    } catch {
       return { count: 0 };
     }
   },
@@ -1295,8 +1337,6 @@ export const notificationsAPI = {
     if (!token) throw new Error('No authentication token found');
 
     const url = `${API_BASE_URL}/notifications/admin/read-all`;
-    console.log('🔔 Marking all notifications as read - URL:', url);
-    console.log('🔔 Method: PATCH');
     
     const response = await fetch(url, {
       method: 'PATCH',
@@ -1307,27 +1347,19 @@ export const notificationsAPI = {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('🔴 API Error:', response.status, errorText);
       throw new Error(`Failed to mark all notifications as read (Status: ${response.status})`);
     }
     
     const result = await response.json();
-    console.log('✅ All notifications marked as read successfully');
     return result;
   },
 
   // Get all admin notifications (simple version without pagination/filters)
   getAllNotifications: async () => {
-    console.log('🔔 notificationsAPI.getAllNotifications called');
-    
     const token = localStorage.getItem('adminToken');
-    console.log('🔔 Token found:', token ? 'Yes' : 'No');
-    
     if (!token) throw new Error('No authentication token found');
 
     const url = `${API_BASE_URL}/notifications/admin/all`;
-    console.log('🔔 Making API call to:', url);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -1336,9 +1368,6 @@ export const notificationsAPI = {
         'Authorization': `Bearer ${token}`
       }
     });
-
-    console.log('🔔 Response status:', response.status);
-    console.log('🔔 Response ok:', response.ok);
 
     if (!response.ok) {
       let errorMessage = 'Failed to fetch notifications';
@@ -1352,13 +1381,10 @@ export const notificationsAPI = {
         errorMessage = 'Access denied. You do not have permission to view notifications.';
       }
       
-      const errorText = await response.text().catch(() => '');
-      console.error('🔴 API Error:', response.status, errorText);
       throw new Error(`${errorMessage} (Status: ${response.status})`);
     }
     
     const result = await response.json();
-    console.log('🔔 API Response:', result);
     return result;
   }
 };
