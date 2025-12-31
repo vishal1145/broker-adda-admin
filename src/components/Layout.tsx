@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import NotificationDropdown from '@/components/NotificationDropdown';
+import { useState } from 'react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -14,36 +15,38 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
   };
 
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="h-screen flex overflow-hidden bg-white">
-      {/* Sidebar completely hidden */}
-      {/* <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} /> */}
-
       {/* Main content */}
       <div className="flex flex-col w-full overflow-hidden">
         {/* Top bar */}
         <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow-sm border-b border-gray-200">
           {/* Logo - Left side */}
-          <div className="flex items-center px-6">
+          <div className="flex items-center px-4 md:px-6">
             <Link href="/dashboard" className="flex items-center cursor-pointer hover:opacity-80 transition-opacity">
                <Image
                 src="/images/logo.png"
                 alt="Broker Adda Logo"
                 width={32}
                 height={32}
-                className="mr-3"
+                className="mr-2 md:mr-3"
               />
-              <h1 className="text-xl font-bold text-gray-800">Broker Adda</h1>
+              <h1 className="text-lg md:text-xl font-bold text-gray-800">Broker Adda</h1>
             </Link>
           </div>
 
-          {/* Broker Region Menu - Centered */}
-          <div className="flex items-center justify-center flex-1 space-x-8">
+          {/* Desktop Navigation - Centered */}
+          <div className="hidden lg:flex items-center justify-center flex-1 space-x-6">
             <Link
               href="/dashboard"
               className={`text-sm font-medium transition-colors ${
@@ -74,7 +77,7 @@ export default function Layout({ children }: LayoutProps) {
             >
               Brokers
             </Link>
-              <Link
+            <Link
               href="/leads"
               className={`text-sm font-medium transition-colors ${
                 pathname === '/leads'
@@ -82,7 +85,7 @@ export default function Layout({ children }: LayoutProps) {
                   : 'text-gray-700 hover:text-teal-600'
               }`}
             >
-     Enquiries
+              Enquiries
             </Link>
             <Link
               href="/properties"
@@ -92,7 +95,7 @@ export default function Layout({ children }: LayoutProps) {
                   : 'text-gray-700 hover:text-teal-600'
               }`}
             >
-            Properties
+              Properties
             </Link>
             <Link
               href="/support"
@@ -102,19 +105,18 @@ export default function Layout({ children }: LayoutProps) {
                   : 'text-gray-700 hover:text-teal-600'
               }`}
             >
-            Support
+              Support
             </Link>
           </div>
           
-          {/* User Profile - Right side */}
-          <div className="px-6 flex items-center">
-            <div className="flex items-center space-x-4">
+          {/* Right side - Desktop */}
+          <div className="hidden md:flex px-4 md:px-6 items-center">
+            <div className="flex items-center space-x-3">
               {/* Notification Dropdown */}
               <NotificationDropdown />
 
               {/* User Profile */}
-              <div className="flex items-center">
-                {/* Admin Profile Image */}
+              <div className="hidden lg:flex items-center">
                 <div className="flex-shrink-0">
                   <Image
                     className="h-8 w-8 rounded-full object-cover"
@@ -134,7 +136,7 @@ export default function Layout({ children }: LayoutProps) {
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="ml-4 p-2 text-red-500 hover:text-red-700 transition-colors duration-200 cursor-pointer"
+                className="p-2 text-red-500 hover:text-red-700 transition-colors duration-200 cursor-pointer"
                 title="Logout"
               >
                 <svg
@@ -155,7 +157,110 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
 
+          {/* Mobile Menu Button */}
+          <div className="flex lg:hidden items-center justify-end flex-1 px-4">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 text-gray-600 hover:text-gray-900 focus:outline-none transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden bg-white border-b border-gray-200 shadow-lg">
+            <div className="px-4 pt-2 pb-3 space-y-1">
+              <Link
+                href="/dashboard"
+                onClick={closeMobileMenu}
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  pathname === '/dashboard'
+                    ? 'bg-teal-50 text-teal-600'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-teal-600'
+                }`}
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/regions"
+                onClick={closeMobileMenu}
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  pathname === '/regions'
+                    ? 'bg-teal-50 text-teal-600'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-teal-600'
+                }`}
+              >
+                Regions
+              </Link>
+              <Link
+                href="/brokers"
+                onClick={closeMobileMenu}
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  pathname === '/brokers'
+                    ? 'bg-teal-50 text-teal-600'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-teal-600'
+                }`}
+              >
+                Brokers
+              </Link>
+              <Link
+                href="/leads"
+                onClick={closeMobileMenu}
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  pathname === '/leads'
+                    ? 'bg-teal-50 text-teal-600'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-teal-600'
+                }`}
+              >
+                Enquiries
+              </Link>
+              <Link
+                href="/properties"
+                onClick={closeMobileMenu}
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  pathname === '/properties'
+                    ? 'bg-teal-50 text-teal-600'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-teal-600'
+                }`}
+              >
+                Properties
+              </Link>
+              <Link
+                href="/support"
+                onClick={closeMobileMenu}
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  pathname === '/support'
+                    ? 'bg-teal-50 text-teal-600'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-teal-600'
+                }`}
+              >
+                Support
+              </Link>
+              
+              {/* Mobile Logout Button */}
+              <button
+                onClick={() => {
+                  handleLogout();
+                  closeMobileMenu();
+                }}
+                className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 relative overflow-y-auto focus:outline-none bg-gray-50">

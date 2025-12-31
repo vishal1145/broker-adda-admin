@@ -688,9 +688,9 @@ export default function RegionsPage() {
         </div>
 
         {/* Search and Filter Bar */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 gap-4 mb-6">
           {/* Search Bar */}
-          <div className="relative w-full sm:w-64 md:w-72 lg:w-80 xl:w-[320px]">
+          <div className="relative w-full lg:w-80 xl:w-[320px]">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               {isSearching ? (
                 <svg className="h-5 w-5 text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -714,11 +714,11 @@ export default function RegionsPage() {
           {/* Filter Buttons */}
           <div className="flex flex-wrap items-center gap-2">
             {/* State Filter */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <select
                 value={stateFilter}
                 onChange={(e) => setStateFilter(e.target.value)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none pr-8"
+                className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none pr-8"
               >
                 <option value="all">All States</option>
                 <option value="Uttar Pradesh">Uttar Pradesh</option>
@@ -730,11 +730,11 @@ export default function RegionsPage() {
               </div>
             </div>
             {/* City Filter */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <select
                 value={cityFilter}
                 onChange={(e) => setCityFilter(e.target.value)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none pr-8"
+                className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none pr-8"
               >
                 <option value="all">All Cities</option>
                 <option value="Noida">Noida</option>
@@ -753,7 +753,7 @@ export default function RegionsPage() {
                 setStateFilter('all');
                 setCityFilter('all');
               }}
-              className="inline-flex items-center space-x-2 px-4 cursor-pointer py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
+              className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-4 cursor-pointer py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1446,16 +1446,16 @@ export default function RegionsPage() {
         {loading ? (
           <SummaryCardsSkeleton />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
             {/* Total Regions Card */}
-            <div className="bg-teal-50 rounded-lg p-6 border border-teal-200">
+            <div className="bg-teal-50 rounded-lg p-4 sm:p-6 border border-teal-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-teal-600 text-sm font-medium">Total Regions</p>
-                  <p className="text-2xl font-bold text-teal-700">{regionStats.totalRegions}</p>
+                  <p className="text-teal-600 text-xs sm:text-sm font-medium mb-1">Total Regions</p>
+                  <p className="text-lg sm:text-2xl font-bold text-teal-700">{regionStats.totalRegions}</p>
                 </div>
-                <div className="bg-teal-100 rounded-lg p-3">
-                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-teal-100 rounded-lg p-2">
+                  <svg className="w-4 h-4 sm:w-6 sm:h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -1464,14 +1464,14 @@ export default function RegionsPage() {
             </div>
             
             {/* Total Brokers Card */}
-            <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+            <div className="bg-green-50 rounded-lg p-4 sm:p-6 border border-green-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-800 text-sm font-medium">Total Brokers</p>
-                  <p className="text-2xl font-bold text-gray-800">{regionStats.totalBrokers}</p>
+                  <p className="text-gray-800 text-xs sm:text-sm font-medium mb-1">Total Brokers</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-800">{regionStats.totalBrokers}</p>
                 </div>
-                <div className="bg-green-100 rounded-lg p-3">
-                  <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-green-100 rounded-lg p-2">
+                  <svg className="w-4 h-4 sm:w-6 sm:h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
@@ -1479,14 +1479,14 @@ export default function RegionsPage() {
             </div>
             
             {/* Active Cities Card */}
-            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+            <div className="bg-blue-50 rounded-lg p-4 sm:p-6 border border-blue-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-800 text-sm font-medium">Active Cities</p>
-                  <p className="text-2xl font-bold text-gray-800">{regionStats.activeCities}</p>
+                  <p className="text-gray-800 text-xs sm:text-sm font-medium mb-1">Active Cities</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-800">{regionStats.activeCities}</p>
                 </div>
-                <div className="bg-blue-100 rounded-lg p-3">
-                  <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-blue-100 rounded-lg p-2">
+                  <svg className="w-4 h-4 sm:w-6 sm:h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
@@ -1494,14 +1494,14 @@ export default function RegionsPage() {
             </div>
             
             {/* Active States Card */}
-            <div className="bg-orange-50 rounded-lg p-6 border border-orange-200">
+            <div className="bg-orange-50 rounded-lg p-4 sm:p-6 border border-orange-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-600 text-sm font-medium">Active States</p>
-                  <p className="text-2xl font-bold text-orange-700">{regionStats.activeStates}</p>
+                  <p className="text-orange-600 text-xs sm:text-sm font-medium mb-1">Active States</p>
+                  <p className="text-lg sm:text-2xl font-bold text-orange-700">{regionStats.activeStates}</p>
                 </div>
-                <div className="bg-orange-100 rounded-lg p-3">
-                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-orange-100 rounded-lg p-2">
+                  <svg className="w-4 h-4 sm:w-6 sm:h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -1509,7 +1509,7 @@ export default function RegionsPage() {
             </div>
             
             {/* Avg Brokers/Region Card */}
-            <div className="bg-purple-50 rounded-lg p-6 border border-purple-200">
+            <div className="bg-purple-50 rounded-lg p-4 sm:p-6 border border-purple-200 col-span-2 sm:col-span-1">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-800 text-sm font-medium">Avg. Brokers/Region</p>
@@ -1541,22 +1541,25 @@ export default function RegionsPage() {
                 </div>
             ) : (
               <>
-                {/* Table Header */}
-                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                  <div className="grid grid-cols-5 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    <div>Region</div>
-                    <div>Description</div>
-                    <div>Center</div>
-                    <div>Brokers</div>
-                    <div>Action</div>
-              </div>
-                </div>
+                {/* Horizontal Scroll Wrapper */}
+                <div className="overflow-x-auto">
+                  <div className="min-w-[900px]">
+                    {/* Table Header */}
+                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                      <div className="grid grid-cols-5 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                        <div className="min-w-[180px]">Region</div>
+                        <div className="min-w-[200px]">Description</div>
+                        <div className="min-w-[180px]">Center</div>
+                        <div className="min-w-[120px]">Brokers</div>
+                        <div className="min-w-[140px]">Action</div>
+                      </div>
+                    </div>
 
-                {/* Table Body */}
-                <div className="divide-y divide-gray-200">
-                  {regions.map((region) => (
-                    <div key={region._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                      <div className="grid grid-cols-5 gap-4 items-center">
+                    {/* Table Body */}
+                    <div className="divide-y divide-gray-200">
+                      {regions.map((region) => (
+                        <div key={region._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                          <div className="grid grid-cols-5 gap-4 items-center">
                         {/* Region Column */}
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
@@ -1639,7 +1642,9 @@ export default function RegionsPage() {
                       </div>
                     </div>
                   ))}
+                    </div>
                   </div>
+                </div>
               </>
             )}
           </div>

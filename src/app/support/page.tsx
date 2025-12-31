@@ -435,9 +435,9 @@ function SupportPageInner() {
           </div>
 
           {/* Search and Filter Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 gap-4 mb-6">
             {/* Search Bar */}
-            <div className="relative w-full sm:w-64 md:w-72 lg:w-80 xl:w-[320px]">
+            <div className="relative w-full lg:w-80 xl:w-[320px]">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   {isSearching ? (
                     <svg className="h-5 w-5 text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -497,7 +497,7 @@ function SupportPageInner() {
                     setSearchTerm('');
                     setStatusFilter('all');
                   }}
-                  className="inline-flex items-center space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
+                  className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -519,16 +519,16 @@ function SupportPageInner() {
           {loading ? (
             <SummaryCardsSkeleton />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
               {/* Total Contacts Card */}
-              <div className="bg-teal-50 rounded-lg p-6 border border-teal-200">
+              <div className="bg-teal-50 rounded-lg p-4 sm:p-6 border border-teal-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-teal-600 text-xs font-medium">Total Contacts</p>
-                    <p className="text-xl font-bold text-teal-700">{contactStats.total}</p>
+                    <p className="text-teal-600 text-xs font-medium mb-1">Total Contacts</p>
+                    <p className="text-lg sm:text-xl font-bold text-teal-700">{contactStats.total}</p>
                   </div>
                   <div className="bg-teal-100 rounded-lg p-2">
-                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   </div>
@@ -582,31 +582,34 @@ function SupportPageInner() {
                 </div>
               ) : (
                 <>
-                  {/* Table Header - Full Name and Email as first two columns, then dynamic columns */}
-                  <div className="bg-gray-50 px-6 py-4 w-full border-b border-gray-200">
-                    <div className={`grid gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wide`} style={{ gridTemplateColumns: `repeat(${getTableColumns().length + 2}, minmax(0, 1fr))` }}>
-                      <div>Full Name</div>
-                      <div>Email</div>
-                      {getTableColumns().map((column) => (
-                        <div key={column}>{getColumnLabel(column)}</div>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Horizontal Scroll Wrapper */}
+                  <div className="overflow-x-auto">
+                    <div className="min-w-[800px]">
+                      {/* Table Header - Full Name and Email as first two columns, then dynamic columns */}
+                      <div className="bg-gray-50 px-6 py-4 w-full border-b border-gray-200">
+                        <div className={`grid gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wide`} style={{ gridTemplateColumns: `repeat(${getTableColumns().length + 2}, minmax(150px, 1fr))` }}>
+                          <div className="min-w-[150px]">Full Name</div>
+                          <div className="min-w-[180px]">Email</div>
+                          {getTableColumns().map((column) => (
+                            <div key={column} className="min-w-[150px]">{getColumnLabel(column)}</div>
+                          ))}
+                        </div>
+                      </div>
 
-                  {/* Table Body - Full Name and Email as first two columns, then dynamic columns */}
-                  <div className="divide-y divide-gray-200">
+                      {/* Table Body - Full Name and Email as first two columns, then dynamic columns */}
+                      <div className="divide-y divide-gray-200">
                     {getPaginatedContacts().map((contact: Contact) => {
                       const columns = getTableColumns();
                       return (
                         <div key={contact._id || String(contact._id) || Math.random()} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                          <div className={`grid gap-4 items-center`} style={{ gridTemplateColumns: `repeat(${columns.length + 2}, minmax(0, 1fr))` }}>
+                          <div className={`grid gap-4 items-center`} style={{ gridTemplateColumns: `repeat(${columns.length + 2}, minmax(150px, 1fr))` }}>
                             {/* Full Name Column - First */}
-                            <div className="text-sm font-semibold text-gray-900">
+                            <div className="text-sm font-semibold text-gray-900 min-w-[150px]">
                               {getFullName(contact)}
                             </div>
                             
                             {/* Email Column - Second */}
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-500 min-w-[180px]">
                               {contact.email || '-'}
                             </div>
                             
@@ -630,7 +633,7 @@ function SupportPageInner() {
                                 const { truncated, full, shouldTruncate } = truncateMessage(messageText);
                                 
                                 return (
-                                  <div key={column} className={`text-sm ${textColorClass}`}>
+                                  <div key={column} className={`text-sm ${textColorClass} min-w-[150px]`}>
                                     <span>{truncated}</span>
                                     {shouldTruncate && (
                                       <>
@@ -651,7 +654,7 @@ function SupportPageInner() {
                               }
                               
                               return (
-                                <div key={column} className={`text-sm ${textColorClass}`}>
+                                <div key={column} className={`text-sm ${textColorClass} min-w-[150px]`}>
                                   {isStatusColumn && typeof formattedValue === 'string' && formattedValue.startsWith('__CHIP__') ? (
                                     renderStatusChip(formattedValue.replace('__CHIP__', ''))
                                   ) : (
@@ -664,6 +667,8 @@ function SupportPageInner() {
                         </div>
                       );
                     })}
+                      </div>
+                    </div>
                   </div>
                 </>
               )}

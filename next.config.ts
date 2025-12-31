@@ -66,6 +66,16 @@ const nextConfig: NextConfig = {
         hostname: 'broker-adda.algofolks.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'media.istockphoto.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.investopedia.com',
+        pathname: '/**',
+      },
     ],
   },
 };

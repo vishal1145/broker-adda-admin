@@ -666,9 +666,9 @@ const router = useRouter();
         </div>
 
         {/* Search and Filter Bar */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 gap-4 mb-6">
           {/* Search Bar */}
-          <div className="relative w-full sm:w-64 md:w-72 lg:w-80 xl:w-[320px]">
+          <div className="relative w-full lg:w-80 xl:w-[320px]">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               {isSearching ? (
                 <svg className="h-5 w-5 text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -692,11 +692,11 @@ const router = useRouter();
           {/* Filter Buttons */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Broker Status Dropdown */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
               >
                 <option value="all">All Brokers</option>
                 <option value="unblocked">Unblocked</option>
@@ -711,11 +711,11 @@ const router = useRouter();
               </div>
             </div>
             {/* Membership Dropdown */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <select
                 value={membershipFilter}
                 onChange={(e) => setMembershipFilter(e.target.value)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
               >
                 <option value="all">All Membership</option>
                 <option value="basic plan">Basic Plan</option>
@@ -728,14 +728,14 @@ const router = useRouter();
               </div>
             </div>
             {/* Region Dropdown */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <select
                 value={regionFilter}
                 onChange={(e) => {
                   setRegionFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-40 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
               >
                 <option value="all">All Regions</option>
                 {regions.map((r) => (
@@ -758,7 +758,7 @@ const router = useRouter();
                   setMembershipFilter('all');
                   setRegionFilter('all');
                 }}
-                className="inline-flex items-center cursor-pointer space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
+                className="w-full sm:w-auto inline-flex items-center justify-center cursor-pointer space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -780,16 +780,16 @@ const router = useRouter();
         {loading ? (
           <SummaryCardsSkeleton />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
             {/* Total Brokers Card */}
-            <div className="bg-teal-50 rounded-lg p-6 border border-teal-200">
+            <div className="bg-teal-50 rounded-lg p-4 sm:p-6 border border-teal-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-teal-600 text-xs font-medium">Total Brokers</p>
-                  <p className="text-xl font-bold text-teal-700">{brokerStats.total}</p>
+                  <p className="text-teal-600 text-xs font-medium mb-1">Total Brokers</p>
+                  <p className="text-lg sm:text-xl font-bold text-teal-700">{brokerStats.total}</p>
                 </div>
                 <div className="bg-teal-100 rounded-lg p-2">
-                  <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
@@ -797,14 +797,14 @@ const router = useRouter();
             </div>
 
             {/* Unblocked Brokers Card */}
-            <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+            <div className="bg-green-50 rounded-lg p-4 sm:p-6 border border-green-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-600 text-xs font-medium">Unblocked</p>
-                  <p className="text-xl font-bold text-green-700">{brokerStats.unblocked}</p>
+                  <p className="text-green-600 text-xs font-medium mb-1">Unblocked</p>
+                  <p className="text-lg sm:text-xl font-bold text-green-700">{brokerStats.unblocked}</p>
                 </div>
                 <div className="bg-green-100 rounded-lg p-2">
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -812,14 +812,14 @@ const router = useRouter();
             </div>
 
             {/* Verified Brokers Card */}
-            <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
+            <div className="bg-blue-50 rounded-lg p-4 sm:p-6 border border-blue-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-600 text-xs font-medium">Verified Brokers</p>
-                  <p className="text-xl font-bold text-blue-700">{brokerStats.verified}</p>
+                  <p className="text-blue-600 text-xs font-medium mb-1">Verified Brokers</p>
+                  <p className="text-lg sm:text-xl font-bold text-blue-700">{brokerStats.verified}</p>
                 </div>
                 <div className="bg-blue-100 rounded-lg p-2">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m-3-6a9 9 0 100 18 9 9 0 000-18z" />
                   </svg>
                 </div>
@@ -827,14 +827,14 @@ const router = useRouter();
             </div>
 
             {/* Disabled Brokers Card */}
-            <div className="bg-red-50 rounded-lg p-6 border border-red-200">
+            <div className="bg-red-50 rounded-lg p-4 sm:p-6 border border-red-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-red-600 text-xs font-medium">Blocked</p>
-                  <p className="text-xl font-bold text-red-600">{brokerStats.blocked}</p>
+                  <p className="text-red-600 text-xs font-medium mb-1">Blocked</p>
+                  <p className="text-lg sm:text-xl font-bold text-red-600">{brokerStats.blocked}</p>
                 </div>
                 <div className="bg-red-100 rounded-lg p-2">
-                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zM5 19L19 5" />
                   </svg>
                 </div>
@@ -983,27 +983,30 @@ const router = useRouter();
             </div>
           ) : (
             <>
-              {/* Table Header */}
-              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                <div className="grid grid-cols-7 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                  <div>Name</div>
-                  <div>Contact</div>
-                  <div>Region</div>
-                  <div>Membership</div>
-                  <div>Numbers</div>
-                  <div>Status</div>
-                  <div>Action</div>
-                </div>
-              </div>
+              {/* Horizontal Scroll Wrapper */}
+              <div className="overflow-x-auto">
+                <div className="min-w-[1200px]">
+                  {/* Table Header */}
+                  <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <div className="grid grid-cols-7 gap-4 text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      <div className="min-w-[180px]">Name</div>
+                      <div className="min-w-[180px]">Contact</div>
+                      <div className="min-w-[150px]">Region</div>
+                      <div className="min-w-[140px]">Membership</div>
+                      <div className="min-w-[120px]">Numbers</div>
+                      <div className="min-w-[120px]">Status</div>
+                      <div className="min-w-[120px]">Action</div>
+                    </div>
+                  </div>
 
-              {/* Table Body */}
-              <div className="divide-y divide-gray-200">
-                {filteredBrokers.map((broker: Broker) => {
-                  return (
-                    <div key={broker._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                      <div className="grid grid-cols-7 gap-4 items-center">
+                  {/* Table Body */}
+                  <div className="divide-y divide-gray-200">
+                    {filteredBrokers.map((broker: Broker) => {
+                      return (
+                        <div key={broker._id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                          <div className="grid grid-cols-7 gap-4 items-center">
                         {/* Name Column */}
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 min-w-[180px]">
                           <Link href={`/brokers/${broker.userId}`} className="cursor-pointer">
                             {hasValidBrokerImage(broker.brokerImage) ? (
                               <Image
@@ -1031,7 +1034,7 @@ const router = useRouter();
                         </div>
 
                         {/* Contact Column */}
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-gray-900 min-w-[180px]">
                           <div className="flex items-center space-x-1">
                             <svg className="w-4 h-4 text-gray-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -1057,7 +1060,7 @@ const router = useRouter();
                         </div>
 
                         {/* Region Column */}
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-gray-900 min-w-[150px]">
                           {broker.region && broker.region.length > 0 ? (
                             <div>
                               <div className="font-semibold text-gray-900">{broker.region[0].name}</div>
@@ -1069,14 +1072,14 @@ const router = useRouter();
                         </div>
 
                         {/* Membership Column */}
-                        <div>
+                        <div className="min-w-[140px]">
                           <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800'>
                           {broker?.subscription?.planType || 'No Subscription'}
                           </span>
                         </div>
 
                         {/* Numbers Column */}
-                       <div className="text-sm space-y-1">
+                       <div className="text-sm space-y-1 min-w-[120px]">
   {/* Leads count (clickable) */}
   <div
                             className="capitalize text-blue-500 cursor-pointer hover:text-blue-600 transition-colors"
@@ -1095,7 +1098,7 @@ const router = useRouter();
 </div>
 
                         {/* Status Column */}
-                        <div>
+                        <div className="min-w-[120px]">
                           {(() => {
                             const verifyStatus = getVerificationStatus(broker._id);
                             if (verifyStatus === 'verified') {
@@ -1127,7 +1130,7 @@ const router = useRouter();
                         </div>
 
                         {/* Action Column */}
-                        <div>
+                        <div className="min-w-[120px]">
                           {(() => {
                             if (broker.approvedByAdmin === 'unblocked') {
                               return (
@@ -1173,7 +1176,9 @@ const router = useRouter();
                     </div>
                   );
                 })}
+                </div>
               </div>
+            </div>
             </>
             )}
           </div>

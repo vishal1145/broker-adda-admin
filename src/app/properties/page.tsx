@@ -928,9 +928,9 @@ function PropertiesPageContent() {
 
             {/* Search and Filter Bar */}
             {!brokerId && (
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 mb-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 gap-4 mb-6">
                 {/* Search Bar */}
-                <div className="relative w-full sm:w-64 md:w-72 lg:w-80 xl:w-[320px]">
+                <div className="relative w-full lg:w-80 xl:w-[320px]">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     {isSearching ? (
                       <svg className="h-5 w-5 text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -954,11 +954,11 @@ function PropertiesPageContent() {
                 {/* Filter Buttons */}
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Property Type Dropdown */}
-                  <div className="relative">
+                  <div className="relative w-full sm:w-auto">
                     <select
                       value={typeFilter}
                       onChange={(e) => setTypeFilter(e.target.value)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                      className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                     >
                       <option value="all">All Properties</option>
                       <option value="Residential">Residential</option>
@@ -984,11 +984,11 @@ function PropertiesPageContent() {
                   </div>
 
                   {/* Status Dropdown */}
-                  <div className="relative">
+                  <div className="relative w-full sm:w-auto">
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                      className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                     >
                       <option value="all">All Status</option>
                       <option value="Available">Available</option>
@@ -1015,11 +1015,11 @@ function PropertiesPageContent() {
                   </div>
 
                   {/* Region Dropdown */}
-                  <div className="relative">
+                  <div className="relative w-full sm:w-auto">
                     <select
                       value={regionFilter}
                       onChange={(e) => setRegionFilter(e.target.value)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                      className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                     >
                       <option value="all">All Regions</option>
                       {regionsLoading ? (
@@ -1052,7 +1052,7 @@ function PropertiesPageContent() {
                   </div>
 
                   {/* Broker Dropdown */}
-                  <div className="relative">
+                  <div className="relative w-full sm:w-auto">
                     <select
                       value={brokerFilter}
                       onChange={(e) => {
@@ -1060,7 +1060,7 @@ function PropertiesPageContent() {
                         console.log("🔷 Broker filter changed from", brokerFilter, "to", newValue);
                         setBrokerFilter(newValue);
                       }}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                      className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                     >
                       <option value="all">All Brokers</option>
                       {brokersLoading ? (
@@ -1105,7 +1105,7 @@ function PropertiesPageContent() {
                         setRegionFilter("all");
                         setBrokerFilter("all");
                       }}
-                      className="inline-flex cursor-pointer items-center space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
+                      className="w-full sm:w-auto inline-flex justify-center cursor-pointer items-center space-x-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 hover:border-red-300 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1131,9 +1131,9 @@ function PropertiesPageContent() {
             {metricsLoading ? (
               <SummaryCardsSkeleton />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
                 {/* Total Properties Card */}
-                <div className="bg-teal-50 rounded-lg p-6 border border-teal-200">
+                <div className="bg-teal-50 rounded-lg p-4 sm:p-6 border border-teal-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-teal-600 text-xs font-medium">
@@ -1162,7 +1162,7 @@ function PropertiesPageContent() {
                 </div>
 
                 {/* Available Properties Card */}
-                <div className="bg-green-50 rounded-lg p-6 border border-green-200">
+                <div className="bg-green-50 rounded-lg p-4 sm:p-6 border border-green-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-green-600 text-xs font-medium">
@@ -1191,7 +1191,7 @@ function PropertiesPageContent() {
                 </div>
 
                 {/* Sold Properties Card */}
-                <div className="bg-red-50 rounded-lg p-6 border border-red-200">
+                <div className="bg-red-50 rounded-lg p-4 sm:p-6 border border-red-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-red-600 text-xs font-medium">Sold</p>

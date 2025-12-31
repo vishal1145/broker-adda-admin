@@ -730,7 +730,7 @@ function LeadsPageContent() {
     // Refetch when filters change
     fetchLeads();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm, statusFilter, brokerId, filterRegion, filterBroker, appliedFilters, isFilterApplied]);
+  }, [currentPage, debouncedSearchTerm, statusFilter, brokerId, filterRegion, filterBroker, appliedFilters, isFilterApplied]);
 
 
   const closeView = () => {
@@ -1220,9 +1220,9 @@ function LeadsPageContent() {
 
               {/* Search and Filters - Under title/description */}
                 {!brokerId && (
-                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-                 {/* Search Bar (left) */}
-                 <div className="relative w-full sm:w-64 md:w-72 lg:w-80 xl:w-[320px]">
+                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+                 {/* Search Bar */}
+                 <div className="relative w-full lg:w-80 xl:w-[320px]">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     {isSearching ? (
                       <svg className="h-5 w-5 text-gray-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1243,10 +1243,10 @@ function LeadsPageContent() {
                   />
                 </div>
 
-                {/* Right side controls: region + status + Advanced Filters */}
-                <div className="flex items-center gap-3 sm:ml-4">
-                {/* Region Dropdown (moved from Advanced Filters) */}
-                <div className="relative">
+                {/* Filter Dropdowns */}
+                <div className="flex flex-wrap items-center gap-2">
+                {/* Region Dropdown */}
+                <div className="relative w-full sm:w-auto">
                   <select
                     value={filterRegion}
                     onChange={async (e) => {
@@ -1255,7 +1255,7 @@ function LeadsPageContent() {
                       setCurrentPage(1);
                       await fetchLeads();
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                    className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                   >
                     <option value="">All Regions</option>
                     {isLoadingRegions ? (
@@ -1277,11 +1277,11 @@ function LeadsPageContent() {
                   </div>
                 </div>
                 {/* Status Dropdown */}
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                    className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                   >
                     <option value="all">All Status</option>
                     {uniqueStatuses.map((status) => (
@@ -1298,11 +1298,11 @@ function LeadsPageContent() {
                 </div>
 
                 {/* Broker Filter Dropdown */}
-                <div className="relative">
+                <div className="relative w-full sm:w-auto">
                   <select
                     value={filterBroker}
                     onChange={(e) => setFilterBroker(e.target.value)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
+                    className="w-full sm:w-auto min-w-[160px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none pr-8"
                   >
                     <option value="">All Brokers</option>
                     {isLoadingBrokers ? (
@@ -1350,9 +1350,9 @@ function LeadsPageContent() {
               )}
 
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                 {/* Total Leads */}
-                <div className="relative rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+                <div className="relative rounded-xl border border-blue-200 bg-blue-50/40 p-3 sm:p-4">
                   <div>
                     {isLoadingStats ? (
                       <div className="animate-pulse">
@@ -1380,7 +1380,7 @@ function LeadsPageContent() {
                 </div>
 
                 {/* New Leads Today */}
-                <div className="relative rounded-xl border border-green-200 bg-green-50/40 p-4">
+                <div className="relative rounded-xl border border-green-200 bg-green-50/40 p-3 sm:p-4">
                   <div>
                     {isLoadingStats ? (
                       <div className="animate-pulse">
